@@ -358,7 +358,6 @@ window.convertiAltezzaIOS=convertiAltezzaSubito;
 <script>
 (function(){
 'use strict';
-let pendingPrint='';
 const form=document.getElementById('cartellaForm'), status=document.getElementById('status');
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 document.querySelectorAll('.today').forEach(e=>{if(!e.value)e.value=today()});
@@ -483,7 +482,7 @@ document.getElementById('archiveModal').addEventListener('click',e=>{if(e.target
 document.getElementById('btnSalva').onclick=saveCartellaVerified;
 document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{apply(JSON.parse(r.result));setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}};r.readAsText(f)};
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;form.reset();document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
-document.getElementById('btnStampa').onclick=()=>{pendingPrint='PDF CARTELLA';document.body.className='print-cartella';window.print()};
+document.getElementById('btnStampa').onclick=()=>{pendingPrint='PDF CARTELLA';document.body.className='print-cartella';setTimeout(()=>window.print(),100)};
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
 function text(id){return(document.getElementById(id)||{}).value||''}
 function checkedValues(sel){return[...document.querySelectorAll(sel+':checked')].map(x=>x.value)}
