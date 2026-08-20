@@ -773,12 +773,12 @@ function updateOutput(){
  outputs.forEach(out=>{if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}});
 }
 function sizeCanvas(){
- const d=Math.max(1,Math.min(3,window.devicePixelRatio||1));
- canvas.width=Math.max(1,Math.round(canvas.clientWidth*d));canvas.height=Math.max(1,Math.round(canvas.clientHeight*d));ctx.setTransform(1,0,0,1,0,0);ctx.lineWidth=2.4*d;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';
+ const r=canvas.getBoundingClientRect(),d=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+ canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';
 }
-function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height);hasInk=false;last=null}
-function loadCanvas(data){clearCanvas();if(!data)return;const im=new Image();im.onload=()=>{ctx.drawImage(im,0,0,canvas.width,canvas.height);hasInk=true};im.src=data}
-function point(e){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left-canvas.clientLeft,y=e.clientY-r.top-canvas.clientTop;return{x:x*(canvas.width/canvas.clientWidth),y:y*(canvas.height/canvas.clientHeight)}}
+function clearCanvas(){ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);hasInk=false;last=null}
+function loadCanvas(data){clearCanvas();if(!data)return;const im=new Image();im.onload=()=>{ctx.drawImage(im,0,0,canvas.clientWidth,canvas.clientHeight);hasInk=true};im.src=data}
+function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function start(e){e.preventDefault();drawing=true;last=point(e);try{canvas.setPointerCapture(e.pointerId)}catch(_){}}
 function move(e){if(!drawing)return;e.preventDefault();const p=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;hasInk=true}
 function end(e){if(!drawing)return;e.preventDefault();drawing=false;last=null}
@@ -786,7 +786,7 @@ canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermov
 document.getElementById('btnFirmaLavoratore').addEventListener('click',()=>{
  const id=identity();if(!id.key){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
  currentKey=id.key;currentSaved=readStore()[currentKey]||'';nameBox.textContent=id.label;modal.classList.add('show');modal.setAttribute('aria-hidden','false');
- requestAnimationFrame(()=>requestAnimationFrame(()=>{sizeCanvas();loadCanvas(currentSaved)}))
+ requestAnimationFrame(()=>{sizeCanvas();loadCanvas(currentSaved)})
 });
 document.getElementById('workerSignCancel').onclick=()=>{modal.classList.remove('show');modal.setAttribute('aria-hidden','true')};
 document.getElementById('workerSignClear').onclick=clearCanvas;
