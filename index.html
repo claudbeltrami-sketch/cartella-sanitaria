@@ -555,11 +555,8 @@ document.getElementById('btnCert').onclick=()=>{
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
 document.getElementById('btnPrintCert').onclick=async()=>{
  const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
- let previewWindow=null;
  try{
   if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
-  previewWindow=window.open('about:blank','_blank');
-  if(previewWindow){previewWindow.document.write('<!doctype html><meta name="viewport" content="width=device-width"><title>Preparazione PDF</title><p style="font:700 18px Arial;padding:24px">PREPARAZIONE DEL PDF IN CORSO…</p>');previewWindow.document.close()}
   btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
   const page=document.querySelector('#certificate .page');
   const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
@@ -572,16 +569,11 @@ document.getElementById('btnPrintCert').onclick=async()=>{
   const data=(text('data_giudizio')||text('data_cartella')||today()).replace(/-/g,'');
   const fileName=nome+'_'+data+'.pdf';
   const url=URL.createObjectURL(blob);
-  if(previewWindow&&!previewWindow.closed){
-   previewWindow.location.replace(url);
-  }else{
-   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
-  }
+  showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Usa Condividi per salvarlo o stamparlo.');
+  setStatus('APERTURA PDF CERTIFICATO SENZA INTESTAZIONI O PIÈ DI PAGINA...');
+  window.location.assign(url);
   setTimeout(()=>URL.revokeObjectURL(url),300000);
-  showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Il PDF è stato aperto: usa Condividi per salvarlo o stamparlo.');
-  setStatus('PDF CERTIFICATO APERTO SENZA INTESTAZIONI O PIÈ DI PAGINA DEL BROWSER.');
  }catch(err){
-  if(previewWindow&&!previewWindow.closed)previewWindow.close();
   alert(err.message||String(err));setStatus('ERRORE NELLA CREAZIONE DEL PDF CERTIFICATO.');
  }finally{btn.disabled=false;btn.textContent=oldText}
 };
