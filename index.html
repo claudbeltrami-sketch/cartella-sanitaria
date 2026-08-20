@@ -91,6 +91,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .worker-sign-help{text-align:center;font-size:13px;color:#444;margin:7px 0}.worker-sign-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .worker-sign-output{position:relative;height:0}.worker-sign-output img{display:none;position:absolute;left:4%;top:1mm;width:92%;height:18mm;object-fit:contain;z-index:2}
 .worker-sign-output img.has-signature{display:block}
+/* Firma lavoratore nella cartella: sollevata e mantenuta sopra la riga */
+.cartella .cartella-worker-signature .worker-sign-output img{top:-7mm;height:17mm}
 /* Firma lavoratore sul certificato: mantenuta interamente sopra la riga */
 .certificate .worker-receipt-signature .worker-sign-output img{top:-6mm;height:17mm}
 @media (max-width:850px){.worker-sign-modal{padding:6px}.worker-sign-card{width:calc(100vw - 12px);max-width:none;padding:10px}.worker-sign-card h3{font-size:18px}#workerSignCanvas{height:280px}.worker-sign-help:before{content:'RUOTA L’IPHONE IN ORIZZONTALE. ';font-weight:700;color:var(--blu)}}
