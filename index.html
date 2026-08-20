@@ -102,6 +102,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- PDF certificato pulito: evita URL/data/pagina aggiunti da Safari iPhone -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="toolbar">
@@ -550,7 +553,33 @@ document.getElementById('btnCert').onclick=()=>{
  const luogoVisita=(document.getElementById('v9Sede')?.value||'').trim().toUpperCase();
  document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(luogoVisita?luogoVisita+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
-document.getElementById('btnPrintCert').onclick=()=>{pendingPrint='PDF CERTIFICATO';document.body.className='print-certificato';setTimeout(()=>window.print(),100)};
+document.getElementById('btnPrintCert').onclick=async()=>{
+ const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
+ try{
+  if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
+  btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
+  const page=document.querySelector('#certificate .page');
+  const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
+  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+  const img=canvas.toDataURL('image/jpeg',0.96);
+  pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');
+  const blob=pdf.output('blob');
+  const clean=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^A-Za-z0-9_-]/g,'');
+  const nome=(clean(text('cognome'))+clean(text('nome')))||'CERTIFICATO';
+  const data=(text('data_giudizio')||text('data_cartella')||today()).replace(/-/g,'');
+  const fileName=nome+'_'+data+'.pdf',file=new File([blob],fileName,{type:'application/pdf'});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+   await navigator.share({files:[file],title:'Certificato di idoneità'});
+   showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Puoi salvarlo o stamparlo dal menu Condividi.');
+  }else{
+   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+   showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina.');
+  }
+  setStatus('PDF CERTIFICATO CREATO SENZA INTESTAZIONI O PIÈ DI PAGINA DEL BROWSER.');
+ }catch(err){
+  if(err&&err.name==='AbortError'){setStatus('CONDIVISIONE PDF ANNULLATA.')}else{alert(err.message||String(err));setStatus('ERRORE NELLA CREAZIONE DEL PDF CERTIFICATO.')}
+ }finally{btn.disabled=false;btn.textContent=oldText}
+};
 
 document.getElementById('btnConsenso').onclick=()=>{
  document.getElementById('co_lavoratore').textContent=syncLavoratore();
