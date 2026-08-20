@@ -555,8 +555,11 @@ document.getElementById('btnCert').onclick=()=>{
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
 document.getElementById('btnPrintCert').onclick=async()=>{
  const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
+ let previewWindow=null;
  try{
   if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
+  previewWindow=window.open('about:blank','_blank');
+  if(previewWindow){previewWindow.document.write('<!doctype html><meta name="viewport" content="width=device-width"><title>Preparazione PDF</title><p style="font:700 18px Arial;padding:24px">PREPARAZIONE DEL PDF IN CORSO…</p>');previewWindow.document.close()}
   btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
   const page=document.querySelector('#certificate .page');
   const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
@@ -567,17 +570,19 @@ document.getElementById('btnPrintCert').onclick=async()=>{
   const clean=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^A-Za-z0-9_-]/g,'');
   const nome=(clean(text('cognome'))+clean(text('nome')))||'CERTIFICATO';
   const data=(text('data_giudizio')||text('data_cartella')||today()).replace(/-/g,'');
-  const fileName=nome+'_'+data+'.pdf',file=new File([blob],fileName,{type:'application/pdf'});
-  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-   await navigator.share({files:[file],title:'Certificato di idoneità'});
-   showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Puoi salvarlo o stamparlo dal menu Condividi.');
+  const fileName=nome+'_'+data+'.pdf';
+  const url=URL.createObjectURL(blob);
+  if(previewWindow&&!previewWindow.closed){
+   previewWindow.location.replace(url);
   }else{
-   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-   showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina.');
+   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   }
-  setStatus('PDF CERTIFICATO CREATO SENZA INTESTAZIONI O PIÈ DI PAGINA DEL BROWSER.');
+  setTimeout(()=>URL.revokeObjectURL(url),300000);
+  showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Il PDF è stato aperto: usa Condividi per salvarlo o stamparlo.');
+  setStatus('PDF CERTIFICATO APERTO SENZA INTESTAZIONI O PIÈ DI PAGINA DEL BROWSER.');
  }catch(err){
-  if(err&&err.name==='AbortError'){setStatus('CONDIVISIONE PDF ANNULLATA.')}else{alert(err.message||String(err));setStatus('ERRORE NELLA CREAZIONE DEL PDF CERTIFICATO.')}
+  if(previewWindow&&!previewWindow.closed)previewWindow.close();
+  alert(err.message||String(err));setStatus('ERRORE NELLA CREAZIONE DEL PDF CERTIFICATO.');
  }finally{btn.disabled=false;btn.textContent=oldText}
 };
 
