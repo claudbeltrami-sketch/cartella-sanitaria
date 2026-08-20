@@ -85,13 +85,15 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 /* ===== PROVA FIRMA LAVORATORE SU IPHONE ===== */
 .worker-sign-modal{display:none;position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.72);padding:12px;overflow:auto}
 .worker-sign-modal.show{display:flex;align-items:center;justify-content:center}
-.worker-sign-card{width:min(760px,100%);background:#fff;border-radius:14px;padding:14px;box-shadow:0 12px 40px #0008}
+.worker-sign-card{width:min(960px,100%);background:#fff;border-radius:14px;padding:14px;box-shadow:0 12px 40px #0008}
 .worker-sign-card h3{margin:0 0 5px;color:var(--blu);text-align:center}.worker-sign-name{text-align:center;font-weight:700;margin-bottom:10px}
-#workerSignCanvas{display:block;width:100%;height:230px;border:3px solid var(--blu);border-radius:10px;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+#workerSignCanvas{display:block;width:100%;height:clamp(260px,46vh,420px);border:3px solid var(--blu);border-radius:10px;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 .worker-sign-help{text-align:center;font-size:13px;color:#444;margin:7px 0}.worker-sign-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .worker-sign-output{position:relative;height:0}.worker-sign-output img{display:none;position:absolute;left:4%;top:1mm;width:92%;height:18mm;object-fit:contain;z-index:2}
 .worker-sign-output img.has-signature{display:block}
-@media print{.worker-sign-modal{display:none!important}.worker-receipt-signature>div:first-child{position:relative}.worker-sign-output img{height:17mm;top:1mm}}
+@media (max-width:850px){.worker-sign-modal{padding:6px}.worker-sign-card{width:calc(100vw - 12px);max-width:none;padding:10px}.worker-sign-card h3{font-size:18px}#workerSignCanvas{height:280px}.worker-sign-help:before{content:'RUOTA L’IPHONE IN ORIZZONTALE. ';font-weight:700;color:var(--blu)}}
+@media (max-width:850px) and (orientation:landscape){.worker-sign-modal{padding:4px}.worker-sign-card{width:calc(100vw - 8px);height:calc(100vh - 8px);display:grid;grid-template-columns:1fr;grid-template-rows:auto auto minmax(0,1fr) auto auto;align-content:stretch;padding:7px 12px}.worker-sign-card h3{font-size:16px;margin:0}.worker-sign-name{margin-bottom:3px}#workerSignCanvas{height:100%;min-height:150px;max-height:none}.worker-sign-help{font-size:11px;margin:3px 0}.worker-sign-help:before{content:''}.worker-sign-actions button{min-height:38px;padding:7px 12px}}
+@media print{.worker-sign-modal{display:none!important}.worker-receipt-signature>div:first-child,.cartella-worker-signature{position:relative}.worker-sign-output img{height:17mm;top:1mm}}
 
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
@@ -253,7 +255,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="checks"><label class="check">Contemporanea esposizione presso altri datori: <input type="checkbox" id="altri_datori_no">No</label><label class="check"><input type="checkbox" id="altri_datori_si">Sì</label></div>
 <div class="field"><label>Altre notizie utili</label><textarea id="altre_notizie" data-upper></textarea></div>
 <div class="field lines"><label>Anamnesi patologica</label><textarea id="anamnesi_patologica" data-upper></textarea></div>
-<div class="signature-grid"><div><div class="field"><label>Data</label><input id="data_dichiarazione" type="date" class="today"></div></div><div><b>Presa visione il lavoratore</b><div class="signature-line"></div></div></div>
+<div class="signature-grid"><div><div class="field"><label>Data</label><input id="data_dichiarazione" type="date" class="today"></div></div><div class="cartella-worker-signature"><b>Presa visione il lavoratore</b><div class="worker-sign-output"><img id="cartellaAnamnesiWorkerSignature" alt="Firma del lavoratore"></div><div class="signature-line"></div></div></div>
 </section>
 
 <section class="page compact-exams">
@@ -324,7 +326,7 @@ window.convertiAltezzaIOS=convertiAltezzaSubito;
 <div class="row"><div class="field"><label>Periodicità visita medica</label><select id="periodicita"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>QUINQUENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_altro" data-upper></div></div>
 <div class="field"><label>Data</label><input id="data_giudizio" type="date" class="today"></div>
 <p class="small">Avverso il giudizio di idoneità è ammesso ricorso all’Organo di vigilanza territorialmente competente entro 30 giorni. Il lavoratore dichiara di aver ricevuto le informazioni sui rischi lavorativi e sui risultati degli accertamenti sanitari personali.</p>
-<div class="signature-grid"><div><b>Il lavoratore per presa visione</b><div class="signature-line"></div></div><div><b>Il Medico Competente</b><div class="firma-medico-cartella"></div><div class="signature-line"></div></div></div>
+<div class="signature-grid"><div class="cartella-worker-signature"><b>Il lavoratore per presa visione</b><div class="worker-sign-output"><img id="cartellaFinaleWorkerSignature" alt="Firma del lavoratore"></div><div class="signature-line"></div></div><div><b>Il Medico Competente</b><div class="firma-medico-cartella"></div><div class="signature-line"></div></div></div>
 <div class="section-title" style="margin-top:50px">9. TRASMISSIONE DEL GIUDIZIO AL DATORE DI LAVORO</div>
 <div class="row"><div class="field"><label>Effettuata il</label><input id="data_trasmissione" type="date"></div><div class="field"><label>A mezzo</label><input id="mezzo_trasmissione" data-upper></div></div>
 <div class="signature-grid"><div></div><div><b>Il Medico Competente</b><div class="signature-line"></div></div></div>
@@ -754,7 +756,7 @@ $('v9Data').value=today();renderArchives();const active=read(K_SESS,null);if(act
 (function(){
 'use strict';
 const modal=document.getElementById('workerSignModal'),canvas=document.getElementById('workerSignCanvas'),ctx=canvas.getContext('2d');
-const out=document.getElementById('certWorkerSignature'),nameBox=document.getElementById('workerSignName');
+const outputs=['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'].map(id=>document.getElementById(id)).filter(Boolean),nameBox=document.getElementById('workerSignName');
 let drawing=false,hasInk=false,last=null,currentKey='',currentSaved='';
 const value=id=>String((document.getElementById(id)||{}).value||'').trim().toLocaleUpperCase('it-IT');
 function identity(){
@@ -764,7 +766,7 @@ function identity(){
 function readStore(){try{return JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}')}catch(_){return {}}}
 function updateOutput(){
  const id=identity(),data=id.key?(readStore()[id.key]||''):'';
- if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}
+ outputs.forEach(out=>{if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}});
 }
 function sizeCanvas(){
  const r=canvas.getBoundingClientRect(),d=Math.max(1,Math.min(3,window.devicePixelRatio||1));
@@ -788,7 +790,7 @@ document.getElementById('workerSignConfirm').onclick=()=>{
  if(!hasInk){alert('LA FIRMA È VUOTA. FIRMARE NEL RIQUADRO O PREMERE ANNULLA.');return}
  const store=readStore();store[currentKey]=canvas.toDataURL('image/png');try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');updateOutput();
- const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NEL CERTIFICATO.';
+ const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NELLA CARTELLA E NEL CERTIFICATO.';
 };
 document.getElementById('btnAzzera').addEventListener('click',()=>setTimeout(updateOutput,0));
 ['btnCert','btnStampa'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',updateOutput,true)});
