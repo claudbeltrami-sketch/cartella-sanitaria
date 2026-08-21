@@ -837,6 +837,8 @@ canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermov
 if(window.ResizeObserver)new ResizeObserver(()=>{if(modal.classList.contains('show')&&!drawing&&!hasInk)ensureCanvasSize()}).observe(canvas);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{if(modal.classList.contains('show')&&!drawing&&!hasInk)requestAnimationFrame(ensureCanvasSize)});
 document.getElementById('btnFirmaLavoratore').addEventListener('click',()=>{
+ const isTouchDevice=window.matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;
+ if(!isTouchDevice){window.beltramiFirmaIphone.prepare();return}
  const id=identity();if(!id.key){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
  currentKey=id.key;currentSaved=readStore()[currentKey]||'';nameBox.textContent=id.label;modal.classList.add('show');modal.setAttribute('aria-hidden','false');
  requestAnimationFrame(()=>{sizeCanvas();loadCanvas(currentSaved)})
