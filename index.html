@@ -182,6 +182,8 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- OCR locale nel browser per fotografie e PDF scansionati -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <!-- PDF certificato pulito: evita URL/data/pagina aggiunti da Safari iPhone -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -273,7 +275,7 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
  <div class="list-search"><input id="workerSearch" placeholder="CERCA COGNOME O NOME"><button type="button" id="btnPrecedente" class="secondary">PRECEDENTE</button><button type="button" id="btnSuccessivo" class="secondary">SUCCESSIVO</button></div>
  <div class="workers-summary" id="workersSummary">NESSUNA LISTA CARICATA.</div>
  <div class="workers-table-wrap"><table class="workers-table"><thead><tr><th>N.</th><th>STATO</th><th>COGNOME</th><th>NOME</th><th>NASCITA</th><th>ORARIO</th><th>AZIONE</th></tr></thead><tbody id="workersBody"></tbody></table></div>
- <div class="list-note">IMPORTA LISTA accetta Excel, CSV, PDF testuali e Word (.docx), riconosce anche intestazioni alternative e mantiene l’ordine originale. I file vengono elaborati nel browser. Dopo la conferma, una copia del file originale viene conservata localmente sul dispositivo e associata alla sessione. Foto e scansioni possono essere allegate come riferimento; l’OCR non è attivo.</div>
+ <div class="list-note">IMPORTA LISTA accetta Excel, CSV, Word (.docx), PDF testuali e PDF scansionati con OCR. “ALLEGA FOTO / SCANSIONE” riconosce anche le immagini. L’ordine originale viene mantenuto e i dati riconosciuti compaiono sempre nell’anteprima modificabile prima della conferma. I file vengono elaborati nel browser e l’originale viene conservato localmente sul dispositivo.</div>
 </section>
 
 
@@ -769,6 +771,32 @@ async function parseDocx(buf){
  if(!rows.length){for(const p of [...doc.getElementsByTagNameNS('*','p')]){let t=txt(p);if(!t)continue;let cells=t.includes('\t')?t.split(/\t+/):t.split(/\s{2,}/);if(cells.length===1)cells=t.split(/\s*\|\s*/);rows.push(cells)}}
  return rows;
 }
+function ocrRowsFromText(text){
+ return String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+  let cells=line.split(/\t+|\s{2,}|\s*\|\s*|\s*;\s*/).map(x=>x.trim()).filter(Boolean);
+  return cells.length?cells:[line.trim()];
+ });
+}
+function ocrRowsFromTsv(tsv){
+ if(!tsv)return[];
+ const lines=String(tsv).split(/\r?\n/),head=(lines.shift()||'').split('\t'),idx=n=>head.indexOf(n);
+ const I={page:idx('page_num'),block:idx('block_num'),par:idx('par_num'),line:idx('line_num'),left:idx('left'),width:idx('width'),text:idx('text'),conf:idx('conf')},groups=new Map();
+ if(Object.values(I).some(v=>v<0))return[];
+ for(const raw of lines){const a=raw.split('\t'),word=(a[I.text]||'').trim(),conf=Number(a[I.conf]);if(!word||conf<20)continue;const key=[a[I.page],a[I.block],a[I.par],a[I.line]].join(':');if(!groups.has(key))groups.set(key,[]);groups.get(key).push({text:word,left:Number(a[I.left])||0,width:Number(a[I.width])||0})}
+ const rows=[];
+ for(const words of groups.values()){words.sort((a,b)=>a.left-b.left);const avg=words.reduce((s,w)=>s+(w.width/Math.max(1,w.text.length)),0)/Math.max(1,words.length),cut=Math.max(22,avg*2.4);let cells=[],cur='',end=null;for(const w of words){const gap=end==null?0:w.left-end;if(end!=null&&gap>cut){if(cur)cells.push(cur);cur=w.text}else cur+=(cur?' ':'')+w.text;end=w.left+w.width}if(cur)cells.push(cur);if(cells.length)rows.push(cells)}
+ return rows;
+}
+async function recognizeOcr(source,label){
+ if(!window.Tesseract)throw new Error('Modulo OCR non disponibile. Controllare la connessione internet e riprovare.');
+ const result=await Tesseract.recognize(source,'ita',{logger:m=>{if(m.status==='recognizing text'){const p=Math.round((m.progress||0)*100);setStatus('OCR '+label+': '+p+'%')}}});
+ const data=result&&result.data?result.data:{},rows=ocrRowsFromTsv(data.tsv);
+ return rows.length?rows:ocrRowsFromText(data.text);
+}
+async function parsePdfOcr(pdf){
+ let rows=[];for(let p=1;p<=pdf.numPages;p++){setStatus('PREPARAZIONE OCR PDF: PAGINA '+p+' DI '+pdf.numPages+'...');const page=await pdf.getPage(p),viewport=page.getViewport({scale:2}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:canvas.getContext('2d',{willReadFrequently:true}),viewport}).promise;rows.push(...await recognizeOcr(canvas,'PAGINA '+p+' DI '+pdf.numPages))}
+ return rows;
+}
 async function parsePdf(buf){
  if(!window.pdfjsLib)throw new Error('Lettura PDF non disponibile: collegamento alla libreria PDF.js non riuscito.');
  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -779,7 +807,7 @@ async function parsePdf(buf){
   lines.sort((a,b)=>b.y-a.y);
   for(const line of lines){line.items.sort((a,b)=>a.x-b.x);let cells=[],cur='',prevEnd=null;for(const it of line.items){let gap=prevEnd==null?0:it.x-prevEnd;if(prevEnd!=null&&gap>18){if(cur.trim())cells.push(cur.trim());cur=it.text}else cur+=(cur?' ':'')+it.text;prevEnd=it.x+Math.max(it.w,0)}if(cur.trim())cells.push(cur.trim());if(cells.some(Boolean))rows.push(cells)}
  }
- if(charCount<20)throw new Error('PDF non testuale o composto da scansioni. Non posso estrarre i nominativi automaticamente senza OCR.');
+ if(charCount<20){setStatus('PDF SCANSIONATO RILEVATO: AVVIO OCR...');return await parsePdfOcr(pdf)}
  return rows;
 }
 function cfFormalmenteValido(cf){cf=norm(cf).replace(/\s+/g,'');if(!/^[A-Z]{6}[0-9]{2}[A-EHLMPRST][0-9]{2}[A-Z][0-9]{3}[A-Z]$/.test(cf))return false;
@@ -844,7 +872,7 @@ function renderImportPreview(){
 document.getElementById('btnConfermaImport').onclick=async()=>{if(!pendingImportedWorkers.length)return;let sourceMeta=null;try{sourceMeta=await storeOriginalFile(pendingOriginalFile)}catch(err){if(!confirm('Non è stato possibile conservare una copia del file originale su questo dispositivo. Vuoi confermare comunque l’importazione?'))return}workers=pendingImportedWorkers.map(w=>({...w}));rememberWorkersInArchive(workers);if(sourceMeta){try{const activeRaw=localStorage.getItem('beltrami_v9_sessione_attiva');if(activeRaw){const activeObj=JSON.parse(activeRaw);activeObj.listaOriginale=sourceMeta;activeObj.aggiornata=new Date().toISOString();localStorage.setItem('beltrami_v9_sessione_attiva',JSON.stringify(activeObj))}}catch(_){}}currentWorkerIndex=-1;attachedSourceName=pendingImportName;pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();renderWorkers();let check=workers.filter(w=>w.da_verificare).length,known=workers.filter(w=>w.archivio_stato==='GIA CONOSCIUTO').length,fresh=workers.filter(w=>w.archivio_stato==='NUOVO LAVORATORE').length,possible=workers.filter(w=>w.archivio_stato==='POSSIBILE CORRISPONDENZA').length;showSaveInfo(check?'warn':'ok','IMPORTAZIONE CONFERMATA','Lavoratori importati: '+workers.length+'\nGià conosciuti: '+known+'\nNuovi: '+fresh+(possible?'\nPossibili corrispondenze: '+possible:'')+(check?'\nDa verificare: '+check:'\nDati principali senza anomalie evidenti.'));setStatus('LISTA IMPORTATA: '+workers.length+' — GIÀ CONOSCIUTI '+known+' — NUOVI '+fresh+(possible?' — POSSIBILI CORRISPONDENZE '+possible:'')+(check?' — DA VERIFICARE '+check:'')+'.')};
 document.getElementById('btnAnnullaImport').onclick=()=>{pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();setStatus('IMPORTAZIONE ANNULLATA. LA LISTA PRECEDENTE NON È STATA MODIFICATA.')};
 document.getElementById('fileLista').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{setStatus('LETTURA LISTA IN CORSO...');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};let rows,name=f.name.toLowerCase();if(/\.xlsx$/i.test(name))rows=await parseXlsx(bytes);else if(/\.docx$/i.test(name))rows=await parseDocx(bytes);else if(/\.pdf$/i.test(name))rows=await parsePdf(bytes);else rows=parseDelimited(new TextDecoder('utf-8').decode(bytes));let imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('Non sono stati riconosciuti nominativi. Controllare le intestazioni o la struttura della lista.');pendingImportedWorkers=imported;pendingImportName=f.name;renderImportPreview();let check=imported.filter(w=>w.da_verificare).length;showSaveInfo(check?'warn':'ok','ANTEPRIMA PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'\nNessuna anomalia evidente.')+'\nControlla i dati e premi CONFERMA IMPORTAZIONE.');setStatus('ANTEPRIMA IMPORTAZIONE PRONTA: CONTROLLARE E CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','IMPORTAZIONE LISTA NON RIUSCITA',err.message||String(err));setStatus('ERRORE NELLA LETTURA DELLA LISTA.')}finally{e.target.value=''}};
-document.getElementById('fileListaImmagine').onchange=e=>{let f=e.target.files[0];if(!f)return;attachedSourceName=f.name;renderWorkers();showSaveInfo('warn','FOTO / SCANSIONE ALLEGATA COME RIFERIMENTO','File: '+f.name+'\nLa lettura OCR delle immagini non è attiva. Puoi comunque inserire o correggere i lavoratori con “AGGIUNGI FUORI LISTA”.');setStatus('FOTO/SCANSIONE ALLEGATA COME RIFERIMENTO.');e.target.value=''};
+document.getElementById('fileListaImmagine').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{setStatus('AVVIO OCR DELLA FOTO / SCANSIONE...');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};const rows=await recognizeOcr(f,'IMMAGINE'),imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('L’OCR non ha riconosciuto nominativi utilizzabili. Provare con una foto più diritta e nitida.');pendingImportedWorkers=imported;pendingImportName=f.name;attachedSourceName=f.name;renderImportPreview();const check=imported.filter(w=>w.da_verificare).length;showSaveInfo('warn','ANTEPRIMA OCR PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'')+'\nControlla sempre i dati letti dalla foto e premi CONFERMA IMPORTAZIONE.');setStatus('OCR COMPLETATO: CONTROLLARE L’ANTEPRIMA E CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','OCR NON RIUSCITO',err.message||String(err));setStatus('ERRORE NEL RICONOSCIMENTO OCR.')}finally{e.target.value=''}};
 function apriInserimentoLavoratore(){const g=document.getElementById('manualGrid');g.classList.add('show');const az=document.getElementById('mAzienda'),sessionAz=document.getElementById('v9Azienda');if(az&&!az.value&&sessionAz)az.value=sessionAz.value;document.getElementById('listPanel').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.getElementById('mCognome').focus(),350)}document.getElementById('btnManuale').onclick=apriInserimentoLavoratore;document.getElementById('v9AggiungiLavoratore').onclick=apriInserimentoLavoratore;document.getElementById('btnConfermaManuale').onclick=()=>{let w={id:Date.now()+'',cognome:norm(document.getElementById('mCognome').value),nome:norm(document.getElementById('mNome').value),luogo_nascita:norm(document.getElementById('mLuogo').value),data_nascita:document.getElementById('mData').value,codice_fiscale:norm(document.getElementById('mCF').value),datore_lavoro:norm(document.getElementById('mAzienda').value),mansione:norm(document.getElementById('mMansione').value),orario:document.getElementById('mOrario').value.trim(),visited:false};if(!w.cognome&&!w.nome){alert('Inserire almeno cognome o nome.');return}workers.push(w);document.querySelectorAll('#manualGrid input').forEach(x=>x.value='');renderWorkers();selectWorker(workers.length-1)};
 document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.stringify({workers,currentWorkerIndex,attachedSourceName},null,2)],{type:'application/json'});fallbackDownload(blob,'LISTA_LAVORATORI_'+today()+'.json')};document.getElementById('fileApriLista').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);workers=Array.isArray(d)?d:(d.workers||[]);currentWorkerIndex=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;attachedSourceName=d.attachedSourceName||f.name;renderWorkers();setStatus('STATO DELLA LISTA RIAPERTO CORRETTAMENTE.')}catch(_){alert('File lista non valido.')}};r.readAsText(f);e.target.value=''};
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
