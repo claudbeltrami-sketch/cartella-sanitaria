@@ -104,12 +104,30 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 @media (max-width:1000px) and (orientation:landscape){.worker-sign-modal{padding:0}.worker-sign-card{width:100%;height:100%;max-width:none;border-radius:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;padding:4px}.worker-sign-card h3,.worker-sign-name,.worker-sign-help{display:none}#workerSignCanvas{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px}.worker-sign-actions{padding-top:4px;gap:6px}.worker-sign-actions button{min-height:40px;padding:6px 12px}}
 @media print{.worker-sign-modal{display:none!important}.worker-receipt-signature>div:first-child,.cartella-worker-signature{position:relative}.worker-sign-output img{height:17mm;top:1mm}}
 
+
+/* ===== FIRMA QR ISTANTANEA MAC-IPYHONE ===== */
+.qr-sign-modal{display:none;position:fixed;inset:0;z-index:15000;background:rgba(0,0,0,.76);padding:12px;overflow:auto}
+.qr-sign-modal.show{display:flex;align-items:center;justify-content:center}
+.qr-sign-card{width:min(620px,100%);background:#fff;border-radius:14px;padding:18px;text-align:center;box-shadow:0 12px 42px #0009}
+.qr-sign-card h3{margin:0 0 8px;color:var(--blu)}.qr-sign-card p{margin:7px 0;line-height:1.35}
+#qrSignCode{display:flex;justify-content:center;margin:13px auto}#qrSignCode img,#qrSignCode canvas{max-width:310px;width:80vw;height:auto;border:10px solid #fff}
+.qr-sign-state{font-weight:700;color:var(--blu);margin:9px 0}.qr-phone-card{display:none}
+#qrPhoneCanvas{display:block;width:100%;height:min(52vh,390px);border:3px solid var(--blu);border-radius:10px;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+.qr-phone-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:9px}
+body.qr-phone-mode{overflow:hidden}body.qr-phone-mode>.toolbar,body.qr-phone-mode>.status,body.qr-phone-mode>.save-info,body.qr-phone-mode>.list-panel,body.qr-phone-mode>.v9-panel,body.qr-phone-mode>.cartella,body.qr-phone-mode>.certificate,body.qr-phone-mode>.consenso{display:none!important}
+body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{display:none}
+@media(max-width:700px){.qr-sign-modal{padding:0}.qr-sign-card{width:100%;min-height:100%;border-radius:0;padding:10px;display:flex;flex-direction:column;justify-content:center}#qrPhoneCanvas{height:min(55vh,420px)}}
+@media(max-width:1000px) and (orientation:landscape){#qrPhoneCard{height:100%;padding:4px}#qrPhoneCard h3,#qrPhoneCard p{display:none}#qrPhoneCanvas{height:calc(100vh - 55px);min-height:0}.qr-phone-actions{margin-top:4px}}
+@media print{.qr-sign-modal{display:none!important}}
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- PDF certificato pulito: evita URL/data/pagina aggiunti da Safari iPhone -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Collegamento QR cifrato Mac-iPhone -->
+<script src="https://unpkg.com/mqtt@5.14.1/dist/mqtt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="toolbar">
@@ -119,8 +137,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <button type="button" id="btnStampa">STAMPA / SALVA PDF CARTELLA</button>
  <button type="button" id="btnCert" class="success">GENERA CERTIFICATO</button>
  <button type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA LAVORATORE</button>
- <button type="button" id="btnPreparaFirmaIphone" class="v9-purple">INVIA A IPHONE PER FIRMA</button>
- <label class="file-label v9-purple">RICEVI FIRMA DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
+ <button type="button" id="btnPreparaFirmaIphone" class="v9-purple">FIRMA CON QR IPHONE</button>
+ <label class="file-label v9-purple hidden">RICEVI VECCHIO FILE FIRMA<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
  <button type="button" id="btnConsenso" class="success">GENERA CONSENSO</button>
  <button type="button" id="btnAzzera" class="danger">AZZERA TUTTO</button>
 </div>
@@ -147,6 +165,28 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  </div>
 </div>
 
+
+
+<div class="qr-sign-modal" id="qrSignModal" aria-hidden="true">
+ <div class="qr-sign-card" id="qrMacCard">
+  <h3>FIRMA IMMEDIATA DA IPHONE</h3>
+  <p>Inquadra questo QR con la fotocamera dell’iPhone.</p>
+  <div id="qrSignCode"></div>
+  <div class="qr-sign-state" id="qrSignState">PREPARAZIONE COLLEGAMENTO…</div>
+  <p class="small">La firma comparirà automaticamente sul Mac.</p>
+  <button type="button" id="qrSignCancel" class="secondary">ANNULLA</button>
+ </div>
+ <div class="qr-sign-card qr-phone-card" id="qrPhoneCard">
+  <h3>FIRMA DEL LAVORATORE</h3>
+  <p>Firma con il dito nel riquadro e premi CONFERMA.</p>
+  <canvas id="qrPhoneCanvas"></canvas>
+  <div class="qr-sign-state" id="qrPhoneState">COLLEGAMENTO…</div>
+  <div class="qr-phone-actions">
+   <button type="button" id="qrPhoneClear" class="danger">CANCELLA E RIPETI</button>
+   <button type="button" id="qrPhoneConfirm" class="success">CONFERMA FIRMA</button>
+  </div>
+ </div>
+</div>
 
 <section class="list-panel" id="listPanel">
  <h3>LISTA LAVORATORI</h3>
@@ -859,4 +899,59 @@ window.addEventListener('storage',updateOutput);window.addEventListener('beltram
 })();
 </script>
 
+
+<script>
+/* ===== FIRMA QR ISTANTANEA CIFRATA MAC-IPYHONE ===== */
+(()=>{
+ const modal=document.getElementById('qrSignModal'),macCard=document.getElementById('qrMacCard'),phoneCard=document.getElementById('qrPhoneCard');
+ const codeBox=document.getElementById('qrSignCode'),macState=document.getElementById('qrSignState'),phoneState=document.getElementById('qrPhoneState');
+ const broker='wss://broker.emqx.io:8084/mqtt',prefix='beltrami/firma/v1/';
+ let client=null,activeKey=null,activeIdentity='',activeTopic='';
+ const enc=new TextEncoder(),dec=new TextDecoder();
+ const b64u=bytes=>{let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+ const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const x=atob(s),a=new Uint8Array(x.length);for(let i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a};
+ const random=n=>crypto.getRandomValues(new Uint8Array(n));
+ const importKey=raw=>crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
+ const pageIdentity=()=>{const up=v=>String(v||'').trim().toLocaleUpperCase('it-IT'),val=id=>up(document.getElementById(id)?.value),cf=val('codice_fiscale'),parts=[val('cognome'),val('nome'),val('data_nascita')].filter(Boolean);return cf||parts.join('|')};
+ const closeMac=()=>{if(client){try{client.end(true)}catch(_){}}client=null;activeKey=null;activeTopic='';modal.classList.remove('show');modal.setAttribute('aria-hidden','true')};
+ async function decryptPacket(raw,key){const p=JSON.parse(String(raw)),iv=unb64u(p.i),data=unb64u(p.d),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data);return JSON.parse(dec.decode(plain))}
+ async function encryptPacket(obj,key){const iv=random(12),data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return JSON.stringify({i:b64u(iv),d:b64u(new Uint8Array(data))})}
+ function startMac(){
+  const identity=pageIdentity();if(!identity){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
+  if(typeof mqtt==='undefined'||typeof QRCode==='undefined'){alert('COLLEGAMENTO QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET.');return}
+  closeMac();activeIdentity=identity;const room=b64u(random(18)),rawKey=random(32);activeTopic=prefix+room;
+  importKey(rawKey).then(key=>{activeKey=key;client=mqtt.connect(broker,{clientId:'beltrami_mac_'+b64u(random(9)),clean:true,connectTimeout:8000,reconnectPeriod:2000});
+   client.on('connect',()=>client.subscribe(activeTopic,{qos:0},err=>{if(err){macState.textContent='COLLEGAMENTO NON RIUSCITO';return}
+    const cfg=b64u(enc.encode(JSON.stringify({r:room,k:b64u(rawKey)}))),url=location.origin+location.pathname+'#firmaqr='+cfg;
+    codeBox.innerHTML='';new QRCode(codeBox,{text:url,width:310,height:310,correctLevel:QRCode.CorrectLevel.M});
+    macState.textContent='PRONTO — INQUADRA IL QR';modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+   }));
+   client.on('message',async(topic,message)=>{if(topic!==activeTopic||!activeKey)return;try{const p=await decryptPacket(message,activeKey);if(!p.firma)throw new Error('Firma assente');const store=JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}');store[activeIdentity]=p.firma;localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'));document.getElementById('status').textContent='FIRMA RICEVUTA DALL’IPHONE E INSERITA AUTOMATICAMENTE.';closeMac();alert('FIRMA RICEVUTA E INSERITA.')}catch(e){macState.textContent='FIRMA NON RICEVUTA — RIPROVARE';}});
+   client.on('error',()=>{macState.textContent='COLLEGAMENTO INTERROTTO — RIPROVO…'});
+  }).catch(()=>alert('IMPOSSIBILE PREPARARE IL COLLEGAMENTO CIFRATO.'));
+  modal.classList.add('show');modal.setAttribute('aria-hidden','false');macCard.style.display='block';phoneCard.style.display='none';macState.textContent='PREPARAZIONE COLLEGAMENTO…';
+ }
+ document.getElementById('btnPreparaFirmaIphone').onclick=startMac;
+ document.getElementById('qrSignCancel').onclick=closeMac;
+ async function startPhone(cfg){
+  if(typeof mqtt==='undefined'){phoneState.textContent='CONNESSIONE NON DISPONIBILE';return}
+  let p;try{p=JSON.parse(dec.decode(unb64u(cfg)))}catch(_){phoneState.textContent='QR NON VALIDO';return}
+  document.body.classList.add('qr-phone-mode');modal.classList.add('show');modal.setAttribute('aria-hidden','false');macCard.style.display='none';phoneCard.style.display='flex';
+  const key=await importKey(unb64u(p.k)),topic=prefix+p.r,canvas=document.getElementById('qrPhoneCanvas'),ctx=canvas.getContext('2d');
+  let drawing=false,last=null,ink=false,connected=false;
+  function size(){const r=canvas.getBoundingClientRect(),d=Math.max(1,Math.min(3,devicePixelRatio||1));canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111'}
+  function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+  canvas.onpointerdown=e=>{e.preventDefault();drawing=true;last=point(e);try{canvas.setPointerCapture(e.pointerId)}catch(_){}};
+  canvas.onpointermove=e=>{if(!drawing)return;e.preventDefault();const q=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(q.x,q.y);ctx.stroke();last=q;ink=true};
+  canvas.onpointerup=canvas.onpointercancel=e=>{drawing=false;last=null};
+  document.getElementById('qrPhoneClear').onclick=()=>{ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);ink=false};
+  const pc=mqtt.connect(broker,{clientId:'beltrami_phone_'+b64u(random(9)),clean:true,connectTimeout:8000,reconnectPeriod:2000});
+  pc.on('connect',()=>{connected=true;phoneState.textContent='PRONTO — FIRMA NEL RIQUADRO'});
+  pc.on('error',()=>{connected=false;phoneState.textContent='COLLEGAMENTO INTERROTTO — RIPROVO…'});
+  document.getElementById('qrPhoneConfirm').onclick=async()=>{if(!ink){alert('LA FIRMA È VUOTA.');return}if(!connected){alert('ATTENDERE IL COLLEGAMENTO.');return}phoneState.textContent='INVIO FIRMA…';try{const payload=await encryptPacket({firma:canvas.toDataURL('image/png'),t:Date.now()},key);pc.publish(topic,payload,{qos:0,retain:false},err=>{if(err){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE';return}phoneState.textContent='FIRMA INVIATA. PUOI CHIUDERE QUESTA PAGINA.';document.getElementById('qrPhoneConfirm').disabled=true;setTimeout(()=>pc.end(true),1200)})}catch(_){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE'}};
+  requestAnimationFrame(size);window.addEventListener('orientationchange',()=>setTimeout(size,250),{once:true});
+ }
+ const m=location.hash.match(/^#firmaqr=(.+)$/);if(m)startPhone(m[1]).catch(()=>{phoneState.textContent='QR NON VALIDO O SCADUTO'});
+})();
+</script>
 </body></html>
