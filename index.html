@@ -154,6 +154,31 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
 .certificate .worker-receipt-signature .worker-sign-output img{
  left:8%!important;width:84%!important;top:-8mm!important;height:19mm!important;object-fit:contain!important
 }
+/* Se l'iPhone apre il QR in verticale, la scheda viene presentata subito in orizzontale. */
+@media (max-width:700px) and (orientation:portrait){
+ body.qr-phone-mode .qr-sign-modal{padding:0!important;overflow:hidden!important}
+ body.qr-phone-mode #qrPhoneCard{
+  position:fixed!important;left:50%!important;top:50%!important;
+  width:100dvh!important;height:100dvw!important;min-height:0!important;max-width:none!important;
+  transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 150px!important;
+  grid-template-rows:minmax(0,1fr)!important;gap:6px!important;padding:4px!important;border-radius:0!important
+ }
+ body.qr-phone-mode #qrPhoneCard h3,
+ body.qr-phone-mode #qrPhoneCard>p,
+ body.qr-phone-mode #qrPhoneState{display:none!important}
+ body.qr-phone-mode #qrPhoneCanvas{
+  grid-column:1!important;grid-row:1!important;width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;max-height:none!important;border-radius:6px!important
+ }
+ body.qr-phone-mode .qr-phone-actions{
+  grid-column:2!important;grid-row:1!important;display:flex!important;
+  flex-direction:column!important;gap:6px!important;margin:0!important
+ }
+ body.qr-phone-mode .qr-phone-actions button{
+  flex:1 1 0!important;min-width:0!important;min-height:0!important;padding:8px 5px!important;font-size:15px!important
+ }
+}
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -922,7 +947,7 @@ document.getElementById('workerSignCancel').onclick=()=>{modal.classList.remove(
 document.getElementById('workerSignClear').onclick=clearCanvas;
 document.getElementById('workerSignConfirm').onclick=()=>{
  if(!hasInk){alert('LA FIRMA È VUOTA. FIRMARE NEL RIQUADRO O PREMERE ANNULLA.');return}
- const firma=canvas.toDataURL('image/png'),store=readStore();store[currentKey]=firma;try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
+ const firma=window.beltramiCropSignature(canvas),store=readStore();store[currentKey]=firma;try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');updateOutput();
  const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NELLA CARTELLA E NEL CERTIFICATO.';
  if(window.beltramiFirmaIphone)window.beltramiFirmaIphone.finish(firma);
@@ -934,6 +959,21 @@ window.addEventListener('storage',updateOutput);window.addEventListener('beltram
 })();
 </script>
 
+
+<script>
+/* Ritaglia automaticamente il tratto: evita firme minuscole causate dal grande margine bianco del canvas. */
+window.beltramiCropSignature=function(canvas){
+ const w=canvas.width,h=canvas.height,ctx=canvas.getContext('2d'),data=ctx.getImageData(0,0,w,h).data;
+ let minX=w,minY=h,maxX=-1,maxY=-1;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(data[(y*w+x)*4+3]>12){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}}
+ if(maxX<minX||maxY<minY)return canvas.toDataURL('image/png');
+ const pad=Math.max(12,Math.round(Math.max(maxX-minX,maxY-minY)*.08));
+ minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);maxX=Math.min(w-1,maxX+pad);maxY=Math.min(h-1,maxY+pad);
+ const out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
+ out.getContext('2d').drawImage(canvas,minX,minY,out.width,out.height,0,0,out.width,out.height);
+ return out.toDataURL('image/png');
+};
+</script>
 
 <script>
 /* ===== FIRMA QR ISTANTANEA CIFRATA MAC-IPYHONE ===== */
@@ -974,8 +1014,8 @@ window.addEventListener('storage',updateOutput);window.addEventListener('beltram
   document.body.classList.add('qr-phone-mode');modal.classList.add('show');modal.setAttribute('aria-hidden','false');macCard.style.display='none';phoneCard.style.display='flex';
   const key=await importKey(unb64u(p.k)),topic=prefix+p.r,canvas=document.getElementById('qrPhoneCanvas'),ctx=canvas.getContext('2d');
   let drawing=false,last=null,ink=false,connected=false;
-  function size(){const r=canvas.getBoundingClientRect(),d=Math.max(1,Math.min(3,devicePixelRatio||1));canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111'}
-  function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+  function size(){const d=Math.max(1,Math.min(3,devicePixelRatio||1)),w=canvas.clientWidth,h=canvas.clientHeight;canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111'}
+  function point(e){const r=canvas.getBoundingClientRect();if(matchMedia('(max-width:700px) and (orientation:portrait)').matches)return{x:e.clientY-r.top,y:r.right-e.clientX};return{x:e.clientX-r.left,y:e.clientY-r.top}}
   canvas.onpointerdown=e=>{e.preventDefault();drawing=true;last=point(e);try{canvas.setPointerCapture(e.pointerId)}catch(_){}};
   canvas.onpointermove=e=>{if(!drawing)return;e.preventDefault();const q=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(q.x,q.y);ctx.stroke();last=q;ink=true};
   canvas.onpointerup=canvas.onpointercancel=e=>{drawing=false;last=null};
@@ -983,7 +1023,7 @@ window.addEventListener('storage',updateOutput);window.addEventListener('beltram
   const pc=mqtt.connect(broker,{clientId:'beltrami_phone_'+b64u(random(9)),clean:true,connectTimeout:8000,reconnectPeriod:2000});
   pc.on('connect',()=>{connected=true;phoneState.textContent='PRONTO — FIRMA NEL RIQUADRO'});
   pc.on('error',()=>{connected=false;phoneState.textContent='COLLEGAMENTO INTERROTTO — RIPROVO…'});
-  document.getElementById('qrPhoneConfirm').onclick=async()=>{if(!ink){alert('LA FIRMA È VUOTA.');return}if(!connected){alert('ATTENDERE IL COLLEGAMENTO.');return}phoneState.textContent='INVIO FIRMA…';try{const payload=await encryptPacket({firma:canvas.toDataURL('image/png'),t:Date.now()},key);pc.publish(topic,payload,{qos:0,retain:false},err=>{if(err){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE';return}phoneState.textContent='FIRMA INVIATA. PUOI CHIUDERE QUESTA PAGINA.';document.getElementById('qrPhoneConfirm').disabled=true;setTimeout(()=>pc.end(true),1200)})}catch(_){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE'}};
+  document.getElementById('qrPhoneConfirm').onclick=async()=>{if(!ink){alert('LA FIRMA È VUOTA.');return}if(!connected){alert('ATTENDERE IL COLLEGAMENTO.');return}phoneState.textContent='INVIO FIRMA…';try{const payload=await encryptPacket({firma:window.beltramiCropSignature(canvas),t:Date.now()},key);pc.publish(topic,payload,{qos:0,retain:false},err=>{if(err){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE';return}phoneState.textContent='FIRMA INVIATA. PUOI CHIUDERE QUESTA PAGINA.';document.getElementById('qrPhoneConfirm').disabled=true;setTimeout(()=>pc.end(true),1200)})}catch(_){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE'}};
   requestAnimationFrame(size);window.addEventListener('orientationchange',()=>setTimeout(size,250),{once:true});
  }
  const m=location.hash.match(/^#firmaqr=(.+)$/);if(m)startPhone(m[1]).catch(()=>{phoneState.textContent='QR NON VALIDO O SCADUTO'});
