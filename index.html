@@ -119,6 +119,41 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
 @media(max-width:700px){.qr-sign-modal{padding:0}.qr-sign-card{width:100%;min-height:100%;border-radius:0;padding:10px;display:flex;flex-direction:column;justify-content:center}#qrPhoneCanvas{height:min(55vh,420px)}}
 @media(max-width:1000px) and (orientation:landscape){#qrPhoneCard{height:100%;padding:4px}#qrPhoneCard h3,#qrPhoneCard p{display:none}#qrPhoneCanvas{height:calc(100vh - 55px);min-height:0}.qr-phone-actions{margin-top:4px}}
 @media print{.qr-sign-modal{display:none!important}}
+
+/* ===== AGGIUSTAMENTI FIRMA ORIZZONTALE 21-08-2026 ===== */
+/* Acquisizione QR su iPhone orizzontale: quasi tutto lo schermo alla firma */
+@media (max-width:1000px) and (orientation:landscape){
+ body.qr-phone-mode .qr-sign-modal{padding:0!important;overflow:hidden!important}
+ body.qr-phone-mode #qrPhoneCard{
+  display:grid!important;width:100vw!important;max-width:none!important;
+  height:100vh!important;height:100dvh!important;min-height:0!important;
+  grid-template-columns:minmax(0,1fr) 170px!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  gap:6px!important;padding:4px!important;border-radius:0!important
+ }
+ body.qr-phone-mode #qrPhoneCard h3,
+ body.qr-phone-mode #qrPhoneCard>p,
+ body.qr-phone-mode #qrPhoneState{display:none!important}
+ body.qr-phone-mode #qrPhoneCanvas{
+  grid-column:1!important;grid-row:1!important;width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;max-height:none!important;border-radius:6px!important
+ }
+ body.qr-phone-mode .qr-phone-actions{
+  grid-column:2!important;grid-row:1!important;display:flex!important;
+  flex-direction:column!important;gap:6px!important;margin:0!important
+ }
+ body.qr-phone-mode .qr-phone-actions button{
+  flex:1 1 0!important;min-width:0!important;min-height:0!important;
+  padding:8px 5px!important;font-size:15px!important
+ }
+}
+/* Firma acquisita: centrata e sollevata rispetto alla riga */
+.cartella .cartella-worker-signature .worker-sign-output img{
+ left:8%!important;width:84%!important;top:-9mm!important;height:19mm!important;object-fit:contain!important
+}
+.certificate .worker-receipt-signature .worker-sign-output img{
+ left:8%!important;width:84%!important;top:-8mm!important;height:19mm!important;object-fit:contain!important
+}
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
