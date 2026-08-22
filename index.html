@@ -3,26 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Cartella Sanitaria Beltrami - V15 Perfezionata</title>
+<title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
 *{box-sizing:border-box} html,body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;background:var(--bg)}
-body{padding:10px}.toolbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:10px;background:#fff;border:2px solid var(--blu);border-radius:10px;max-width:980px;margin:0 auto 10px;box-shadow:0 2px 8px #9998}
+body{padding:10px}.toolbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1.35fr 1fr;gap:10px;padding:10px;background:#f7f8fa;border:2px solid var(--blu);border-radius:12px;max-width:980px;margin:0 auto 10px;box-shadow:0 2px 8px #9998}
+.tool-group{background:#fff;border:2px solid #aab4bd;border-radius:10px;padding:8px}.tool-group-title{font-size:13px;font-weight:800;letter-spacing:.4px;margin:0 0 7px;padding-bottom:5px;border-bottom:2px solid currentColor}.tool-buttons{display:flex;flex-wrap:wrap;gap:7px}.tool-buttons>button,.tool-buttons>.file-label{flex:1 1 155px;min-width:0}.tool-group.visit{border-color:var(--blu);color:var(--blu)}.tool-group.visit .tool-buttons>button,.tool-group.visit .tool-buttons>.file-label{background:var(--blu)}.tool-group.archive-tools{border-color:var(--verde);color:var(--verde)}.tool-group.archive-tools .tool-buttons>button,.tool-group.archive-tools .tool-buttons>.file-label{background:var(--verde)}.tool-group.handoff-tools{border-color:#6b3fa0;color:#6b3fa0}.tool-group.handoff-tools .tool-buttons>button,.tool-group.handoff-tools .tool-buttons>.file-label{background:#6b3fa0}.tool-group.other-tools{border-color:var(--grigio);color:var(--grigio)}.tool-group.other-tools .tool-buttons>button,.tool-group.other-tools .tool-buttons>.file-label{background:var(--grigio)}.tool-group.other-tools #btnAzzera{background:var(--rosso);flex-basis:100%;margin-top:7px;border:3px solid #7d2020}
 button,.file-label{appearance:none;border:0;border-radius:8px;min-height:46px;padding:11px 15px;font-size:14px;font-weight:700;color:#fff;background:var(--blu);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.secondary{background:var(--grigio)}.success{background:var(--verde)}.danger{background:var(--rosso)}
 .file-label input{display:none}.status{max-width:980px;margin:0 auto 9px;padding:8px;text-align:center;background:#fff;border-radius:7px;font-weight:700;color:#333}.save-info{max-width:980px;margin:0 auto 10px;padding:10px;background:#fff;border-radius:8px;border-left:6px solid var(--blu);display:none}.save-info.ok{border-left-color:var(--verde)}.save-info.warn{border-left-color:#c58218}.save-info.error{border-left-color:var(--rosso)}.save-info .save-title{font-weight:700;margin-bottom:5px}.save-info .save-detail{font-size:14px;line-height:1.4;white-space:pre-line}.save-info .mini-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.save-info .mini-actions button{min-height:38px;padding:8px 12px;font-size:13px}
 .page{width:210mm;min-height:297mm;margin:0 auto 12px;background:#fff;padding:13mm 14mm;box-shadow:0 0 8px #999;position:relative;page-break-after:always}.page:last-child{page-break-after:auto}
 h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:center;font-style:italic;margin:0 0 20px}.section-title{font-size:17px;font-weight:700;margin:14px 0 8px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px 12px}.full{grid-column:1/-1}.field{display:flex;align-items:end;gap:7px;min-height:34px}.field label{font-size:15px;font-weight:700;white-space:nowrap}.field input,.field select,.field textarea{width:100%;border:0;border-bottom:1px dotted #333;min-height:30px;padding:3px 5px;font-size:16px;text-transform:uppercase;background:#fff}.field textarea{border:1px solid #999;min-height:56px;resize:vertical}.lines textarea{min-height:105px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:7px 24px;margin:7px 0}.checks.three{grid-template-columns:1fr 1fr 1fr}.check{display:flex;align-items:center;gap:8px;font-size:15px}.check input{width:19px;height:19px;margin:0;flex:0 0 19px}.spacer{height:9px}.small{font-size:12px}.signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:26px;text-align:center}.signature-line{margin-top:42px;border-bottom:1px dotted #333;height:1px}.certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.certificate .page{page-break-after:auto}.cert-title{text-align:center}.doctor{border:1px solid #555;padding:8px;margin:9px 0;font-size:13px}.box{border:1px solid #666;padding:9px;margin:8px 0}.box-title{font-weight:700;text-transform:uppercase;margin-bottom:7px}.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px}.cert-value{border-bottom:1px solid #555;min-height:23px;font-weight:700;padding:3px}.hidden{display:none!important}
 .cf-helper{grid-column:1/-1;border:2px solid var(--verde);border-radius:9px;padding:10px;margin-top:4px;background:#f5fff8}.cf-helper-title{font-weight:700;color:var(--verde);margin-bottom:8px}.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.cf-note{font-size:12px;margin-top:7px;color:#444}.cf-action{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}.cf-action button{min-height:40px;padding:8px 13px}.cf-result{font-weight:700;color:var(--verde)}
 .compact-exams .section-title{margin:9px 0 5px;font-size:15px}.compact-exams .field{min-height:28px}.compact-exams .field input,.compact-exams .field select,.compact-exams .field textarea{min-height:25px;font-size:14px}.compact-exams .row,.compact-exams .row3{gap:5px 10px}.compact-exams .field label{font-size:13px}.firma-medico-cartella img{display:block;margin:0 auto;max-height:82px;object-fit:contain}
-/* Numerazione delle sole quattro pagine della cartella sanitaria */
-#cartellaForm{counter-reset:cartella-page}
-#cartellaForm>section.page{counter-increment:cartella-page}
-#cartellaForm>section.page::after{content:counter(cartella-page) " di 4";position:absolute;right:14mm;bottom:5mm;font-size:11px;font-weight:700;color:#555}
-@media print{body.print-cartella #cartellaForm>section.page::after{right:10mm;bottom:3mm}}
-@media(max-width:850px){body{overflow-x:auto}.toolbar,.status{width:210mm;max-width:none;margin-left:0}.page{margin-left:0}.checks.three{grid-template-columns:1fr 1fr}}
+@media(max-width:850px){body{overflow-x:hidden}.toolbar{width:100%;max-width:none;margin-left:0;grid-template-columns:1fr;position:relative}.toolbar .tool-buttons{display:grid;grid-template-columns:1fr 1fr}.toolbar .tool-buttons>button,.toolbar .tool-buttons>.file-label{width:100%;min-height:54px;font-size:14px;padding:9px}.status{width:100%;max-width:none;margin-left:0;font-size:15px;line-height:1.25}.save-info{width:100%;max-width:none}.page{width:100%;min-height:0;margin-left:0;padding:16px;overflow:hidden}.row,.row3{grid-template-columns:1fr}.checks.three{grid-template-columns:1fr 1fr}}
 @media print{@page{size:A4;margin:0}body{background:#fff;padding:0}.toolbar,.status,.save-info{display:none!important}.page{box-shadow:none;margin:0;width:210mm;min-height:297mm;padding:12mm 13mm}.print-cartella .cartella{display:block}.print-cartella .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-certificato .cartella{display:none}.print-certificato .certificate{display:block}.print-consenso .cartella,.print-consenso .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-consenso .consenso{display:block}.field input,.field select,.field textarea{font-size:14px}.page{overflow:hidden}}
 
-.list-panel{max-width:980px;margin:0 auto 10px;background:#fff;border:2px solid var(--blu);border-radius:10px;padding:12px;box-shadow:0 2px 8px #9995}.list-panel h3{margin:0 0 9px;color:var(--blu)}.list-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.list-actions input[type=file]{display:none}.list-search{margin-top:9px;display:grid;grid-template-columns:1fr auto auto;gap:8px}.list-search input{min-height:42px;border:1px solid #888;border-radius:7px;padding:8px;font-size:16px;text-transform:uppercase}.workers-summary{margin-top:9px;font-weight:700}.workers-table-wrap{margin-top:9px;max-height:330px;overflow:auto;border:1px solid #aaa;border-radius:7px}.workers-table{width:100%;border-collapse:collapse;font-size:14px}.workers-table th,.workers-table td{border-bottom:1px solid #ddd;padding:7px;text-align:left}.workers-table th{position:sticky;top:0;background:#eef4f9;z-index:1}.workers-table tr.selected{background:#e8f7ed}.workers-table tr.visited{background:#f0f0f0;text-decoration:line-through}.workers-table button{min-height:34px;padding:6px 9px;font-size:12px}.list-note{margin-top:8px;font-size:12px;color:#444}.manual-grid{display:none;margin-top:10px;grid-template-columns:repeat(4,1fr);gap:8px}.manual-grid.show{display:grid}.manual-grid input{min-height:40px;border:1px solid #888;border-radius:7px;padding:7px;text-transform:uppercase}.manual-grid .full{grid-column:1/-1}@media(max-width:850px){.list-panel{width:210mm;max-width:none;margin-left:0}.manual-grid{grid-template-columns:1fr 1fr}}@media print{.list-panel{display:none!important}}
+.list-panel{max-width:980px;margin:0 auto 10px;background:#fff;border:2px solid var(--blu);border-radius:10px;padding:12px;box-shadow:0 2px 8px #9995}.list-panel h3{margin:0 0 9px;color:var(--blu)}.list-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.list-actions input[type=file]{display:none}.list-search{margin-top:9px;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}.list-search input{min-width:0;min-height:42px;border:1px solid #888;border-radius:7px;padding:8px;font-size:16px;text-transform:uppercase}.workers-summary{margin-top:9px;font-weight:700}.workers-table-wrap{margin-top:9px;max-height:330px;overflow:auto;border:1px solid #aaa;border-radius:7px;-webkit-overflow-scrolling:touch}.workers-table{width:100%;border-collapse:collapse;font-size:14px}.workers-table th,.workers-table td{border-bottom:1px solid #ddd;padding:7px;text-align:left}.workers-table th{position:sticky;top:0;background:#eef4f9;z-index:1}.workers-table tr.selected{background:#e8f7ed}.workers-table tr.visited{background:#f0f0f0;text-decoration:line-through}.workers-table button{min-height:34px;padding:6px 9px;font-size:12px}.list-note{margin-top:8px;font-size:12px;color:#444}.manual-grid{display:none;margin-top:10px;grid-template-columns:repeat(4,1fr);gap:8px}.manual-grid.show{display:grid}.manual-grid input{min-height:40px;border:1px solid #888;border-radius:7px;padding:7px;text-transform:uppercase}.manual-grid .full{grid-column:1/-1}@media(max-width:850px){.list-panel{width:100%;max-width:none;margin-left:0}.list-actions{display:grid;grid-template-columns:1fr 1fr}.list-actions>button,.list-actions>.file-label{width:100%;min-width:0;min-height:52px}.list-search{grid-template-columns:1fr 1fr}.list-search input{grid-column:1/-1}.list-search button{width:100%;min-width:0;padding:9px}.workers-table{min-width:690px}.manual-grid{grid-template-columns:1fr 1fr}}@media(max-width:460px){.list-actions{grid-template-columns:1fr}.manual-grid{grid-template-columns:1fr}}@media print{.list-panel{display:none!important}}
 
 
 
@@ -37,7 +33,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 /* ===== V9: SESSIONI, ARCHIVI ED ESPORTAZIONE LISTA ===== */
 .v9-panel{max-width:980px;margin:0 auto 10px;background:#fff;border:3px solid #6b3fa0;border-radius:12px;padding:13px;box-shadow:0 2px 9px #7776}
 .v9-panel h3{margin:0 0 10px;color:#6b3fa0}.v9-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 12px}.v9-field{display:flex;flex-direction:column;gap:4px}.v9-field label{font-weight:700;font-size:13px}.v9-field input,.v9-field select,.v9-field textarea{min-height:42px;border:1px solid #888;border-radius:7px;padding:7px;font-size:15px;text-transform:uppercase;background:#fff}.v9-field input[type=email]{text-transform:none}.v9-field textarea{min-height:70px;resize:vertical}.v9-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.v9-purple{background:#6b3fa0}.v9-orange{background:#b66a16}.v9-session-card{margin-top:10px;padding:10px;border-left:7px solid #6b3fa0;background:#f8f3ff;border-radius:8px;line-height:1.45}.v9-session-card strong{color:#4f287f}.v9-archives{display:none;margin-top:12px;border-top:1px solid #bbb;padding-top:12px}.v9-archives.show{display:block}.v9-archive-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.v9-archive-box{border:1px solid #aaa;border-radius:8px;padding:9px;background:#fafafa}.v9-archive-box h4{margin:0 0 7px;color:#6b3fa0}.v9-mini-list{max-height:150px;overflow:auto;margin-top:7px;font-size:13px}.v9-mini-item{display:flex;justify-content:space-between;gap:5px;padding:5px;border-bottom:1px solid #ddd}.v9-mini-item button{min-height:28px;padding:4px 7px;font-size:11px}.v9-badge{display:inline-block;padding:3px 7px;border-radius:12px;background:#6b3fa0;color:white;font-size:12px;font-weight:700}.v9-absent{background:#fff2e2!important;text-decoration:none!important}.v9-absent td:nth-child(2){font-weight:700;color:#9a4c00}.v9-export{display:none}.v9-export .page{page-break-after:auto}.v9-report-head{border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px}.v9-report-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}.v9-report-table{width:100%;border-collapse:collapse;font-size:13px}.v9-report-table th,.v9-report-table td{border:1px solid #777;padding:6px}.v9-report-table th{background:#eee}.v9-report-summary{margin-top:12px;border:2px solid #333;padding:9px;font-weight:700}.v9-report-sign{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:40px;text-align:center}.v9-report-line{border-bottom:1px solid #333;margin-top:45px}.v9-help{font-size:12px;color:#444;margin-top:7px}
-@media(max-width:850px){.v9-panel{width:210mm;max-width:none;margin-left:0}.v9-grid,.v9-archive-grid{grid-template-columns:1fr 1fr}}
+.v9-flow{display:grid;grid-template-columns:1.2fr .8fr 1.2fr .8fr;gap:8px;margin-top:12px}.v9-phase{border:2px solid #aaa;border-radius:9px;padding:8px;background:#fff}.v9-phase-title{font-size:12px;font-weight:800;margin-bottom:7px;padding-bottom:5px;border-bottom:2px solid currentColor}.v9-phase .v9-actions{margin:0;display:grid;grid-template-columns:1fr;gap:7px}.v9-phase .v9-actions button{width:100%;min-height:48px}.v9-phase.prepare{color:#6b3fa0;border-color:#6b3fa0}.v9-phase.during{color:var(--verde);border-color:var(--verde)}.v9-phase.close-session{color:#a65b0d;border-color:#b66a16}.v9-phase.settings{color:var(--grigio);border-color:var(--grigio)}
+@media(max-width:850px){.v9-panel,.list-panel{width:calc(100vw - 20px);max-width:none;margin-left:0}.v9-grid,.v9-archive-grid{grid-template-columns:1fr 1fr}.v9-flow{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.v9-grid,.v9-archive-grid,.v9-flow{grid-template-columns:1fr}.v9-phase .v9-actions button{min-height:54px}}
 @media print{.v9-panel{display:none!important}.print-v9-lista .cartella,.print-v9-lista .certificate,.print-v9-lista .consenso,.print-v9-lista .list-panel{display:none!important}.print-v9-lista .v9-export{display:block!important}.print-v9-lista .v9-export .page{display:block!important}}
 
 
@@ -104,113 +102,57 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 @media (max-width:1000px) and (orientation:landscape){.worker-sign-modal{padding:0}.worker-sign-card{width:100%;height:100%;max-width:none;border-radius:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;padding:4px}.worker-sign-card h3,.worker-sign-name,.worker-sign-help{display:none}#workerSignCanvas{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px}.worker-sign-actions{padding-top:4px;gap:6px}.worker-sign-actions button{min-height:40px;padding:6px 12px}}
 @media print{.worker-sign-modal{display:none!important}.worker-receipt-signature>div:first-child,.cartella-worker-signature{position:relative}.worker-sign-output img{height:17mm;top:1mm}}
 
-
-/* ===== FIRMA QR ISTANTANEA MAC-IPYHONE ===== */
-.qr-sign-modal{display:none;position:fixed;inset:0;z-index:15000;background:rgba(0,0,0,.76);padding:12px;overflow:auto}
-.qr-sign-modal.show{display:flex;align-items:center;justify-content:center}
-.qr-sign-card{width:min(620px,100%);background:#fff;border-radius:14px;padding:18px;text-align:center;box-shadow:0 12px 42px #0009}
-.qr-sign-card h3{margin:0 0 8px;color:var(--blu)}.qr-sign-card p{margin:7px 0;line-height:1.35}
-#qrSignCode{display:flex;justify-content:center;margin:13px auto}#qrSignCode img,#qrSignCode canvas{max-width:310px;width:80vw;height:auto;border:10px solid #fff}
-.qr-sign-state{font-weight:700;color:var(--blu);margin:9px 0}.qr-phone-card{display:none}
-#qrPhoneCanvas{display:block;width:100%;height:min(52vh,390px);border:3px solid var(--blu);border-radius:10px;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
-.qr-phone-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:9px}
-body.qr-phone-mode{overflow:hidden}body.qr-phone-mode>.toolbar,body.qr-phone-mode>.status,body.qr-phone-mode>.save-info,body.qr-phone-mode>.list-panel,body.qr-phone-mode>.v9-panel,body.qr-phone-mode>.cartella,body.qr-phone-mode>.certificate,body.qr-phone-mode>.consenso{display:none!important}
-body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{display:none}
-@media(max-width:700px){.qr-sign-modal{padding:0}.qr-sign-card{width:100%;min-height:100%;border-radius:0;padding:10px;display:flex;flex-direction:column;justify-content:center}#qrPhoneCanvas{height:min(55vh,420px)}}
-@media(max-width:1000px) and (orientation:landscape){#qrPhoneCard{height:100%;padding:4px}#qrPhoneCard h3,#qrPhoneCard p{display:none}#qrPhoneCanvas{height:calc(100vh - 55px);min-height:0}.qr-phone-actions{margin-top:4px}}
-@media print{.qr-sign-modal{display:none!important}}
-
-/* ===== AGGIUSTAMENTI FIRMA ORIZZONTALE 21-08-2026 ===== */
-/* Acquisizione QR su iPhone orizzontale: quasi tutto lo schermo alla firma */
-@media (max-width:1000px) and (orientation:landscape){
- body.qr-phone-mode .qr-sign-modal{padding:0!important;overflow:hidden!important}
- body.qr-phone-mode #qrPhoneCard{
-  display:grid!important;width:100vw!important;max-width:none!important;
-  height:100vh!important;height:100dvh!important;min-height:0!important;
-  grid-template-columns:minmax(0,1fr) 170px!important;
-  grid-template-rows:minmax(0,1fr)!important;
-  gap:6px!important;padding:4px!important;border-radius:0!important
- }
- body.qr-phone-mode #qrPhoneCard h3,
- body.qr-phone-mode #qrPhoneCard>p,
- body.qr-phone-mode #qrPhoneState{display:none!important}
- body.qr-phone-mode #qrPhoneCanvas{
-  grid-column:1!important;grid-row:1!important;width:100%!important;height:100%!important;
-  min-width:0!important;min-height:0!important;max-height:none!important;border-radius:6px!important
- }
- body.qr-phone-mode .qr-phone-actions{
-  grid-column:2!important;grid-row:1!important;display:flex!important;
-  flex-direction:column!important;gap:6px!important;margin:0!important
- }
- body.qr-phone-mode .qr-phone-actions button{
-  flex:1 1 0!important;min-width:0!important;min-height:0!important;
-  padding:8px 5px!important;font-size:15px!important
- }
-}
-/* Firma acquisita nella cartella: leggermente più grande e più vicina alla riga */
-.cartella .cartella-worker-signature .worker-sign-output img{
- left:5%!important;width:90%!important;top:-5.5mm!important;height:21mm!important;object-fit:contain!important
-}
-.certificate .worker-receipt-signature .worker-sign-output img{
- left:8%!important;width:84%!important;top:-8mm!important;height:19mm!important;object-fit:contain!important
-}
-/* Se l'iPhone apre il QR in verticale, la scheda viene presentata subito in orizzontale. */
-@media (max-width:700px) and (orientation:portrait){
- body.qr-phone-mode .qr-sign-modal{padding:0!important;overflow:hidden!important}
- body.qr-phone-mode #qrPhoneCard{
-  position:fixed!important;left:50%!important;top:50%!important;
-  width:100dvh!important;height:100dvw!important;min-height:0!important;max-width:none!important;
-  transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center!important;
-  display:grid!important;grid-template-columns:minmax(0,1fr) 150px!important;
-  grid-template-rows:minmax(0,1fr)!important;gap:6px!important;padding:4px!important;border-radius:0!important
- }
- body.qr-phone-mode #qrPhoneCard h3,
- body.qr-phone-mode #qrPhoneCard>p,
- body.qr-phone-mode #qrPhoneState{display:none!important}
- body.qr-phone-mode #qrPhoneCanvas{
-  grid-column:1!important;grid-row:1!important;width:100%!important;height:100%!important;
-  min-width:0!important;min-height:0!important;max-height:none!important;border-radius:6px!important
- }
- body.qr-phone-mode .qr-phone-actions{
-  grid-column:2!important;grid-row:1!important;display:flex!important;
-  flex-direction:column!important;gap:6px!important;margin:0!important
- }
- body.qr-phone-mode .qr-phone-actions button{
-  flex:1 1 0!important;min-width:0!important;min-height:0!important;padding:8px 5px!important;font-size:15px!important
- }
-}
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<!-- OCR locale nel browser per fotografie e PDF scansionati -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <!-- PDF certificato pulito: evita URL/data/pagina aggiunti da Safari iPhone -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Collegamento QR cifrato Mac-iPhone -->
-<script src="https://unpkg.com/mqtt@5.14.1/dist/mqtt.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- OCR: il motore viene caricato da CDN, mentre l'immagine è elaborata nel browser -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<div class="toolbar">
- <button type="button" id="btnSalva" class="success">SALVA DATI CARTELLA</button>
- <button type="button" id="btnArchivioCartelle" class="secondary">ARCHIVIO CARTELLE</button>
- <label class="file-label secondary">APRI DATI SALVATI<input type="file" id="fileApri" accept="application/json,.json"></label>
- <button type="button" id="btnStampa">STAMPA / SALVA PDF CARTELLA</button>
- <button type="button" id="btnCert" class="success">GENERA CERTIFICATO</button>
- <button type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA LAVORATORE</button>
- <button type="button" id="btnPreparaFirmaIphone" class="v9-purple">FIRMA CON QR IPHONE</button>
- <label class="file-label v9-purple hidden">RICEVI VECCHIO FILE FIRMA<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
- <button type="button" id="btnConsenso" class="success">GENERA CONSENSO</button>
- <button type="button" id="btnAzzera" class="danger">AZZERA TUTTO</button>
+<div class="toolbar" aria-label="Comandi principali">
+ <section class="tool-group visit">
+  <div class="tool-group-title">1 · VISITA</div>
+  <div class="tool-buttons">
+   <label class="file-label">APRI DATI<input type="file" id="fileApri" accept="application/json,.json"></label>
+   <button type="button" id="btnSalva">SALVA CARTELLA</button>
+   <button type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA</button>
+   <button type="button" id="btnCert">GENERA CERTIFICATO</button>
+   <button type="button" id="btnStampa">STAMPA CARTELLA</button>
+  </div>
+ </section>
+ <section class="tool-group handoff-tools">
+  <div class="tool-group-title">2 · FIRMA IPHONE–MAC</div>
+  <div class="tool-buttons">
+   <button type="button" id="btnPreparaFirmaIphone">INVIA A IPHONE</button>
+   <label class="file-label">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
+  </div>
+ </section>
+ <section class="tool-group archive-tools">
+  <div class="tool-group-title">3 · ARCHIVIO E SICUREZZA</div>
+  <div class="tool-buttons">
+   <button type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
+   <button type="button" id="btnBackupCompleto">CREA BACKUP</button>
+   <label class="file-label">RIPRISTINA BACKUP<input type="file" id="fileRipristinaBackup" accept="application/json,.json"></label>
+  </div>
+ </section>
+ <section class="tool-group other-tools">
+  <div class="tool-group-title">4 · ALTRE FUNZIONI</div>
+  <div class="tool-buttons">
+   <button type="button" id="btnConsenso">GENERA CONSENSO</button>
+   <button type="button" id="btnAzzera" class="danger">AZZERA TUTTO</button>
+  </div>
+ </section>
 </div>
-<div class="status" id="status">PRONTA. I DATI RESTANO SUL MAC E NON VENGONO INVIATI SU INTERNET.</div>
+<div class="status" id="status">PRONTA. I DATI RESTANO SU QUESTO DISPOSITIVO E NON VENGONO INVIATI SU INTERNET.</div>
 <div class="save-info" id="saveInfo"><div class="save-title" id="saveTitle"></div><div class="save-detail" id="saveDetail"></div><div class="mini-actions" id="saveActions"></div></div>
 <div class="archive-modal" id="archiveModal" aria-hidden="true"><div class="archive-box">
  <div class="archive-head"><h3 style="margin:0">ARCHIVIO LOCALE CARTELLE SANITARIE</h3><button type="button" id="btnChiudiArchivio" class="secondary">CHIUDI</button></div>
- <div class="archive-search"><input id="archiveQuery" placeholder="CERCA PER COGNOME, NOME O CODICE FISCALE"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
+ <div class="archive-search"><input id="archiveQuery" placeholder="COGNOME, NOME, CF, AZIENDA, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <div id="archiveSummary" class="archive-note"></div><div id="archiveResults"></div>
- <div class="archive-note">Archivio conservato esclusivamente nel browser di questo dispositivo. Il file JSON esterno resta disponibile come copia di sicurezza.</div>
+ <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. L’archivio resta esclusivamente nel browser di questo dispositivo; usa CREA COPIA DI SICUREZZA per conservarne una copia esterna.</div>
 </div></div>
 
 <div class="worker-sign-modal" id="workerSignModal" aria-hidden="true">
@@ -228,33 +170,11 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
 </div>
 
 
-
-<div class="qr-sign-modal" id="qrSignModal" aria-hidden="true">
- <div class="qr-sign-card" id="qrMacCard">
-  <h3>FIRMA IMMEDIATA DA IPHONE</h3>
-  <p>Inquadra questo QR con la fotocamera dell’iPhone.</p>
-  <div id="qrSignCode"></div>
-  <div class="qr-sign-state" id="qrSignState">PREPARAZIONE COLLEGAMENTO…</div>
-  <p class="small">La firma comparirà automaticamente sul Mac.</p>
-  <button type="button" id="qrSignCancel" class="secondary">ANNULLA</button>
- </div>
- <div class="qr-sign-card qr-phone-card" id="qrPhoneCard">
-  <h3>FIRMA DEL LAVORATORE</h3>
-  <p>Firma con il dito nel riquadro e premi CONFERMA.</p>
-  <canvas id="qrPhoneCanvas"></canvas>
-  <div class="qr-sign-state" id="qrPhoneState">COLLEGAMENTO…</div>
-  <div class="qr-phone-actions">
-   <button type="button" id="qrPhoneClear" class="danger">CANCELLA E RIPETI</button>
-   <button type="button" id="qrPhoneConfirm" class="success">CONFERMA FIRMA</button>
-  </div>
- </div>
-</div>
-
 <section class="list-panel" id="listPanel">
  <h3>LISTA LAVORATORI</h3>
  <div class="list-actions">
   <label class="file-label success">IMPORTA LISTA<input type="file" id="fileLista" accept=".xlsx,.csv,.tsv,.pdf,.docx,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
-  <label class="file-label secondary">ALLEGA FOTO / SCANSIONE<input type="file" id="fileListaImmagine" accept="image/*"></label>
+  <label class="file-label secondary">LEGGI FOTO / SCANSIONE (OCR)<input type="file" id="fileListaImmagine" accept="image/*"></label>
   <button type="button" id="btnManuale" class="success">AGGIUNGI LAVORATORE</button>
   <button type="button" id="btnSalvaLista" class="success">SALVA STATO LISTA</button>
   <label class="file-label secondary">RIAPRI STATO LISTA<input type="file" id="fileApriLista" accept="application/json,.json"></label>
@@ -275,33 +195,41 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
  <div class="list-search"><input id="workerSearch" placeholder="CERCA COGNOME O NOME"><button type="button" id="btnPrecedente" class="secondary">PRECEDENTE</button><button type="button" id="btnSuccessivo" class="secondary">SUCCESSIVO</button></div>
  <div class="workers-summary" id="workersSummary">NESSUNA LISTA CARICATA.</div>
  <div class="workers-table-wrap"><table class="workers-table"><thead><tr><th>N.</th><th>STATO</th><th>COGNOME</th><th>NOME</th><th>NASCITA</th><th>ORARIO</th><th>AZIONE</th></tr></thead><tbody id="workersBody"></tbody></table></div>
- <div class="list-note">IMPORTA LISTA accetta Excel, CSV, Word (.docx), PDF testuali e PDF scansionati con OCR. “ALLEGA FOTO / SCANSIONE” riconosce anche le immagini. L’ordine originale viene mantenuto e i dati riconosciuti compaiono sempre nell’anteprima modificabile prima della conferma. I file vengono elaborati nel browser e l’originale viene conservato localmente sul dispositivo.</div>
+ <div class="list-note">IMPORTA LISTA accetta Excel, CSV, PDF testuali e Word (.docx). LEGGI FOTO / SCANSIONE usa l’OCR sul dispositivo anche per immagini ricevute da WhatsApp. L’ordine originale viene mantenuto e ogni risultato passa dall’anteprima modificabile prima della conferma. Dopo la conferma, una copia del file originale viene conservata localmente sul dispositivo e associata alla sessione.</div>
 </section>
 
 
 
 <section class="v9-panel" id="v9Panel">
- <h3>V9 — SESSIONE DI VISITE</h3>
+ <h3>SESSIONE DI VISITE</h3>
  <div class="v9-grid">
   <div class="v9-field"><label>Data sessione</label><input type="date" id="v9Data"></div>
   <div class="v9-field"><label>Fascia / orario</label><input id="v9Fascia" placeholder="ES. MATTINA, 08:30-13:00"></div>
-  <div class="v9-field"><label>Stato</label><select id="v9Stato"><option>PREPARAZIONE</option><option>IN CORSO</option><option>COMPLETATA</option><option>INVIATA</option></select></div>
   <div class="v9-field"><label>Committente (chi incarica)</label><input id="v9Committente" list="v9Committenti" placeholder="ES. BUSINESS GROUP"><datalist id="v9Committenti"></datalist></div>
-  <div class="v9-field"><label>Email destinatario</label><input type="email" id="v9Email" placeholder="EMAIL DEL COMMITTENTE"></div>
   <div class="v9-field"><label>Referente</label><input id="v9Referente" placeholder="FACOLTATIVO"></div>
+  <div class="v9-field"><label>Email destinatario</label><input type="email" id="v9Email" placeholder="EMAIL DEL COMMITTENTE"></div>
   <div class="v9-field"><label>Sede di visita (dove visiti)</label><input id="v9Sede" list="v9Sedi" placeholder="ES. XENIAMED / FLE FIUMICINO"><datalist id="v9Sedi"></datalist></div>
   <div class="v9-field"><label>Indirizzo sede</label><input id="v9IndirizzoSede" placeholder="FACOLTATIVO"></div>
   <div class="v9-field"><label>Azienda dei lavoratori</label><input id="v9Azienda" list="v9Aziende" placeholder="ES. FLE"><datalist id="v9Aziende"></datalist></div>
+  <div class="v9-field"><label>Stato della sessione</label><select id="v9Stato"><option>PREPARAZIONE</option><option>IN CORSO</option><option>COMPLETATA</option><option>INVIATA</option></select></div>
   <div class="v9-field full"><label>Note sessione</label><textarea id="v9Note" placeholder="NOTE OPERATIVE O AMMINISTRATIVE"></textarea></div>
  </div>
- <div class="v9-actions">
-  <button type="button" id="v9Avvia" class="v9-purple">SALVA / AVVIA SESSIONE</button>
-  <button type="button" id="v9AggiungiLavoratore" class="success">AGGIUNGI LAVORATORE</button>
-  <button type="button" id="v9Nuova" class="secondary">NUOVA SESSIONE</button>
-  <button type="button" id="v9Archivi" class="secondary">GESTISCI ARCHIVI</button>
-  <button type="button" id="v9Esporta" class="success">ESPORTA LISTA ELABORATA</button>
-  <button type="button" id="v9Chiudi" class="v9-orange">CHIUDI SESSIONE</button>
-  <button type="button" id="v9EmailBtn" class="secondary">PREPARA EMAIL</button>
+ <div class="v9-flow">
+  <div class="v9-phase prepare"><div class="v9-phase-title">1 · PREPARAZIONE</div><div class="v9-actions">
+   <button type="button" id="v9Nuova" class="secondary">NUOVA SESSIONE</button>
+   <button type="button" id="v9Avvia" class="v9-purple">SALVA E AVVIA</button>
+  </div></div>
+  <div class="v9-phase during"><div class="v9-phase-title">2 · DURANTE LE VISITE</div><div class="v9-actions">
+   <button type="button" id="v9AggiungiLavoratore" class="success">AGGIUNGI LAVORATORE</button>
+  </div></div>
+  <div class="v9-phase close-session"><div class="v9-phase-title">3 · CHIUSURA</div><div class="v9-actions">
+   <button type="button" id="v9Chiudi" class="v9-orange">CHIUDI SESSIONE</button>
+   <button type="button" id="v9Esporta" class="success">ESPORTA LISTA</button>
+   <button type="button" id="v9EmailBtn" class="secondary">PREPARA EMAIL</button>
+  </div></div>
+  <div class="v9-phase settings"><div class="v9-phase-title">4 · IMPOSTAZIONI</div><div class="v9-actions">
+   <button type="button" id="v9Archivi" class="secondary">GESTISCI ARCHIVI</button>
+  </div></div>
  </div>
  <div class="v9-session-card" id="v9Card">NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.</div>
  <div class="v9-archives" id="v9ArchivesBox">
@@ -313,6 +241,7 @@ body.qr-phone-mode #qrPhoneCard{display:block}body.qr-phone-mode #qrMacCard{disp
   <div class="v9-help">Gli archivi sono elastici: puoi aggiungere, aggiornare o cancellare elementi. Committente, sede e azienda restano entità distinte.</div>
  </div>
 </section>
+<script>document.getElementById('listPanel').parentNode.insertBefore(document.getElementById('v9Panel'),document.getElementById('listPanel'));</script>
 
 <form id="cartellaForm" class="cartella" autocomplete="off">
 <section class="page">
@@ -618,7 +547,7 @@ function handoffName(prefix,d){const c=String(d.cognome||'SENZA_COGNOME').replac
 async function shareOrDownloadPacket(packet,name,title){const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
 window.beltramiFirmaIphone={
  prepare:async()=>{const d=collect(),identita=workerSignatureIdentity(d);if(!identita){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:1,id:handoffId(),creato:new Date().toISOString(),identita,cartella:d},ok=await shareOrDownloadPacket(packet,handoffName('DA_FIRMARE_SU_IPHONE',d),'Cartella da firmare su iPhone');if(!ok){setStatus('PASSAGGIO ALL’IPHONE ANNULLATO.');return}showSaveInfo('ok','PASSAGGIO ALL’IPHONE PREPARATO','Salva il file nella cartella privata iCloud Drive “CARTELLA SANITARIA”.\nSull’iPhone apri la cartella sanitaria, premi APRI DATI SALVATI e scegli questo file. Il riquadro firma si aprirà automaticamente.');setStatus('FILE PER LA FIRMA IPHONE PREPARATO.')},
- finish:async firma=>{let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}const d=collect(),identita=(h&&h.identita)||workerSignatureIdentity(d),mobile=/iPhone|iPad|iPod/i.test(navigator.userAgent);if(!mobile&&!h)return false;if(!identita){alert('IMPOSSIBILE CREARE IL FILE: COGNOME E NOME DEL LAVORATORE NON SONO PRESENTI.');return false}const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:(h&&h.id)||handoffId(),firmato:new Date().toISOString(),identita,cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};const nomeFile=handoffName('FIRMA_MAC',d),ok=await shareOrDownloadPacket(packet,nomeFile,'Firma del lavoratore per il Mac');if(ok){sessionStorage.removeItem('beltrami_firma_handoff');showSaveInfo('ok','FIRMA PRONTA PER IL MAC','File: '+nomeFile+'\nSalvalo in iCloud Drive. Sul Mac premi RICEVI FIRMA DA IPHONE e scegli questo file.');setStatus('FIRMA ESPORTATA PER IL MAC: '+nomeFile);alert('FIRMA PRONTA.\n\nSALVA SU FILE → ICLOUD DRIVE\n\nNome: '+nomeFile)}else{showSaveInfo('warn','SALVATAGGIO FIRMA NON COMPLETATO','La firma resta sull’iPhone, ma il file per il Mac non è stato salvato. Premi di nuovo CONFERMA FIRMA.');setStatus('FILE FIRMA PER MAC NON SALVATO. RIPETERE LA CONFERMA.');alert('IL FILE PER IL MAC NON È STATO SALVATO.\nPREMI DI NUOVO CONFERMA FIRMA.')}return ok},
+ finish:async firma=>{let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}if(!h||!h.id)return false;const d=collect(),packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};const ok=await shareOrDownloadPacket(packet,handoffName('FIRMA_PER_MAC',d),'Firma del lavoratore per il Mac');if(ok){sessionStorage.removeItem('beltrami_firma_handoff');showSaveInfo('ok','FIRMA PRONTA PER IL MAC','Salva il file nella stessa cartella privata iCloud Drive. Sul Mac premi RICEVI FIRMA DA IPHONE e scegli questo file.');setStatus('FIRMA ACQUISITA SU IPHONE E PRONTA PER IL MAC.')}return true},
  importPacket:packet=>{if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!packet.firma_lavoratore_png)throw new Error('Questo non è un file firma valido.');const d=collect(),corrente=workerSignatureIdentity(d);if(!corrente)throw new Error('Sul Mac deve essere aperta la cartella del lavoratore.');if(packet.identita!==corrente)throw new Error('La firma appartiene a '+[packet.cognome,packet.nome].filter(Boolean).join(' ')+', non al lavoratore aperto sul Mac.');const store=workerSignatureStore();store[corrente]=packet.firma_lavoratore_png;localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'));showSaveInfo('ok','✓ FIRMA RICEVUTA DALL’IPHONE',[packet.cognome,packet.nome].filter(Boolean).join(' ')+'\nOra: '+clock()+'\nLa firma è stata inserita nella cartella e nel certificato.');setStatus('FIRMA IPHONE RICEVUTA E INSERITA CORRETTAMENTE.')}
 };
 async function saveCartellaVerified(){const name=filename('CARTELLA','json');const json=JSON.stringify(collect(),null,2);const blob=new Blob([json],{type:'application/json'});lastVerifiedFile=null;lastVerifiedHandle=null;
@@ -643,12 +572,14 @@ function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
 async function saveToLocalArchive(){const data=collect(),id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history};await putCartellaRecord(rec);return {rec,isUpdate:!!old,versioni:history.length+1}}
-async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const q=normArchive(query);return all.filter(r=>!q||normArchive(r.cf).includes(q)||normArchive(r.cognome+r.nome).includes(q)||normArchive(r.cognome).includes(q)||normArchive(r.nome).includes(q)).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
+function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
+function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
+async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
 function fmtArchiveDate(v){try{return new Date(v).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}catch(_){return v||''}}
 async function openArchiveRecord(id){const r=await getCartellaRecord(id);if(!r)return alert('Cartella non trovata.');if(!confirm('Aprire la cartella di '+(r.cognome||'')+' '+(r.nome||'')+'? I dati attualmente visibili verranno sostituiti.'))return;apply(r.data||{});document.getElementById('archiveModal').classList.remove('show');setStatus('CARTELLA RIAPERTA DALL’ARCHIVIO LOCALE — ULTIMO AGGIORNAMENTO '+fmtArchiveDate(r.updatedAt)+'.');showSaveInfo('ok','CARTELLA RIAPERTA DALL’ARCHIVIO',(r.cognome||'')+' '+(r.nome||'')+'\nCF: '+(r.cf||'NON PRESENTE')+'\nUltimo aggiornamento: '+fmtArchiveDate(r.updatedAt)+'\nVersioni conservate: '+((r.history?.length||0)+1))}
 async function restoreArchiveVersion(id,idx){const r=await getCartellaRecord(id);if(!r||!Array.isArray(r.history)||!r.history[idx])return;const h=r.history[idx];if(!confirm('Ripristinare questa versione del '+fmtArchiveDate(h.savedAt)+' nella schermata? Non verrà sovrascritto l’archivio finché non premi SALVA DATI CARTELLA.'))return;apply(h.data||{});document.getElementById('archiveModal').classList.remove('show');setStatus('VERSIONE STORICA CARICATA NELLA SCHERMATA. SALVARE PER RENDERLA CORRENTE.')}
 async function showArchiveHistory(id){const r=await getCartellaRecord(id);if(!r)return;const versions=[...(r.history||[]).map((h,i)=>({type:'storica',i,savedAt:h.savedAt})),{type:'corrente',savedAt:r.updatedAt}];let msg='VERSIONI CONSERVATE\n\n'+versions.map((v,n)=>(n+1)+'. '+fmtArchiveDate(v.savedAt)+(v.type==='corrente'?' — CORRENTE':'')).join('\n');if(!(r.history||[]).length)return alert(msg);const n=prompt(msg+'\n\nInserisci il numero di una VERSIONE STORICA da caricare (Annulla per uscire):');if(!n)return;const k=Number(n)-1;if(k>=0&&k<r.history.length)restoreArchiveVersion(id,k);else if(k===r.history.length)alert('Questa è già la versione corrente.');else alert('Numero non valido.')}
-async function renderArchive(query=''){const rows=await listCartelleArchive(query),box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length;if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>NASCITA</th><th>AGGIORNATA</th><th>VERSIONI</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const tr=document.createElement('tr');const vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(r.dataNascita||'—')+'</td><td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td><span class="archive-badge">'+vers+'</span></td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.onclick=()=>openArchiveRecord(r.id);td.appendChild(b1);if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(r.id);td.appendChild(b2)}tb.appendChild(tr)});box.innerHTML='';box.appendChild(t)}
+async function renderArchive(query=''){const rows=await listCartelleArchive(query),box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length+(query?' — Ricerca: “'+query+'”':'');if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA. CONTROLLARE IL TESTO INSERITO O PREMERE MOSTRA TUTTE.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>AZIENDA</th><th>DATA VISITA</th><th>AGGIORNATA</th><th>VERSIONI</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const tr=document.createElement('tr'),d=r.data||{},visit=d.data_giudizio||d.data_cartella||'',vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong><br><small>Nascita: '+escapeHtml(r.dataNascita||'—')+'</small></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(d.datore_lavoro||'—')+'</td><td>'+escapeHtml(archiveDateText(visit)||'—')+'</td><td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td><span class="archive-badge">'+vers+'</span></td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.onclick=()=>openArchiveRecord(r.id);td.appendChild(b1);if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(r.id);td.appendChild(b2)}tb.appendChild(tr)});box.innerHTML='';box.appendChild(t)}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 const originalSaveCartellaVerified=saveCartellaVerified;
 saveCartellaVerified=async function(){try{const x=await saveToLocalArchive();showSaveInfo('ok',x.isUpdate?'✓ CARTELLA AGGIORNATA NELL’ARCHIVIO':'✓ CARTELLA INSERITA NELL’ARCHIVIO',(x.rec.cognome||'')+' '+(x.rec.nome||'')+'\nCF: '+(x.rec.cf||'NON PRESENTE')+'\nVersioni conservate: '+x.versioni+'\nOra: '+clock());setStatus(x.isUpdate?'CARTELLA AGGIORNATA NELL’ARCHIVIO LOCALE.':'CARTELLA SALVATA NELL’ARCHIVIO LOCALE.')}catch(e){showSaveInfo('error','ARCHIVIO LOCALE NON AGGIORNATO',e.message||String(e));return}await originalSaveCartellaVerified()}
@@ -733,6 +664,37 @@ function getOriginalMeta(){try{return JSON.parse(localStorage.getItem(ORIGINAL_M
 async function downloadOriginal(meta=getOriginalMeta()){if(!meta||!meta.id)return alert('Nessun file originale associato alla sessione.');try{const db=await openOriginalDb();const rec=await new Promise((resolve,reject)=>{const tx=db.transaction(ORIGINAL_STORE,'readonly');const r=tx.objectStore(ORIGINAL_STORE).get(meta.id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});db.close();if(!rec||!rec.blob)return alert('Il file originale non è più disponibile su questo dispositivo.');const u=URL.createObjectURL(rec.blob),a=document.createElement('a');a.href=u;a.download=rec.name||'lista_originale';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch(err){alert('Impossibile aprire il file originale: '+(err.message||err))}}
 function clearOriginalMeta(){localStorage.removeItem(ORIGINAL_META_KEY)}
 window.beltramiOriginalFiles={getOriginalMeta,downloadOriginal,clearOriginalMeta,metaKey:ORIGINAL_META_KEY};
+
+/* Backup locale guidato: cartelle, firme, liste, sessioni, impostazioni e file originali. */
+function backupStamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+'-'+p(d.getMinutes())}
+function blobToBackupData(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob)})}
+function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^;,]*)(?:;base64)?,(.*)$/);if(!m)throw new Error('Contenuto di un file originale non valido.');const mime=m[1]||type||'application/octet-stream',raw=atob(m[2]),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return new Blob([a],{type:mime})}
+async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
+async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
+async function creaBackupCompleto(){
+ const btn=document.getElementById('btnBackupCompleto');btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+ try{
+  const local={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('beltrami_'))local[k]=localStorage.getItem(k)}
+  const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
+  for(const r of originali){originaliSerializzati.push({...r,blob:r.blob?await blobToBackupData(r.blob):null})}
+  const packet={tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,cartella_visibile:collect()}};
+  const name='BACKUP_LUMEN_'+backupStamp()+'.json',ok=await shareOrDownloadPacket(packet,name,'Copia di sicurezza LUMEN');
+  if(!ok){setStatus('CREAZIONE DELLA COPIA ANNULLATA.');return}
+  showSaveInfo('ok','✓ COPIA DI SICUREZZA PREPARATA','Nome: '+name+'\nOra: '+clock()+'\nCartelle archiviate: '+cartelle.length+'\nFile originali inclusi: '+originali.length+'\n\nSu iPhone scegli “Salva su File” e conserva il file nella cartella privata CARTELLA SANITARIA.',[{label:'RIPRISTINA UNA COPIA',className:'secondary',onclick:()=>document.getElementById('fileRipristinaBackup').click()}]);setStatus('COPIA DI SICUREZZA COMPLETA PREPARATA. VERIFICARE CHE IL FILE SIA STATO SALVATO.');
+ }catch(e){showSaveInfo('error','COPIA NON CREATA',e.message||String(e));setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
+}
+async function ripristinaBackupCompleto(file){
+ const raw=await file.text(),packet=JSON.parse(raw);if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
+ const c=packet.contenuto,cartelle=Array.isArray(c.cartelle)?c.cartelle:[],originali=Array.isArray(c.originali)?c.originali:[];
+ if(!confirm('RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
+ const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('beltrami_'))keys.push(k)}keys.forEach(k=>localStorage.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&typeof v==='string')localStorage.setItem(k,v)});
+ await replaceAllInDb(openCartelleDb,CARTELLE_STORE,cartelle);
+ const originaliRipristinati=originali.map(r=>({...r,blob:r.blob?backupDataToBlob(r.blob,r.type):null}));await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
+ if(c.cartella_visibile)apply(c.cartella_visibile);
+ showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
+}
+document.getElementById('btnBackupCompleto').onclick=creaBackupCompleto;
+document.getElementById('fileRipristinaBackup').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await ripristinaBackupCompleto(f)}catch(err){showSaveInfo('error','RIPRISTINO NON ESEGUITO',err.message||String(err));setStatus('COPIA NON VALIDA O DANNEGGIATA.')}finally{e.target.value=''}};
 const workersBody=document.getElementById('workersBody'),workersSummary=document.getElementById('workersSummary');
 const norm=v=>String(v??'').trim().toLocaleUpperCase('it-IT');
 function isoDate(v){if(!v)return'';if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);let x=String(v).trim();let m=x.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');if(/^\d{4}-\d{2}-\d{2}$/.test(x))return x;let n=Number(x);if(Number.isFinite(n)&&n>20000&&n<80000){let d=new Date(Date.UTC(1899,11,30)+n*86400000);return d.toISOString().slice(0,10)}return''}
@@ -757,7 +719,7 @@ function parseDelimited(text){let lines=text.replace(/^\uFEFF/,'').split(/\r?\n/
 async function unzipEntries(buf){let u=new Uint8Array(buf),dv=new DataView(buf),entries={};let eocd=-1;for(let i=u.length-22;i>=Math.max(0,u.length-65557);i--)if(dv.getUint32(i,true)===0x06054b50){eocd=i;break}if(eocd<0)throw new Error('Archivio XLSX non riconosciuto.');let count=dv.getUint16(eocd+10,true),off=dv.getUint32(eocd+16,true);for(let k=0;k<count;k++){if(dv.getUint32(off,true)!==0x02014b50)break;let method=dv.getUint16(off+10,true),cs=dv.getUint32(off+20,true),fn=dv.getUint16(off+28,true),ex=dv.getUint16(off+30,true),cm=dv.getUint16(off+32,true),lo=dv.getUint32(off+42,true);let name=new TextDecoder().decode(u.slice(off+46,off+46+fn));let lfn=dv.getUint16(lo+26,true),lex=dv.getUint16(lo+28,true),start=lo+30+lfn+lex,data=u.slice(start,start+cs);if(method===0)entries[name]=data;else if(method===8){let ds=new DecompressionStream('deflate-raw');entries[name]=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer())}off+=46+fn+ex+cm}return entries}
 async function parseXlsx(buf){let z=await unzipEntries(buf),td=new TextDecoder();let shared=[];if(z['xl/sharedStrings.xml']){let doc=new DOMParser().parseFromString(td.decode(z['xl/sharedStrings.xml']),'application/xml');shared=[...doc.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}let sheetName=Object.keys(z).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));if(!sheetName)throw new Error('Nessun foglio trovato nel file Excel.');let doc=new DOMParser().parseFromString(td.decode(z[sheetName]),'application/xml'),rows=[];for(const r of doc.getElementsByTagName('row')){let arr=[];for(const c of r.getElementsByTagName('c')){let ref=c.getAttribute('r')||'A1',letters=(ref.match(/[A-Z]+/)||['A'])[0],col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;col--;let t=c.getAttribute('t'),v=(c.getElementsByTagName('v')[0]||{}).textContent||'';if(t==='s')v=shared[Number(v)]??'';else if(t==='inlineStr')v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');arr[col]=v}rows.push(arr)}return rows}
 function saveWorkersLocal(){try{localStorage.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
-function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>{w.visited=!w.visited;saveWorkersLocal();renderWorkers()};td.appendChild(v);let d=document.createElement('button');d.type='button';d.textContent='ELIMINA';d.className='danger';d.style.marginLeft='5px';d.onclick=()=>{let nome=[w.cognome,w.nome].filter(Boolean).join(' ');if(!confirm('ELIMINARE '+nome+' DALLA LISTA ATTIVA?'))return;workers.splice(i,1);if(currentWorkerIndex===i)currentWorkerIndex=-1;else if(currentWorkerIndex>i)currentWorkerIndex--;saveWorkersLocal();renderWorkers();setStatus(nome+' ELIMINATO DALLA LISTA ATTIVA.');};td.appendChild(d);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
+function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>{w.visited=!w.visited;saveWorkersLocal();renderWorkers()};td.appendChild(v);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
 function selectWorker(i){let w=workers[i];if(!w)return;currentWorkerIndex=i;[['cognome',w.cognome],['nome',w.nome],['luogo_nascita',w.luogo_nascita],['data_nascita',w.data_nascita],['codice_fiscale',w.codice_fiscale],['datore_lavoro',w.datore_lavoro],['mansione',w.mansione]].forEach(([id,v])=>{if(v)document.getElementById(id).value=v});syncLavoratore();syncCFBarcode();setStatus('LAVORATORE SELEZIONATO: '+w.cognome+' '+w.nome+'.');renderWorkers();document.getElementById('cognome').scrollIntoView({behavior:'smooth',block:'center'})}
 function moveWorker(step){if(!workers.length)return;let i=currentWorkerIndex<0?(step>0?0:workers.length-1):Math.max(0,Math.min(workers.length-1,currentWorkerIndex+step));selectWorker(i)}
 document.getElementById('workerSearch').addEventListener('input',renderWorkers);document.getElementById('btnPrecedente').onclick=()=>moveWorker(-1);document.getElementById('btnSuccessivo').onclick=()=>moveWorker(1);
@@ -771,32 +733,6 @@ async function parseDocx(buf){
  if(!rows.length){for(const p of [...doc.getElementsByTagNameNS('*','p')]){let t=txt(p);if(!t)continue;let cells=t.includes('\t')?t.split(/\t+/):t.split(/\s{2,}/);if(cells.length===1)cells=t.split(/\s*\|\s*/);rows.push(cells)}}
  return rows;
 }
-function ocrRowsFromText(text){
- return String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
-  let cells=line.split(/\t+|\s{2,}|\s*\|\s*|\s*;\s*/).map(x=>x.trim()).filter(Boolean);
-  return cells.length?cells:[line.trim()];
- });
-}
-function ocrRowsFromTsv(tsv){
- if(!tsv)return[];
- const lines=String(tsv).split(/\r?\n/),head=(lines.shift()||'').split('\t'),idx=n=>head.indexOf(n);
- const I={page:idx('page_num'),block:idx('block_num'),par:idx('par_num'),line:idx('line_num'),left:idx('left'),width:idx('width'),text:idx('text'),conf:idx('conf')},groups=new Map();
- if(Object.values(I).some(v=>v<0))return[];
- for(const raw of lines){const a=raw.split('\t'),word=(a[I.text]||'').trim(),conf=Number(a[I.conf]);if(!word||conf<20)continue;const key=[a[I.page],a[I.block],a[I.par],a[I.line]].join(':');if(!groups.has(key))groups.set(key,[]);groups.get(key).push({text:word,left:Number(a[I.left])||0,width:Number(a[I.width])||0})}
- const rows=[];
- for(const words of groups.values()){words.sort((a,b)=>a.left-b.left);const avg=words.reduce((s,w)=>s+(w.width/Math.max(1,w.text.length)),0)/Math.max(1,words.length),cut=Math.max(22,avg*2.4);let cells=[],cur='',end=null;for(const w of words){const gap=end==null?0:w.left-end;if(end!=null&&gap>cut){if(cur)cells.push(cur);cur=w.text}else cur+=(cur?' ':'')+w.text;end=w.left+w.width}if(cur)cells.push(cur);if(cells.length)rows.push(cells)}
- return rows;
-}
-async function recognizeOcr(source,label){
- if(!window.Tesseract)throw new Error('Modulo OCR non disponibile. Controllare la connessione internet e riprovare.');
- const result=await Tesseract.recognize(source,'ita',{logger:m=>{if(m.status==='recognizing text'){const p=Math.round((m.progress||0)*100);setStatus('OCR '+label+': '+p+'%')}}});
- const data=result&&result.data?result.data:{},rows=ocrRowsFromTsv(data.tsv);
- return rows.length?rows:ocrRowsFromText(data.text);
-}
-async function parsePdfOcr(pdf){
- let rows=[];for(let p=1;p<=pdf.numPages;p++){setStatus('PREPARAZIONE OCR PDF: PAGINA '+p+' DI '+pdf.numPages+'...');const page=await pdf.getPage(p),viewport=page.getViewport({scale:2}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:canvas.getContext('2d',{willReadFrequently:true}),viewport}).promise;rows.push(...await recognizeOcr(canvas,'PAGINA '+p+' DI '+pdf.numPages))}
- return rows;
-}
 async function parsePdf(buf){
  if(!window.pdfjsLib)throw new Error('Lettura PDF non disponibile: collegamento alla libreria PDF.js non riuscito.');
  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -807,7 +743,7 @@ async function parsePdf(buf){
   lines.sort((a,b)=>b.y-a.y);
   for(const line of lines){line.items.sort((a,b)=>a.x-b.x);let cells=[],cur='',prevEnd=null;for(const it of line.items){let gap=prevEnd==null?0:it.x-prevEnd;if(prevEnd!=null&&gap>18){if(cur.trim())cells.push(cur.trim());cur=it.text}else cur+=(cur?' ':'')+it.text;prevEnd=it.x+Math.max(it.w,0)}if(cur.trim())cells.push(cur.trim());if(cells.some(Boolean))rows.push(cells)}
  }
- if(charCount<20){setStatus('PDF SCANSIONATO RILEVATO: AVVIO OCR...');return await parsePdfOcr(pdf)}
+ if(charCount<20)throw new Error('PDF non testuale o composto da scansioni. Non posso estrarre i nominativi automaticamente senza OCR.');
  return rows;
 }
 function cfFormalmenteValido(cf){cf=norm(cf).replace(/\s+/g,'');if(!/^[A-Z]{6}[0-9]{2}[A-EHLMPRST][0-9]{2}[A-Z][0-9]{3}[A-Z]$/.test(cf))return false;
@@ -872,7 +808,14 @@ function renderImportPreview(){
 document.getElementById('btnConfermaImport').onclick=async()=>{if(!pendingImportedWorkers.length)return;let sourceMeta=null;try{sourceMeta=await storeOriginalFile(pendingOriginalFile)}catch(err){if(!confirm('Non è stato possibile conservare una copia del file originale su questo dispositivo. Vuoi confermare comunque l’importazione?'))return}workers=pendingImportedWorkers.map(w=>({...w}));rememberWorkersInArchive(workers);if(sourceMeta){try{const activeRaw=localStorage.getItem('beltrami_v9_sessione_attiva');if(activeRaw){const activeObj=JSON.parse(activeRaw);activeObj.listaOriginale=sourceMeta;activeObj.aggiornata=new Date().toISOString();localStorage.setItem('beltrami_v9_sessione_attiva',JSON.stringify(activeObj))}}catch(_){}}currentWorkerIndex=-1;attachedSourceName=pendingImportName;pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();renderWorkers();let check=workers.filter(w=>w.da_verificare).length,known=workers.filter(w=>w.archivio_stato==='GIA CONOSCIUTO').length,fresh=workers.filter(w=>w.archivio_stato==='NUOVO LAVORATORE').length,possible=workers.filter(w=>w.archivio_stato==='POSSIBILE CORRISPONDENZA').length;showSaveInfo(check?'warn':'ok','IMPORTAZIONE CONFERMATA','Lavoratori importati: '+workers.length+'\nGià conosciuti: '+known+'\nNuovi: '+fresh+(possible?'\nPossibili corrispondenze: '+possible:'')+(check?'\nDa verificare: '+check:'\nDati principali senza anomalie evidenti.'));setStatus('LISTA IMPORTATA: '+workers.length+' — GIÀ CONOSCIUTI '+known+' — NUOVI '+fresh+(possible?' — POSSIBILI CORRISPONDENZE '+possible:'')+(check?' — DA VERIFICARE '+check:'')+'.')};
 document.getElementById('btnAnnullaImport').onclick=()=>{pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();setStatus('IMPORTAZIONE ANNULLATA. LA LISTA PRECEDENTE NON È STATA MODIFICATA.')};
 document.getElementById('fileLista').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{setStatus('LETTURA LISTA IN CORSO...');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};let rows,name=f.name.toLowerCase();if(/\.xlsx$/i.test(name))rows=await parseXlsx(bytes);else if(/\.docx$/i.test(name))rows=await parseDocx(bytes);else if(/\.pdf$/i.test(name))rows=await parsePdf(bytes);else rows=parseDelimited(new TextDecoder('utf-8').decode(bytes));let imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('Non sono stati riconosciuti nominativi. Controllare le intestazioni o la struttura della lista.');pendingImportedWorkers=imported;pendingImportName=f.name;renderImportPreview();let check=imported.filter(w=>w.da_verificare).length;showSaveInfo(check?'warn':'ok','ANTEPRIMA PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'\nNessuna anomalia evidente.')+'\nControlla i dati e premi CONFERMA IMPORTAZIONE.');setStatus('ANTEPRIMA IMPORTAZIONE PRONTA: CONTROLLARE E CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','IMPORTAZIONE LISTA NON RIUSCITA',err.message||String(err));setStatus('ERRORE NELLA LETTURA DELLA LISTA.')}finally{e.target.value=''}};
-document.getElementById('fileListaImmagine').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{setStatus('AVVIO OCR DELLA FOTO / SCANSIONE...');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};const rows=await recognizeOcr(f,'IMMAGINE'),imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('L’OCR non ha riconosciuto nominativi utilizzabili. Provare con una foto più diritta e nitida.');pendingImportedWorkers=imported;pendingImportName=f.name;attachedSourceName=f.name;renderImportPreview();const check=imported.filter(w=>w.da_verificare).length;showSaveInfo('warn','ANTEPRIMA OCR PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'')+'\nControlla sempre i dati letti dalla foto e premi CONFERMA IMPORTAZIONE.');setStatus('OCR COMPLETATO: CONTROLLARE L’ANTEPRIMA E CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','OCR NON RIUSCITO',err.message||String(err));setStatus('ERRORE NEL RICONOSCIMENTO OCR.')}finally{e.target.value=''}};
+function ocrRowsFromResult(data){
+ const tsv=String(data&&data.tsv||'').trim(),groups=new Map();
+ if(tsv){const lines=tsv.split(/\r?\n/),head=lines.shift().split('\t'),at=n=>head.indexOf(n);for(const line of lines){const p=line.split('\t');if(p[at('level')]!=='5')continue;const word=(p.slice(at('text')).join('\t')||'').trim();if(!word)continue;const key=[p[at('page_num')],p[at('block_num')],p[at('par_num')],p[at('line_num')]].join('|'),item={text:word,left:+p[at('left')]||0,width:+p[at('width')]||0,height:+p[at('height')]||0};if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)}}
+ let rows=[];for(const items of groups.values()){items.sort((a,b)=>a.left-b.left);const heights=items.map(x=>x.height).filter(Boolean).sort((a,b)=>a-b),median=heights.length?heights[Math.floor(heights.length/2)]:16,threshold=Math.max(24,median*1.7);let cells=[],cur='',end=null;for(const it of items){const gap=end==null?0:it.left-end;if(end!=null&&gap>threshold){if(cur.trim())cells.push(cur.trim());cur=it.text}else cur+=(cur?' ':'')+it.text;end=it.left+it.width}if(cur.trim())cells.push(cur.trim());if(cells.some(Boolean))rows.push(cells)}
+ if(rows.length)return rows;
+ return String(data&&data.text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>x.split(/\t+|\s{2,}|\s*\|\s*/).filter(Boolean));
+}
+document.getElementById('fileListaImmagine').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(!window.Tesseract)throw new Error('Motore OCR non disponibile. Controllare la connessione e riprovare.');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};pendingImportName=f.name;showSaveInfo('warn','LETTURA OCR IN CORSO','File: '+f.name+'\nL’operazione può richiedere alcuni minuti, soprattutto sull’iPhone. Non chiudere questa pagina.');setStatus('OCR 0% — PREPARAZIONE DELLA FOTO...');const result=await Tesseract.recognize(f,'ita+eng',{logger:m=>{if(m.status==='recognizing text'){const p=Math.max(0,Math.min(100,Math.round((m.progress||0)*100)));setStatus('OCR '+p+'% — LETTURA DELLA FOTO IN CORSO...')}}}),rows=ocrRowsFromResult(result.data),imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('Non sono stati riconosciuti nominativi. Prova una foto più diritta, luminosa e ravvicinata.');pendingImportedWorkers=imported;renderImportPreview();const check=imported.filter(w=>w.da_verificare).length;showSaveInfo(check?'warn':'ok','ANTEPRIMA OCR PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'\nNessuna anomalia evidente.')+'\nCorreggi gli eventuali errori e premi CONFERMA IMPORTAZIONE.');setStatus('OCR COMPLETATO: CONTROLLARE SEMPRE L’ANTEPRIMA PRIMA DI CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','LETTURA OCR NON RIUSCITA',err.message||String(err));setStatus('OCR NON RIUSCITO. RIPROVARE CON UNA FOTO PIÙ NITIDA.')}finally{e.target.value=''}};
 function apriInserimentoLavoratore(){const g=document.getElementById('manualGrid');g.classList.add('show');const az=document.getElementById('mAzienda'),sessionAz=document.getElementById('v9Azienda');if(az&&!az.value&&sessionAz)az.value=sessionAz.value;document.getElementById('listPanel').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.getElementById('mCognome').focus(),350)}document.getElementById('btnManuale').onclick=apriInserimentoLavoratore;document.getElementById('v9AggiungiLavoratore').onclick=apriInserimentoLavoratore;document.getElementById('btnConfermaManuale').onclick=()=>{let w={id:Date.now()+'',cognome:norm(document.getElementById('mCognome').value),nome:norm(document.getElementById('mNome').value),luogo_nascita:norm(document.getElementById('mLuogo').value),data_nascita:document.getElementById('mData').value,codice_fiscale:norm(document.getElementById('mCF').value),datore_lavoro:norm(document.getElementById('mAzienda').value),mansione:norm(document.getElementById('mMansione').value),orario:document.getElementById('mOrario').value.trim(),visited:false};if(!w.cognome&&!w.nome){alert('Inserire almeno cognome o nome.');return}workers.push(w);document.querySelectorAll('#manualGrid input').forEach(x=>x.value='');renderWorkers();selectWorker(workers.length-1)};
 document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.stringify({workers,currentWorkerIndex,attachedSourceName},null,2)],{type:'application/json'});fallbackDownload(blob,'LISTA_LAVORATORI_'+today()+'.json')};document.getElementById('fileApriLista').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);workers=Array.isArray(d)?d:(d.workers||[]);currentWorkerIndex=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;attachedSourceName=d.attachedSourceName||f.name;renderWorkers();setStatus('STATO DELLA LISTA RIAPERTO CORRETTAMENTE.')}catch(_){alert('File lista non valido.')}};r.readAsText(f);e.target.value=''};
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
@@ -965,8 +908,6 @@ canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermov
 if(window.ResizeObserver)new ResizeObserver(()=>{if(modal.classList.contains('show')&&!drawing&&!hasInk)ensureCanvasSize()}).observe(canvas);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{if(modal.classList.contains('show')&&!drawing&&!hasInk)requestAnimationFrame(ensureCanvasSize)});
 document.getElementById('btnFirmaLavoratore').addEventListener('click',()=>{
- const isPhoneOrTablet=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
- if(!isPhoneOrTablet){window.beltramiFirmaIphone.prepare();return}
  const id=identity();if(!id.key){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
  currentKey=id.key;currentSaved=readStore()[currentKey]||'';nameBox.textContent=id.label;modal.classList.add('show');modal.setAttribute('aria-hidden','false');
  requestAnimationFrame(()=>{sizeCanvas();loadCanvas(currentSaved)})
@@ -975,7 +916,7 @@ document.getElementById('workerSignCancel').onclick=()=>{modal.classList.remove(
 document.getElementById('workerSignClear').onclick=clearCanvas;
 document.getElementById('workerSignConfirm').onclick=()=>{
  if(!hasInk){alert('LA FIRMA È VUOTA. FIRMARE NEL RIQUADRO O PREMERE ANNULLA.');return}
- const firma=window.beltramiCropSignature(canvas),store=readStore();store[currentKey]=firma;try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
+ const firma=canvas.toDataURL('image/png'),store=readStore();store[currentKey]=firma;try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');updateOutput();
  const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NELLA CARTELLA E NEL CERTIFICATO.';
  if(window.beltramiFirmaIphone)window.beltramiFirmaIphone.finish(firma);
@@ -987,74 +928,4 @@ window.addEventListener('storage',updateOutput);window.addEventListener('beltram
 })();
 </script>
 
-
-<script>
-/* Ritaglia automaticamente il tratto: evita firme minuscole causate dal grande margine bianco del canvas. */
-window.beltramiCropSignature=function(canvas){
- const w=canvas.width,h=canvas.height,ctx=canvas.getContext('2d'),data=ctx.getImageData(0,0,w,h).data;
- let minX=w,minY=h,maxX=-1,maxY=-1;
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(data[(y*w+x)*4+3]>12){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}}
- if(maxX<minX||maxY<minY)return canvas.toDataURL('image/png');
- const pad=Math.max(12,Math.round(Math.max(maxX-minX,maxY-minY)*.08));
- minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);maxX=Math.min(w-1,maxX+pad);maxY=Math.min(h-1,maxY+pad);
- const out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
- out.getContext('2d').drawImage(canvas,minX,minY,out.width,out.height,0,0,out.width,out.height);
- return out.toDataURL('image/png');
-};
-</script>
-
-<script>
-/* ===== FIRMA QR ISTANTANEA CIFRATA MAC-IPYHONE ===== */
-(()=>{
- const modal=document.getElementById('qrSignModal'),macCard=document.getElementById('qrMacCard'),phoneCard=document.getElementById('qrPhoneCard');
- const codeBox=document.getElementById('qrSignCode'),macState=document.getElementById('qrSignState'),phoneState=document.getElementById('qrPhoneState');
- const broker='wss://broker.emqx.io:8084/mqtt',prefix='beltrami/firma/v1/';
- let client=null,activeKey=null,activeIdentity='',activeTopic='';
- const enc=new TextEncoder(),dec=new TextDecoder();
- const b64u=bytes=>{let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
- const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const x=atob(s),a=new Uint8Array(x.length);for(let i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a};
- const random=n=>crypto.getRandomValues(new Uint8Array(n));
- const importKey=raw=>crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
- const pageIdentity=()=>{const up=v=>String(v||'').trim().toLocaleUpperCase('it-IT'),val=id=>up(document.getElementById(id)?.value),cf=val('codice_fiscale'),parts=[val('cognome'),val('nome'),val('data_nascita')].filter(Boolean);return cf||parts.join('|')};
- const closeMac=()=>{if(client){try{client.end(true)}catch(_){}}client=null;activeKey=null;activeTopic='';modal.classList.remove('show');modal.setAttribute('aria-hidden','true')};
- async function decryptPacket(raw,key){const p=JSON.parse(String(raw)),iv=unb64u(p.i),data=unb64u(p.d),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data);return JSON.parse(dec.decode(plain))}
- async function encryptPacket(obj,key){const iv=random(12),data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return JSON.stringify({i:b64u(iv),d:b64u(new Uint8Array(data))})}
- function startMac(){
-  const identity=pageIdentity();if(!identity){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
-  if(typeof mqtt==='undefined'||typeof QRCode==='undefined'){alert('COLLEGAMENTO QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET.');return}
-  closeMac();activeIdentity=identity;const room=b64u(random(18)),rawKey=random(32);activeTopic=prefix+room;
-  importKey(rawKey).then(key=>{activeKey=key;client=mqtt.connect(broker,{clientId:'beltrami_mac_'+b64u(random(9)),clean:true,connectTimeout:8000,reconnectPeriod:2000});
-   client.on('connect',()=>client.subscribe(activeTopic,{qos:0},err=>{if(err){macState.textContent='COLLEGAMENTO NON RIUSCITO';return}
-    const cfg=b64u(enc.encode(JSON.stringify({r:room,k:b64u(rawKey)}))),url=location.origin+location.pathname+'#firmaqr='+cfg;
-    codeBox.innerHTML='';new QRCode(codeBox,{text:url,width:310,height:310,correctLevel:QRCode.CorrectLevel.M});
-    macState.textContent='PRONTO — INQUADRA IL QR';modal.classList.add('show');modal.setAttribute('aria-hidden','false');
-   }));
-   client.on('message',async(topic,message)=>{if(topic!==activeTopic||!activeKey)return;try{const p=await decryptPacket(message,activeKey);if(!p.firma)throw new Error('Firma assente');const store=JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}');store[activeIdentity]=p.firma;localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'));document.getElementById('status').textContent='FIRMA RICEVUTA DALL’IPHONE E INSERITA AUTOMATICAMENTE.';closeMac();alert('FIRMA RICEVUTA E INSERITA.')}catch(e){macState.textContent='FIRMA NON RICEVUTA — RIPROVARE';}});
-   client.on('error',()=>{macState.textContent='COLLEGAMENTO INTERROTTO — RIPROVO…'});
-  }).catch(()=>alert('IMPOSSIBILE PREPARARE IL COLLEGAMENTO CIFRATO.'));
-  modal.classList.add('show');modal.setAttribute('aria-hidden','false');macCard.style.display='block';phoneCard.style.display='none';macState.textContent='PREPARAZIONE COLLEGAMENTO…';
- }
- document.getElementById('btnPreparaFirmaIphone').onclick=startMac;
- document.getElementById('qrSignCancel').onclick=closeMac;
- async function startPhone(cfg){
-  if(typeof mqtt==='undefined'){phoneState.textContent='CONNESSIONE NON DISPONIBILE';return}
-  let p;try{p=JSON.parse(dec.decode(unb64u(cfg)))}catch(_){phoneState.textContent='QR NON VALIDO';return}
-  document.body.classList.add('qr-phone-mode');modal.classList.add('show');modal.setAttribute('aria-hidden','false');macCard.style.display='none';phoneCard.style.display='flex';
-  const key=await importKey(unb64u(p.k)),topic=prefix+p.r,canvas=document.getElementById('qrPhoneCanvas'),ctx=canvas.getContext('2d');
-  let drawing=false,last=null,ink=false,connected=false;
-  function size(){const d=Math.max(1,Math.min(3,devicePixelRatio||1)),w=canvas.clientWidth,h=canvas.clientHeight;canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111'}
-  function point(e){const r=canvas.getBoundingClientRect();if(matchMedia('(max-width:700px) and (orientation:portrait)').matches)return{x:e.clientY-r.top,y:r.right-e.clientX};return{x:e.clientX-r.left,y:e.clientY-r.top}}
-  canvas.onpointerdown=e=>{e.preventDefault();drawing=true;last=point(e);try{canvas.setPointerCapture(e.pointerId)}catch(_){}};
-  canvas.onpointermove=e=>{if(!drawing)return;e.preventDefault();const q=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(q.x,q.y);ctx.stroke();last=q;ink=true};
-  canvas.onpointerup=canvas.onpointercancel=e=>{drawing=false;last=null};
-  document.getElementById('qrPhoneClear').onclick=()=>{ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);ink=false};
-  const pc=mqtt.connect(broker,{clientId:'beltrami_phone_'+b64u(random(9)),clean:true,connectTimeout:8000,reconnectPeriod:2000});
-  pc.on('connect',()=>{connected=true;phoneState.textContent='PRONTO — FIRMA NEL RIQUADRO'});
-  pc.on('error',()=>{connected=false;phoneState.textContent='COLLEGAMENTO INTERROTTO — RIPROVO…'});
-  document.getElementById('qrPhoneConfirm').onclick=async()=>{if(!ink){alert('LA FIRMA È VUOTA.');return}if(!connected){alert('ATTENDERE IL COLLEGAMENTO.');return}phoneState.textContent='INVIO FIRMA…';try{const payload=await encryptPacket({firma:window.beltramiCropSignature(canvas),t:Date.now()},key);pc.publish(topic,payload,{qos:0,retain:false},err=>{if(err){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE';return}phoneState.textContent='FIRMA INVIATA. PUOI CHIUDERE QUESTA PAGINA.';document.getElementById('qrPhoneConfirm').disabled=true;setTimeout(()=>pc.end(true),1200)})}catch(_){phoneState.textContent='INVIO NON RIUSCITO — RIPROVARE'}};
-  requestAnimationFrame(size);window.addEventListener('orientationchange',()=>setTimeout(size,250),{once:true});
- }
- const m=location.hash.match(/^#firmaqr=(.+)$/);if(m)startPhone(m[1]).catch(()=>{phoneState.textContent='QR NON VALIDO O SCADUTO'});
-})();
-</script>
 </body></html>
