@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LUMEN - Importa lista lavoratori</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--blu:#1f5f99;--verde:#287a46;--rosso:#a23b3b;--grigio:#555;--bg:#eef1f4}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:#111}.wrap{max-width:1050px;margin:auto}.card{background:#fff;border:2px solid var(--blu);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #9995}h1{margin:0 0 6px;color:var(--blu);font-size:24px}h2{font-size:17px;margin:14px 0 8px}.sub{color:#444;line-height:1.4}.buttons{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}button,.file{border:0;border-radius:9px;min-height:48px;padding:11px 16px;font-weight:700;font-size:15px;color:#fff;background:var(--blu);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.file input{display:none}.success{background:var(--verde)}.secondary{background:var(--grigio)}.danger{background:var(--rosso)}button:disabled{opacity:.45;cursor:not-allowed}.status{font-weight:700;margin-top:10px;padding:10px;border-radius:8px;background:#f4f6f8}.status.ok{border-left:6px solid var(--verde)}.status.warn{border-left:6px solid #b66a16}.status.err{border-left:6px solid var(--rosso)}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.meta div{padding:9px;border:1px solid #bbb;border-radius:8px;background:#fafafa}.preview{overflow:auto;max-height:480px;border:1px solid #aaa;border-radius:9px;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:920px;font-size:13px}th,td{padding:7px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}th{position:sticky;top:0;background:#eaf2f8;z-index:1}tr.warn{background:#fff7e6}input.edit{width:100%;min-width:100px;border:1px solid #999;border-radius:5px;padding:6px;text-transform:uppercase}.help{font-size:12px;color:#555;margin-top:8px;line-height:1.4}.hidden{display:none}.mapping{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}.mapping label{font-size:12px;font-weight:700}.mapping select{width:100%;min-height:40px;border:1px solid #888;border-radius:7px;background:#fff}.big-ok{font-size:18px;font-weight:800;color:var(--verde)}
+@media(max-width:760px){body{padding:9px}.card{padding:12px}.buttons{display:grid;grid-template-columns:1fr}.buttons>*{width:100%}.meta,.mapping{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.meta,.mapping{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="card">
+<h1>LUMEN · IMPORTAZIONE LISTA</h1>
+<div class="sub">Importatore dedicato per Excel/CSV. Il file viene letto nel browser e i dati della lista vengono salvati nello stesso archivio locale usato dalla Cartella Sanitaria. Il contenuto del file non viene inviato a un server.</div>
+<div class="buttons">
+<label class="file">SCEGLI FILE EXCEL / CSV<input id="file" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt"></label>
+<button id="openApp" class="secondary" type="button">APRI CARTELLA SANITARIA</button>
+</div>
+<div id="status" class="status">SELEZIONA LA LISTA DA IMPORTARE.</div>
+</section>
+<section id="work" class="card hidden">
+<h2>Controllo importazione</h2>
+<div id="meta" class="meta"></div>
+<div id="mappingBox" class="hidden">
+<h2>Associazione colonne</h2>
+<div class="sub">Se una colonna non è stata riconosciuta correttamente, scegli qui l’intestazione giusta. Cognome e Nome sono gli unici campi indispensabili.</div>
+<div id="mapping" class="mapping"></div>
+<div class="buttons"><button id="applyMap" type="button" class="secondary">APPLICA ASSOCIAZIONE</button></div>
+</div>
+<div class="preview"><table><thead><tr><th>#</th><th>Cognome</th><th>Nome</th><th>Data nascita</th><th>Luogo nascita</th><th>Codice fiscale</th><th>Azienda</th><th>Mansione</th><th>Orario</th><th>Controllo</th></tr></thead><tbody id="tbody"></tbody></table></div>
+<div class="help">L'ordine dei lavoratori resta quello del file originale. Puoi correggere direttamente i campi prima di confermare.</div>
+<div class="buttons">
+<button id="confirm" class="success" type="button">CONFERMA E PREPARA LUMEN</button>
+<button id="cancel" class="danger" type="button">ANNULLA</button>
+</div>
+</section>
+<section id="done" class="card hidden">
+<div class="big-ok">LISTA PRONTA.</div>
+<div id="doneText" class="sub"></div>
+<div class="buttons"><button id="go" class="success" type="button">APRI LUMEN CON QUESTA LISTA</button></div>
+</section>
+</div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), norm=v=>String(v??'').trim().toLocaleUpperCase('it-IT');
+let rawRows=[],headers=[],workers=[],fileName='',headerRow=0,map={};
+const aliases={
+ cognome:['COGNOME','SURNAME','LASTNAME'],nome:['NOME','NAME','FIRSTNAME'],full:['COGNOMENOME','NOMECOGNOME','NOMINATIVO','LAVORATORE','DIPENDENTE','NOMINATIVOLAVORATORE'],
+ data_nascita:['DATADINASCITA','DATANASCITA','NASCITADATA','NATOIL','NATAIL','DOB'],luogo_nascita:['LUOGODINASCITA','LUOGONASCITA','COMUNEDINASCITA','NATOA','NATAA'],
+ codice_fiscale:['CODICEFISCALE','CODFISCALE','CODFISC','CF','CFFISCALE'],datore_lavoro:['AZIENDA','DATORE','DATORELAVORO','DITTA','SOCIETA','IMPRESA','RAGIONESOCIALE'],
+ mansione:['MANSIONE','QUALIFICA','PROFILO','PROFESSIONE','ATTIVITA','RUOLO'],orario:['ORARIO','ORA','ORAVISITA','ORARIOVISITA','TURNO','FASCIAORARIA']};
+function key(v){return norm(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'')}
+function detectHeader(rows){let all=Object.values(aliases).flat(),best=0,score=-1;for(let r=0;r<Math.min(rows.length,20);r++){let s=(rows[r]||[]).map(key).reduce((n,x)=>n+(all.some(a=>x===a||x.includes(a))?1:0),0);if(s>score){score=s;best=r}}return best}
+function findIndex(h,names){for(const n of names){let i=h.indexOf(n);if(i>=0)return i}for(let i=0;i<h.length;i++)if(names.some(n=>h[i].includes(n)))return i;return -1}
+function detectMap(){let hk=headers.map(key);map={};for(const k of Object.keys(aliases))map[k]=findIndex(hk,aliases[k])}
+function iso(v){if(v==null||v==='')return'';if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);let s=String(v).trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);if(m){let y=m[3].length===2?(Number(m[3])>40?'19':'20')+m[3]:m[3];return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;let n=Number(s);if(Number.isFinite(n)&&n>20000&&n<80000){let d=new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000);return d.toISOString().slice(0,10)}return''}
+function makeWorkers(){workers=[];for(let r=headerRow+1;r<rawRows.length;r++){let row=rawRows[r]||[];if(row.every(x=>String(x??'').trim()===''))continue;let c=map.cognome>=0?norm(row[map.cognome]):'',n=map.nome>=0?norm(row[map.nome]):'';if((!c||!n)&&map.full>=0){let p=norm(row[map.full]).replace(/[,;]+/g,' ').split(/\s+/).filter(Boolean);if(p.length>1){if(!c)c=p.shift();if(!n)n=p.join(' ')}}if(!c&&!n)continue;workers.push({id:'IMP_'+Date.now()+'_'+r,cognome:c,nome:n,luogo_nascita:map.luogo_nascita>=0?norm(row[map.luogo_nascita]):'',data_nascita:map.data_nascita>=0?iso(row[map.data_nascita]):'',codice_fiscale:map.codice_fiscale>=0?norm(row[map.codice_fiscale]).replace(/\s+/g,''):'',datore_lavoro:map.datore_lavoro>=0?norm(row[map.datore_lavoro]):'',mansione:map.mansione>=0?norm(row[map.mansione]):'',orario:map.orario>=0?String(row[map.orario]??'').trim():'',visited:false,sourceRow:r+1})}validate();render()}
+function validate(){let seen=new Map();workers.forEach(w=>{let k=w.codice_fiscale||[w.cognome,w.nome,w.data_nascita].join('|');seen.set(k,(seen.get(k)||0)+1)});workers.forEach(w=>{let p=[];if(!w.cognome)p.push('COGNOME MANCANTE');if(!w.nome)p.push('NOME MANCANTE');if(w.codice_fiscale&&!/^[A-Z0-9]{16}$/.test(w.codice_fiscale))p.push('CF DA VERIFICARE');let k=w.codice_fiscale||[w.cognome,w.nome,w.data_nascita].join('|');if(seen.get(k)>1)p.push('POSSIBILE DUPLICATO');w.problemi=p;w.da_verificare=p.length>0})}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){validate();$('work').classList.remove('hidden');let warn=workers.filter(w=>w.da_verificare).length;$('meta').innerHTML='<div><b>File</b><br>'+esc(fileName)+'</div><div><b>Lavoratori</b><br>'+workers.length+'</div><div><b>Da verificare</b><br>'+warn+'</div>';$('tbody').innerHTML=workers.map((w,i)=>'<tr class="'+(w.da_verificare?'warn':'')+'"><td>'+(i+1)+'</td>'+['cognome','nome','data_nascita','luogo_nascita','codice_fiscale','datore_lavoro','mansione','orario'].map(k=>'<td><input class="edit" data-i="'+i+'" data-k="'+k+'" '+(k==='data_nascita'?'type="date"':'')+' value="'+esc(w[k])+'"></td>').join('')+'<td><b>'+(w.problemi.length?esc(w.problemi.join(', ')):'OK')+'</b></td></tr>').join('');document.querySelectorAll('.edit').forEach(el=>el.onchange=()=>{let w=workers[+el.dataset.i],k=el.dataset.k;w[k]=(k==='data_nascita'||k==='orario')?el.value:norm(el.value);render()});$('status').className='status '+(warn?'warn':'ok');$('status').textContent='ANTEPRIMA PRONTA: '+workers.length+' LAVORATORI'+(warn?' — '+warn+' DA VERIFICARE.':' — NESSUNA ANOMALIA EVIDENTE.');}
+function renderMapping(){let fields=[['cognome','Cognome'],['nome','Nome'],['full','Nominativo unico'],['data_nascita','Data nascita'],['luogo_nascita','Luogo nascita'],['codice_fiscale','Codice fiscale'],['datore_lavoro','Azienda'],['mansione','Mansione'],['orario','Orario']];$('mapping').innerHTML=fields.map(([k,l])=>'<label>'+l+'<select data-map="'+k+'"><option value="-1">— NESSUNA —</option>'+headers.map((h,i)=>'<option value="'+i+'" '+(map[k]===i?'selected':'')+'>'+esc(h||('COLONNA '+(i+1)))+'</option>').join('')+'</select></label>').join('');$('mappingBox').classList.remove('hidden')}
+async function parseFile(f){fileName=f.name;let ext=f.name.toLowerCase().split('.').pop(),buf=await f.arrayBuffer();if(!window.XLSX)throw new Error('Libreria Excel non caricata. Controlla la connessione e riapri la pagina.');let wb;if(['csv','tsv','txt'].includes(ext)){let text=new TextDecoder().decode(buf);wb=XLSX.read(text,{type:'string',cellDates:true})}else wb=XLSX.read(buf,{type:'array',cellDates:true});let sheet=wb.Sheets[wb.SheetNames[0]];rawRows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:''});if(!rawRows.length)throw new Error('Il foglio è vuoto.');headerRow=detectHeader(rawRows);headers=(rawRows[headerRow]||[]).map(x=>String(x??'').trim());detectMap();renderMapping();makeWorkers();if(!workers.length)throw new Error('Non sono stati riconosciuti nominativi. Usa l’associazione colonne qui sotto.')}
+$('file').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{$('status').className='status';$('status').textContent='LETTURA DEL FILE IN CORSO...';await parseFile(f)}catch(err){$('status').className='status err';$('status').textContent='IMPORTAZIONE NON RIUSCITA: '+(err.message||err)}finally{e.target.value=''}};
+$('applyMap').onclick=()=>{document.querySelectorAll('[data-map]').forEach(s=>map[s.dataset.map]=+s.value);makeWorkers()};
+$('confirm').onclick=()=>{if(!workers.length)return;validate();let missing=workers.filter(w=>!w.cognome||!w.nome).length;if(missing&&!confirm('Ci sono '+missing+' righe senza Cognome o Nome. Vuoi salvarle comunque?'))return;let payload={workers,currentWorkerIndex:-1,attachedSourceName:fileName,when:new Date().toISOString()};try{localStorage.setItem('beltrami_workers_v8',JSON.stringify(payload));localStorage.setItem('beltrami_import_last',JSON.stringify({fileName,count:workers.length,when:new Date().toISOString()}));$('work').classList.add('hidden');$('done').classList.remove('hidden');$('doneText').textContent='Importati '+workers.length+' lavoratori da “'+fileName+'”. Aprendo LUMEN, la lista sarà già disponibile nello stesso ordine del file.';$('status').className='status ok';$('status').textContent='LISTA SALVATA NELL’ARCHIVIO LOCALE DI LUMEN.'}catch(err){$('status').className='status err';$('status').textContent='NON È STATO POSSIBILE SALVARE LA LISTA: '+(err.message||err)}};
+$('cancel').onclick=()=>{rawRows=[];headers=[];workers=[];fileName='';$('work').classList.add('hidden');$('done').classList.add('hidden');$('status').className='status';$('status').textContent='IMPORTAZIONE ANNULLATA. LA LISTA PRECEDENTE NON È STATA MODIFICATA.'};
+function go(){location.href='index.html'}$('go').onclick=go;$('openApp').onclick=go;
+})();
+</script>
+</body>
+</html>
