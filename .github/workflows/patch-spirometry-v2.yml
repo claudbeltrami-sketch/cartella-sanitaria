@@ -1,0 +1,46 @@
+name: Patch spirometria LUMEN V2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-spirometry-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Aggiorna index.html
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if 'id="spirometria_rapporto"' not in s:
+              anchor='<div class="row"><div class="field"><label>Visiotest</label>'
+              insert='''<div class="row3"><div class="field"><label>FEV1/FVC (%)</label><input id="spirometria_rapporto" readonly></div><div class="field full"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly style="min-height:70px"></textarea></div></div>\n<div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>\n'''
+              if anchor not in s:
+                  raise SystemExit('Punto di inserimento spirometria non trovato')
+              s=s.replace(anchor,insert+anchor,1)
+          if 'function aggiornaSpirometriaAuto' not in s:
+              marker='</body>'
+              js='''<script>\n(function(){\nfunction n(id){var e=document.getElementById(id);return e?parseFloat(String(e.value||'').replace(',','.')):NaN;}\nfunction aggiornaSpirometriaAuto(){\n var fvc=n('spirometria_fvc'),fev1=n('spirometria_fev1'),fvcPct=n('spirometria_fvc_percentuale'),fev1Pct=n('spirometria_fev1_percentuale'),pefPct=n('spirometria_pef_percentuale');\n var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1))?fev1/fvc*100:NaN;\n var r=document.getElementById('spirometria_rapporto'),o=document.getElementById('spirometria_interpretazione');\n if(r)r.value=isFinite(ratio)?ratio.toFixed(1):'';\n if(!o)return; if(!isFinite(fvc)||!isFinite(fev1)){o.value='';return;}\n var a=[];\n if(isFinite(ratio))a.push(ratio<70?'Rapporto FEV1/FVC ridotto: quadro compatibile con possibile alterazione ventilatoria ostruttiva.':'Rapporto FEV1/FVC non ridotto secondo la soglia fissa del 70%.');\n if(isFinite(fvcPct))a.push(fvcPct<80?'FVC ridotta rispetto al predetto; la restrizione non può essere diagnosticata con la sola spirometria semplice.':'FVC conservata rispetto al predetto.');\n if(isFinite(fev1Pct)&&fev1Pct<80)a.push('FEV1 ridotto rispetto al predetto.');\n if(isFinite(pefPct)&&pefPct<80)a.push('PEF ridotto rispetto al predetto.');\n a.push('Correlare con qualità della manovra, LLN/Z-score, valori di riferimento appropriati e quadro clinico.');\n o.value=a.join(' ');\n}\n['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',aggiornaSpirometriaAuto);e.addEventListener('change',aggiornaSpirometriaAuto);}});\ndocument.addEventListener('DOMContentLoaded',aggiornaSpirometriaAuto); setTimeout(aggiornaSpirometriaAuto,0);\n})();\n</script>\n'''
+              if marker not in s:
+                  raise SystemExit('Chiusura body non trovata')
+              s=s.replace(marker,js+marker,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit e pubblica
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Aggiunge interpretazione spirometrica automatica"
+          git push origin main
