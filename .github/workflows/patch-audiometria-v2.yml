@@ -1,6 +1,7 @@
 name: Patch audiometria LUMEN v2
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -13,7 +14,7 @@ permissions:
 
 jobs:
   patch:
-    if: github.event_name == 'push' || github.event.issue.title == 'TRIGGER PATCH AUDIOMETRIA LUMEN'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.issue.title == 'TRIGGER PATCH AUDIOMETRIA LUMEN'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
