@@ -1,0 +1,34 @@
+name: Fix spirometry layout
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-spirometry-layout.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enlarge spirometry interpretation box
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = ".spirometry-interpretation textarea{display:block;width:100%;min-height:120px;box-sizing:border-box;resize:vertical;line-height:1.35}\n@media(max-width:850px){.spirometry-interpretation{grid-column:1/-1}.spirometry-interpretation textarea{min-height:140px}}"
+          new = ".spirometry-interpretation textarea{display:block;width:100%;min-height:150px;box-sizing:border-box;resize:vertical;line-height:1.4;padding:8px;font-size:14px}\n.compact-exams .spirometry-interpretation textarea{min-height:150px}\n@media(max-width:850px){.spirometry-interpretation{grid-column:1/-1}.spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:180px}}\n@media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px}}"
+          if old not in s:
+              raise SystemExit('Blocco CSS atteso non trovato: nessuna modifica eseguita')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Corregge spazio risultato spirometria"
+          git push
