@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compact FVC FEV1 PEF table
+      - name: Compact FVC FEV1 PEF values
         shell: bash
         run: |
           python - <<'PY'
@@ -22,18 +22,20 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          required = ['spiro_fvc_l','spiro_fvc_pct','spiro_fev1_l','spiro_fev1_pct','spiro_pef_ls','spiro_pef_pct']
+          required = ['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale']
           missing = [x for x in required if f'id="{x}"' not in s]
           if missing:
               raise SystemExit('Missing spirometry IDs: ' + ', '.join(missing))
 
-          marker = '/* LUMEN: spirometria valori compatti */'
+          marker = '/* LUMEN: valori spirometrici compatti v2 */'
           css_lines = [
               '',
               marker,
-              'table:has(#spiro_fvc_l){width:420px!important;max-width:100%!important;table-layout:auto}',
-              '#spiro_fvc_l,#spiro_fvc_pct,#spiro_fev1_l,#spiro_fev1_pct,#spiro_pef_ls,#spiro_pef_pct{width:78px!important;min-width:0!important}',
-              '@media(max-width:850px){table:has(#spiro_fvc_l){width:100%!important}}',
+              '.compact-exams .row3:has(#spirometria_fvc){grid-template-columns:245px 130px;max-width:390px;gap:5px 10px;align-items:end}',
+              '.compact-exams .row3:has(#spirometria_fvc)>div:empty{display:none}',
+              '.compact-exams .row3:has(#spirometria_fvc) .field{justify-content:flex-start}',
+              '.compact-exams .row3:has(#spirometria_fvc) .field input{width:72px!important;flex:0 0 72px!important;min-width:0!important}',
+              '@media(max-width:850px){.compact-exams .row3:has(#spirometria_fvc){grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:100%;gap:5px 8px}.compact-exams .row3:has(#spirometria_fvc) .field input{width:64px!important;flex-basis:64px!important}}',
               ''
           ]
           css = '\n'.join(css_lines)
