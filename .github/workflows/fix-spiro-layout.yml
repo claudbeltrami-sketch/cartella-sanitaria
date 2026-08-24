@@ -22,14 +22,14 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          old_html = '<div class="field full"><label>Interpretazione spirometrica automatica</label><textarea id="spiroInterpretation" readonly></textarea></div>'
-          new_html = '<div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spiroInterpretation" readonly></textarea></div>'
+          old_html = '<div class="field full"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly style="min-height:70px"></textarea></div>'
+          new_html = '<div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly></textarea></div>'
           if old_html in s:
               s = s.replace(old_html, new_html, 1)
           elif new_html not in s:
               raise SystemExit('Spirometry interpretation markup not found')
 
-          css = '''\n.spirometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%}\n.spirometry-interpretation label{width:100%;white-space:normal}\n.spirometry-interpretation textarea{display:block;width:100%;min-height:105px;box-sizing:border-box;resize:vertical;line-height:1.35}\n'''
+          css = '''\n.spirometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;grid-column:1/-1}\n.spirometry-interpretation label{display:block;width:100%;white-space:normal}\n.spirometry-interpretation textarea{display:block;width:100%;min-height:120px;box-sizing:border-box;resize:vertical;line-height:1.35}\n@media(max-width:850px){.spirometry-interpretation{grid-column:1/-1}.spirometry-interpretation textarea{min-height:140px}}\n'''
           marker = '.firma-medico-cartella img{display:block;margin:0 auto;max-height:82px;object-fit:contain}\n'
           if '.spirometry-interpretation{' not in s:
               if marker not in s:
