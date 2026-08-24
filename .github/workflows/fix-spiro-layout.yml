@@ -28,12 +28,15 @@ jobs:
               raise SystemExit('Missing spirometry IDs: ' + ', '.join(missing))
 
           marker = '/* LUMEN: spirometria valori compatti */'
-          css = '''
-/* LUMEN: spirometria valori compatti */
-table:has(#spiro_fvc_l){width:420px!important;max-width:100%!important;table-layout:auto}
-#spiro_fvc_l,#spiro_fvc_pct,#spiro_fev1_l,#spiro_fev1_pct,#spiro_pef_ls,#spiro_pef_pct{width:78px!important;min-width:0!important}
-@media(max-width:850px){table:has(#spiro_fvc_l){width:100%!important}}
-'''
+          css_lines = [
+              '',
+              marker,
+              'table:has(#spiro_fvc_l){width:420px!important;max-width:100%!important;table-layout:auto}',
+              '#spiro_fvc_l,#spiro_fvc_pct,#spiro_fev1_l,#spiro_fev1_pct,#spiro_pef_ls,#spiro_pef_pct{width:78px!important;min-width:0!important}',
+              '@media(max-width:850px){table:has(#spiro_fvc_l){width:100%!important}}',
+              ''
+          ]
+          css = '\n'.join(css_lines)
 
           if marker not in s:
               close = s.find('</style>')
