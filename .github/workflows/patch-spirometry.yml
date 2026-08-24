@@ -1,0 +1,71 @@
+name: Patch spirometria LUMEN
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-spirometry.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aggiorna index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='''<div class="row3"><div class="field"><label>Spirometria – FVC valore</label><input id="spirometria_fvc" inputmode="decimal"></div><div class="field"><label>FVC (%)</label><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – FEV1 valore</label><input id="spirometria_fev1" inputmode="decimal"></div><div class="field"><label>FEV1 (%)</label><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – PEF valore</label><input id="spirometria_pef" inputmode="decimal"></div><div class="field"><label>PEF (%)</label><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div><div></div></div>'''
+          new='''<div class="row3"><div class="field"><label>Spirometria – FVC valore</label><input id="spirometria_fvc" inputmode="decimal"></div><div class="field"><label>FVC (%)</label><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – FEV1 valore</label><input id="spirometria_fev1" inputmode="decimal"></div><div class="field"><label>FEV1 (%)</label><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – PEF valore</label><input id="spirometria_pef" inputmode="decimal"></div><div class="field"><label>PEF (%)</label><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div><div></div></div>
+<div class="row3"><div class="field"><label>FEV1/FVC (%)</label><input id="spirometria_rapporto" readonly></div><div class="field full"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly style="min-height:70px"></textarea></div></div>
+<div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>'''
+          if old not in s:
+              raise SystemExit('Blocco spirometria non trovato: patch annullata')
+          s=s.replace(old,new,1)
+          marker='''</body></html>'''
+          js='''<script>
+(function(){
+  function num(id){var e=document.getElementById(id); if(!e) return NaN; return parseFloat(String(e.value||'').replace(',','.'));}
+  function aggiornaSpirometria(){
+    var fvc=num('spirometria_fvc'), fev1=num('spirometria_fev1'), pefPct=num('spirometria_pef_percentuale'), fvcPct=num('spirometria_fvc_percentuale'), fev1Pct=num('spirometria_fev1_percentuale');
+    var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1)) ? fev1/fvc*100 : NaN;
+    var r=document.getElementById('spirometria_rapporto'), out=document.getElementById('spirometria_interpretazione');
+    if(r) r.value=isFinite(ratio)?ratio.toFixed(1):'';
+    if(!out) return;
+    if(!isFinite(fvc) || !isFinite(fev1)){out.value=''; return;}
+    var parti=[];
+    if(isFinite(ratio)){
+      if(ratio<70) parti.push('Rapporto FEV1/FVC ridotto: quadro compatibile con possibile alterazione ventilatoria ostruttiva.');
+      else parti.push('Rapporto FEV1/FVC non ridotto secondo la soglia fissa del 70%.');
+    }
+    if(isFinite(fvcPct)){
+      if(fvcPct<80) parti.push('FVC ridotta rispetto al predetto; la restrizione non può essere diagnosticata con la sola spirometria semplice.');
+      else parti.push('FVC conservata rispetto al predetto.');
+    }
+    if(isFinite(fev1Pct) && fev1Pct<80) parti.push('FEV1 ridotto rispetto al predetto.');
+    if(isFinite(pefPct) && pefPct<80) parti.push('PEF ridotto rispetto al predetto.');
+    parti.push('Correlare con qualità della manovra, LLN/Z-score, valori di riferimento appropriati e quadro clinico.');
+    out.value=parti.join(' ');
+  }
+  ['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale'].forEach(function(id){var e=document.getElementById(id); if(e){e.addEventListener('input',aggiornaSpirometria);e.addEventListener('change',aggiornaSpirometria);}});
+  document.addEventListener('DOMContentLoaded',aggiornaSpirometria);
+  setTimeout(aggiornaSpirometria,0);
+})();
+</script>
+</body></html>'''
+          if marker not in s:
+              raise SystemExit('Chiusura HTML non trovata')
+          s=s.replace(marker,js,1)
+          p.write_text(s)
+          PY
+      - name: Commit e pubblica
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Aggiunge interpretazione spirometrica automatica" || exit 0
+          git push
