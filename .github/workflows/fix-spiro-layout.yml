@@ -1,4 +1,4 @@
-name: Fix spirometry interpretation layout
+name: Compact spirometry values layout
 
 on:
   push:
@@ -9,11 +9,11 @@ permissions:
   contents: write
 
 jobs:
-  fix-layout:
+  compact-spirometry:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Widen spirometry interpretation area
+      - name: Compact FVC FEV1 PEF table
         shell: bash
         run: |
           python - <<'PY'
@@ -22,29 +22,36 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          old_html = '<div class="field full"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly style="min-height:70px"></textarea></div>'
-          new_html = '<div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly></textarea></div>'
-          if old_html in s:
-              s = s.replace(old_html, new_html, 1)
-          elif new_html not in s:
-              raise SystemExit('Spirometry interpretation markup not found')
+          start = s.find('<h3>SPIROMETRIA</h3>')
+          if start < 0:
+              raise SystemExit('SPIROMETRIA section not found')
 
-          css = '''\n.spirometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;grid-column:1/-1}\n.spirometry-interpretation label{display:block;width:100%;white-space:normal}\n.spirometry-interpretation textarea{display:block;width:100%;min-height:120px;box-sizing:border-box;resize:vertical;line-height:1.35}\n@media(max-width:850px){.spirometry-interpretation{grid-column:1/-1}.spirometry-interpretation textarea{min-height:140px}}\n'''
-          marker = '.firma-medico-cartella img{display:block;margin:0 auto;max-height:82px;object-fit:contain}\n'
-          if '.spirometry-interpretation{' not in s:
-              if marker not in s:
-                  raise SystemExit('CSS insertion marker not found')
-              s = s.replace(marker, marker + css, 1)
+          end_marker = 'Valutazione automatica indicativa'
+          end = s.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('Spirometry evaluation marker not found')
+
+          block = s[start:end]
+
+          old_table = '<table class="mini-table">'
+          new_table = '<table class="mini-table" style="width:420px;max-width:100%;">'
+          if old_table in block:
+              block = block.replace(old_table, new_table, 1)
+          elif new_table not in block:
+              raise SystemExit('Spirometry table not found')
+
+          block = block.replace('style="width:110px;"', 'style="width:78px;"')
+          s = s[:start] + block + s[end:]
 
           p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit fix
+      - name: Commit compact layout
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           if ! git diff --cached --quiet; then
-            git commit -m "Fix spirometry interpretation layout on mobile"
+            git commit -m "Compact spirometry value fields"
             git push
           fi
