@@ -5,12 +5,15 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/patch-audiometria-v2.yml'
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event_name == 'push' || github.event.issue.title == 'TRIGGER PATCH AUDIOMETRIA LUMEN'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
