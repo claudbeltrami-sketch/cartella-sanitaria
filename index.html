@@ -16,16 +16,22 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .cf-helper{grid-column:1/-1;border:2px solid var(--verde);border-radius:9px;padding:10px;margin-top:4px;background:#f5fff8}.cf-helper-title{font-weight:700;color:var(--verde);margin-bottom:8px}.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.cf-note{font-size:12px;margin-top:7px;color:#444}.cf-action{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}.cf-action button{min-height:40px;padding:8px 13px}.cf-result{font-weight:700;color:var(--verde)}
 .compact-exams .section-title{margin:9px 0 5px;font-size:15px}.compact-exams .field{min-height:28px}.compact-exams .field input,.compact-exams .field select,.compact-exams .field textarea{min-height:25px;font-size:14px}.compact-exams .row,.compact-exams .row3{gap:5px 10px}.compact-exams .field label{font-size:13px}.firma-medico-cartella img{display:block;margin:0 auto;max-height:82px;object-fit:contain}
 
+.spirometry-grid{display:grid;gap:5px;margin:3px 0 6px}
+.spirometry-row{display:grid;grid-template-columns:58px 46px minmax(70px,1fr) 22px minmax(70px,1fr);gap:7px;align-items:end;min-height:30px}
+.spirometry-row label{font-size:13px;font-weight:700;white-space:nowrap}
+.spirometry-row span{font-size:12px;font-weight:700;white-space:nowrap;padding-bottom:5px}
+.spirometry-row input{width:100%;min-width:0;min-height:25px;border:0;border-bottom:1px dotted #333;padding:3px 5px;font-size:14px;text-transform:uppercase;background:#fff}
+
 .spirometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;grid-column:1/-1}
 .spirometry-interpretation label{display:block;width:100%;white-space:normal}
 .spirometry-interpretation textarea{display:block;width:100%;min-height:96px;box-sizing:border-box;resize:vertical;line-height:1.45;padding:10px;font-size:14px}
 .compact-exams .spirometry-interpretation textarea{min-height:82px}
 @media(max-width:850px){
- .spirometry-grid{grid-template-columns:1fr 1fr!important;gap:6px 10px!important}
- .spirometry-grid>div:empty{display:none}
- .spirometry-grid .field{min-height:42px}
- .spirometry-grid .field label{font-size:14px;white-space:normal;line-height:1.15}
- .spirometry-grid .field input{min-height:38px!important;padding:3px 5px!important;font-size:17px!important}
+ .spirometry-grid{display:grid!important;grid-template-columns:1fr!important;gap:4px!important}
+ .spirometry-row{grid-template-columns:50px 42px minmax(54px,1fr) 16px minmax(54px,1fr);gap:5px;min-height:34px}
+ .spirometry-row label{font-size:14px;line-height:1;white-space:nowrap}
+ .spirometry-row span{font-size:11px;line-height:1;white-space:nowrap;padding-bottom:7px}
+ .spirometry-row input{min-width:0;min-height:34px!important;padding:2px 4px!important;font-size:16px!important}
  .spirometry-interpretation{grid-column:1/-1}
  .spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:56px;height:auto;overflow:hidden;resize:none;font-size:11.5px!important;line-height:1.18;padding:6px 7px}
  .spirometry-interpretation label{font-size:12px!important;line-height:1.1}
@@ -339,7 +345,11 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </div>
 <div class="section-title">Esiti degli accertamenti</div>
 <div class="row"><div class="field"><label>Audiometria</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>
-<div class="row3 spirometry-grid"><div class="field"><label>Spirometria – FVC valore</label><input id="spirometria_fvc" inputmode="decimal"></div><div class="field"><label>FVC (%)</label><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – FEV1 valore</label><input id="spirometria_fev1" inputmode="decimal"></div><div class="field"><label>FEV1 (%)</label><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – PEF valore</label><input id="spirometria_pef" inputmode="decimal"></div><div class="field"><label>PEF (%)</label><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div><div></div></div>
+<div class="spirometry-grid">
+ <div class="spirometry-row"><label>FVC</label><span>Valore</span><input id="spirometria_fvc" inputmode="decimal"><span>%</span><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div>
+ <div class="spirometry-row"><label>FEV1</label><span>Valore</span><input id="spirometria_fev1" inputmode="decimal"><span>%</span><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div>
+ <div class="spirometry-row"><label>PEF</label><span>Valore</span><input id="spirometria_pef" inputmode="decimal"><span>%</span><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div>
+</div>
 <div class="row3"><div class="field"><label>FEV1/FVC (%)</label><input id="spirometria_rapporto" readonly></div><div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly></textarea></div></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 <div class="row"><div class="field"><label>Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select></div><div class="field"><label>Correzione / indicazioni</label><input id="visiotest_note" data-upper></div></div>
