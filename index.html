@@ -110,12 +110,17 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 @media print{.worker-sign-modal{display:none!important}.worker-receipt-signature>div:first-child,.cartella-worker-signature{position:relative}.worker-sign-output img{height:17mm;top:1mm}}
 
 
-/* LUMEN: valori spirometrici compatti v2 */
+/* LUMEN: valori spirometrici compatti v3 */
 .compact-exams .row3:has(#spirometria_fvc){grid-template-columns:245px 130px;max-width:390px;gap:5px 10px;align-items:end}
 .compact-exams .row3:has(#spirometria_fvc)>div:empty{display:none}
 .compact-exams .row3:has(#spirometria_fvc) .field{justify-content:flex-start}
 .compact-exams .row3:has(#spirometria_fvc) .field input{width:72px!important;flex:0 0 72px!important;min-width:0!important}
-@media(max-width:850px){.compact-exams .row3:has(#spirometria_fvc){grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:100%;gap:5px 8px}.compact-exams .row3:has(#spirometria_fvc) .field input{width:64px!important;flex-basis:64px!important}}
+@media(max-width:850px){
+ .compact-exams .row3:has(#spirometria_fvc){display:grid;grid-template-columns:minmax(0,1fr);max-width:100%;gap:8px}
+ .compact-exams .row3:has(#spirometria_fvc) .field{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:10px;align-items:center;width:100%;min-width:0}
+ .compact-exams .row3:has(#spirometria_fvc) .field label{min-width:0;white-space:normal;line-height:1.2}
+ .compact-exams .row3:has(#spirometria_fvc) .field input{box-sizing:border-box;width:96px!important;min-width:96px!important;max-width:96px!important;min-height:46px;font-size:18px!important;text-align:center;flex:none!important}
+}
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
