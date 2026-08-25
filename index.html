@@ -219,8 +219,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="archive-modal" id="archiveModal" aria-hidden="true"><div class="archive-box">
  <div class="archive-head"><h3 style="margin:0">ARCHIVIO LOCALE CARTELLE SANITARIE</h3><button type="button" id="btnChiudiArchivio" class="secondary">CHIUDI</button></div>
  <div class="archive-search"><input id="archiveQuery" placeholder="COGNOME, NOME, CF, AZIENDA, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
+ <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <div id="archiveSummary" class="archive-note"></div><div id="archiveResults"></div>
- <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. L’archivio resta esclusivamente nel browser di questo dispositivo; usa CREA COPIA DI SICUREZZA per conservarne una copia esterna.</div>
+ <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
 
 <div class="consent-modal" id="consentModal" aria-hidden="true">
@@ -787,6 +788,7 @@ async function ripristinaBackupCompleto(file){
  showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
 }
 document.getElementById('btnBackupCompleto').onclick=creaBackupCompleto;
+document.getElementById('btnRipristinaDaArchivio').onclick=()=>document.getElementById('fileRipristinaBackup').click();
 document.getElementById('fileRipristinaBackup').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await ripristinaBackupCompleto(f)}catch(err){showSaveInfo('error','RIPRISTINO NON ESEGUITO',err.message||String(err));setStatus('COPIA NON VALIDA O DANNEGGIATA.')}finally{e.target.value=''}};
 const workersBody=document.getElementById('workersBody'),workersSummary=document.getElementById('workersSummary');
 const norm=v=>String(v??'').trim().toLocaleUpperCase('it-IT');
