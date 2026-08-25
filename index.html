@@ -183,6 +183,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="tool-group-title">1 · VISITA</div>
   <div class="tool-buttons">
    <label class="file-label">APRI DATI<input type="file" id="fileApri" accept="application/json,.json"></label>
+   <label class="file-label">IMPORTA CARTELLA DA PDF<input type="file" id="fileImportaCartellaPdf" accept="application/pdf,.pdf"></label>
    <button type="button" id="btnSalva">SALVA CARTELLA</button>
    <button type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA</button>
    <button type="button" id="btnCert">GENERA CERTIFICATO</button>
@@ -1098,4 +1099,34 @@ $('consentModal').addEventListener('click',function(e){if(e.target===$('consentM
 })();
 </script>
 
+<script>
+
+(function(){
+'use strict';
+const q=id=>document.getElementById(id), input=q('fileImportaCartellaPdf'), status=q('status');
+if(!input)return;
+const clean=v=>String(v||'').replace(/\s+/g,' ').trim(), up=v=>clean(v).toLocaleUpperCase('it-IT');
+function date(v){let m=clean(v).match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(!m)return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';return (m[3].length===2?'20'+m[3]:m[3])+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+function put(id,v,d){let e=q(id);v=d?date(v):clean(v);if(!e||!v)return 0;if(e.tagName==='SELECT'){let o=[...e.options].find(x=>up(x.value)===up(v)||up(x.textContent)===up(v));if(!o)return 0;e.value=o.value}else e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));return 1}
+const fields=[
+['cognome','COGNOME'],['nome','NOME'],['luogo_nascita','LUOGO DI NASCITA'],['data_nascita','DATA DI NASCITA',1],['sesso','SESSO'],['codice_fiscale','CODICE FISCALE'],['domicilio','DOMICILIO'],['telefono','TELEFONO'],['stato_civile','STATO CIVILE'],['medico_curante','MEDICO CURANTE'],['via_medico','VIA'],['telefono_medico','TELEFONO MEDICO'],['datore_lavoro','DATORE DI LAVORO'],['attivita_azienda','ATTIVITÀ AZIENDA'],['data_assunzione','DATA ASSUNZIONE',1],['sede_lavoro','SEDE/I DI LAVORO'],['altri_motivi','ALTRI MOTIVI'],['mansione','DESTINAZIONE LAVORATIVA - MANSIONE'],['altri_rischi','ALTRI RISCHI'],['tempo_esposizione','TEMPO ESPOSIZIONE'],['anamnesi_lavorativa','1. ANAMNESI LAVORATIVA'],['anamnesi_familiare','2. ANAMNESI FAMILIARE'],['sigarette_die','SIGARETTE/DIE'],['anni_fumo','ANNI DI FUMO'],['ex_fumatore_da','EX FUMATORE DA'],['alcol_frequenza','ALCOL'],['alcol_quantita','QUANTITÀ'],['farmaci','USO DI FARMACI'],['infortuni','INFORTUNI - TRAUMI'],['invalidita_stato','INVALIDITÀ'],['invalidita_ente','ENTE'],['invalidita_percentuale','PERCENTUALE (%)'],['invalidita_note','NOTE INVALIDITÀ'],['altre_notizie','ALTRE NOTIZIE UTILI'],['anamnesi_patologica','ANAMNESI PATOLOGICA'],['audiometria_esito','AUDIOMETRIA'],['audiometria_difetto','DIFETTO RISCONTRATO'],['visiotest_esito','VISIOTEST'],['visiotest_note','CORREZIONE / INDICAZIONI'],['altri_accertamenti','ALTRI ACCERTAMENTI'],['altezza','ALTEZZA (CM)'],['peso','PESO'],['pas','PAS'],['pad','PAD'],['polso','POLSO'],['cute','CUTE'],['torace','TORACE'],['cuore','CUORE'],['addome','ADDOME'],['organi_ipocondriaci','ORGANI IPOCONDRIACI'],['genito_urinario','APPARATO GENITO-URINARIO'],['rachide','RACHIDE'],['arti','ARTI'],['sistema_nervoso','SISTEMA NERVOSO'],['altri_rilievi','ALTRI RILIEVI CLINICI'],['prescrizioni','PRESCRIZIONI / LIMITAZIONI'],['periodicita','PERIODICITÀ VISITA MEDICA'],['data_trasmissione','EFFETTUATA IL',1],['mezzo_trasmissione','A MEZZO']];
+function rows(items){let a=[];items.forEach(i=>{let s=clean(i.str);if(!s)return;let y=Math.round(i.transform[5]/3)*3,r=a.find(x=>Math.abs(x.y-y)<=3);if(!r){r={y:y,a:[]};a.push(r)}r.a.push({x:i.transform[4],s:s})});return a.sort((x,y)=>y.y-x.y).map(r=>clean(r.a.sort((x,y)=>x.x-y.x).map(x=>x.s).join(' ')))}
+function get(lines,label){label=up(label);for(let i=0;i<lines.length;i++){let u=up(lines[i]),p=u.indexOf(label);if(p<0)continue;let v=clean(lines[i].slice(p+label.length).replace(/^\s*[:\-–]?\s*/,''));if(v)return v;for(let k=i+1;k<i+3&&k<lines.length;k++)if(clean(lines[k]))return clean(lines[k])}return ''}
+input.addEventListener('change',async e=>{
+ let f=(e.target.files||[])[0];e.target.value='';if(!f)return;
+ if(!confirm('IMPORTARE I DATI DA “'+f.name+'”?\\n\\nIL CONSENSO FIRMATO RESTA SEPARATO. CONTROLLARE I DATI PRIMA DI SALVARE.'))return;
+ try{
+  if(!window.pdfjsLib)throw Error('Lettore PDF non disponibile: controllare la connessione.');
+  status.textContent='LETTURA DEL PDF IN CORSO…';pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  let pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise, lines=[];
+  for(let n=1;n<=pdf.numPages;n++){let p=await pdf.getPage(n),t=await p.getTextContent();lines.push(...rows(t.items))}
+  let count=0;fields.forEach(x=>count+=put(x[0],get(lines,x[1]),x[2]));
+  let all=up(lines.join(' ')),gs=['NON IDONEO PERMANENTEMENTE','NON IDONEO TEMPORANEAMENTE','IDONEO CON PRESCRIZIONI','IDONEO CON LIMITAZIONI','IDONEO'],gv=gs.find(x=>all.includes(x));
+  if(gv){let g=[...document.querySelectorAll('input[name="giudizio"]')].find(x=>x.value===gv);if(g){g.checked=true;g.dispatchEvent(new Event('change',{bubbles:true}));count++}}
+  status.textContent='PDF IMPORTATO: '+count+' CAMPI RICONOSCIUTI. CONTROLLARE I DATI E PREMERE “SALVA CARTELLA”.';
+  alert('IMPORTAZIONE COMPLETATA.\\n\\nCampi riconosciuti: '+count+'.\\nIl consenso firmato resta separato. Controllare dati e caselle, poi premere “SALVA CARTELLA”.');
+ }catch(err){status.textContent='IMPORTAZIONE PDF NON RIUSCITA.';alert('NON È STATO POSSIBILE LEGGERE IL PDF.\\n'+(err.message||''))}
+});
+})();
+</script>
 </body></html>
