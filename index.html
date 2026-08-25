@@ -27,7 +27,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .spirometry-grid .field label{font-size:14px;white-space:normal;line-height:1.15}
  .spirometry-grid .field input{min-height:38px!important;padding:3px 5px!important;font-size:17px!important}
  .spirometry-interpretation{grid-column:1/-1}
- .spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:72px;height:auto;overflow:hidden;resize:none;font-size:13px;line-height:1.3;padding:8px}
+ .spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:56px;height:auto;overflow:hidden;resize:none;font-size:11.5px!important;line-height:1.18;padding:6px 7px}
+ .spirometry-interpretation label{font-size:12px!important;line-height:1.1}
+ .spirometry-interpretation+.small,.spirometry-interpretation .small{font-size:10.5px!important;line-height:1.18}
 }
 @media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px;overflow:visible}}
 @media(max-width:850px){body{overflow-x:hidden}.toolbar{width:100%;max-width:none;margin-left:0;grid-template-columns:1fr;position:relative}.toolbar .tool-buttons{display:grid;grid-template-columns:1fr 1fr}.toolbar .tool-buttons>button,.toolbar .tool-buttons>.file-label{width:100%;min-height:54px;font-size:14px;padding:9px}.status{width:100%;max-width:none;margin-left:0;font-size:15px;line-height:1.25}.save-info{width:100%;max-width:none}.page{width:100%;min-height:0;margin-left:0;padding:16px;overflow:hidden}.row,.row3{grid-template-columns:1fr}.checks.three{grid-template-columns:1fr 1fr}}
@@ -965,7 +967,7 @@ function aggiornaSpirometriaAuto(){
  var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1))?fev1/fvc*100:NaN;
  var r=document.getElementById('spirometria_rapporto'),o=document.getElementById('spirometria_interpretazione');
  if(r)r.value=isFinite(ratio)?ratio.toFixed(1):'';
- function adatta(){if(!o)return;o.style.height='auto';o.style.height=Math.max(72,o.scrollHeight)+'px';}
+ function adatta(){if(!o)return;o.style.height='auto';o.style.height=Math.max(window.matchMedia('(max-width:850px)').matches?56:72,o.scrollHeight)+'px';}
  if(!o)return; if(!isFinite(fvc)||!isFinite(fev1)){o.value='';adatta();return;}
  var a=[];
  if(isFinite(ratio))a.push(ratio<70?'Rapporto FEV1/FVC ridotto: quadro compatibile con possibile alterazione ventilatoria ostruttiva.':'Rapporto FEV1/FVC non ridotto secondo la soglia fissa del 70%.');
