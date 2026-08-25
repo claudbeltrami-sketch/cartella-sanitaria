@@ -137,6 +137,15 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .compact-exams .row3:has(#spirometria_fvc) .field label{min-width:0;white-space:normal;line-height:1.2}
  .compact-exams .row3:has(#spirometria_fvc) .field input{box-sizing:border-box;width:96px!important;min-width:96px!important;max-width:96px!important;min-height:46px;font-size:18px!important;text-align:center;flex:none!important}
 }
+
+/* ===== CONSENSI CARTACEI ACQUISITI ===== */
+.consent-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:10020;padding:14px;overflow:auto}
+.consent-modal.show{display:block}.consent-card{background:#fff;max-width:900px;margin:18px auto;border-radius:12px;padding:16px;box-shadow:0 10px 35px rgba(0,0,0,.3)}
+.consent-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.consent-current{margin:10px 0;padding:9px;border-left:6px solid var(--verde);background:#f3fbf5;font-weight:700}
+.consent-list{display:grid;gap:9px;margin-top:10px}.consent-item{border:1px solid #aaa;border-radius:9px;padding:10px;background:#fafafa}.consent-item-title{font-weight:700}.consent-meta{font-size:12px;color:#555;margin:4px 0 8px;overflow-wrap:anywhere}.consent-actions{display:flex;flex-wrap:wrap;gap:7px}.consent-actions button{min-height:38px;padding:7px 10px;font-size:12px}.consent-empty{padding:18px;text-align:center;color:#555}
+@media(max-width:560px){.consent-actions{display:grid;grid-template-columns:1fr 1fr}.consent-actions button{width:100%}}
+@media print{.consent-modal{display:none!important}}
+
 </style>
 <!-- PDF.js: il file PDF resta nel browser; la libreria viene caricata da CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -169,6 +178,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="tool-group-title">3 · ARCHIVIO E SICUREZZA</div>
   <div class="tool-buttons">
    <button type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
+   <label class="file-label">ACQUISISCI CONSENSO CARTACEO<input type="file" id="fileConsensoCartaceo" accept="image/*,application/pdf,.pdf" capture="environment" multiple></label>
+   <button type="button" id="btnArchivioConsensi">ARCHIVIO CONSENSI</button>
    <button type="button" id="btnBackupCompleto">CREA BACKUP</button>
    <label class="file-label">RIPRISTINA BACKUP<input type="file" id="fileRipristinaBackup" accept="application/json,.json"></label>
   </div>
@@ -189,6 +200,15 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div id="archiveSummary" class="archive-note"></div><div id="archiveResults"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. L’archivio resta esclusivamente nel browser di questo dispositivo; usa CREA COPIA DI SICUREZZA per conservarne una copia esterna.</div>
 </div></div>
+
+<div class="consent-modal" id="consentModal" aria-hidden="true">
+ <div class="consent-card">
+  <div class="consent-head"><h3 style="margin:0">CONSENSI CARTACEI ACQUISITI</h3><button type="button" id="btnChiudiConsensi" class="secondary">CHIUDI</button></div>
+  <div class="consent-current" id="consentCurrent"></div>
+  <div class="archive-note">Le scansioni restano esclusivamente nel browser di questo dispositivo e sono associate al codice fiscale o, in mancanza, ai dati anagrafici del lavoratore.</div>
+  <div class="consent-list" id="consentList"></div>
+ </div>
+</div>
 
 <div class="worker-sign-modal" id="workerSignModal" aria-hidden="true">
  <div class="worker-sign-card">
@@ -991,4 +1011,57 @@ function aggiornaSpirometriaAuto(){
 document.addEventListener('DOMContentLoaded',aggiornaSpirometriaAuto); setTimeout(aggiornaSpirometriaAuto,0);
 })();
 </script>
+
+<script>
+(function(){
+'use strict';
+var DB_NAME='beltrami_consensi_cartacei_v1', STORE='consensi', DB_VERSION=1;
+var $=function(id){return document.getElementById(id)};
+function norm(v){return String(v||'').trim().toLocaleUpperCase('it-IT')}
+function field(id){var e=$(id);return norm(e&&e.value)}
+function identity(){
+ var cf=field('codice_fiscale'), cognome=field('cognome'), nome=field('nome'), nascita=field('data_nascita');
+ return {key:cf||[cognome,nome,nascita].filter(Boolean).join('|'),cf:cf,label:([cognome,nome].filter(Boolean).join(' ')||'LAVORATORE NON INDICATO'),nascita:nascita};
+}
+function openDB(){
+ return new Promise(function(resolve,reject){
+  var q=indexedDB.open(DB_NAME,DB_VERSION);
+  q.onupgradeneeded=function(){var db=q.result;if(!db.objectStoreNames.contains(STORE)){var s=db.createObjectStore(STORE,{keyPath:'id'});s.createIndex('workerKey','workerKey',{unique:false});s.createIndex('acquiredAt','acquiredAt',{unique:false})}};
+  q.onsuccess=function(){resolve(q.result)};q.onerror=function(){reject(q.error)};
+ });
+}
+function request(req){return new Promise(function(resolve,reject){req.onsuccess=function(){resolve(req.result)};req.onerror=function(){reject(req.error)}})}
+async function put(record){var db=await openDB();try{return await request(db.transaction(STORE,'readwrite').objectStore(STORE).put(record))}finally{db.close()}}
+async function all(){var db=await openDB();try{return await request(db.transaction(STORE,'readonly').objectStore(STORE).getAll())}finally{db.close()}}
+async function remove(id){var db=await openDB();try{return await request(db.transaction(STORE,'readwrite').objectStore(STORE).delete(id))}finally{db.close()}}
+function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function humanSize(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(1)+' MB'}
+function fmtDate(v){try{return new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}catch(_){return v}}
+function status(msg){var e=$('status');if(e)e.textContent=msg}
+function openBlob(rec,download){
+ var url=URL.createObjectURL(rec.blob),a=document.createElement('a');a.href=url;a.target=download?'_self':'_blank';a.rel='noopener';if(download)a.download=rec.fileName||'CONSENSO';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},60000);
+}
+async function render(){
+ var id=identity(), rows=(await all()).sort(function(a,b){return String(b.acquiredAt).localeCompare(String(a.acquiredAt))});
+ $('consentCurrent').textContent=id.key?'LAVORATORE ATTUALE: '+id.label+(id.cf?' — CF '+id.cf:''):'NESSUN LAVORATORE SELEZIONATO: SONO MOSTRATI TUTTI I CONSENSI.';
+ if(id.key)rows=rows.filter(function(x){return x.workerKey===id.key});
+ $('consentList').innerHTML=rows.length?rows.map(function(x){return '<div class="consent-item" data-consent-id="'+esc(x.id)+'"><div class="consent-item-title">'+esc(x.workerLabel)+'</div><div class="consent-meta">'+esc(x.fileName)+' — '+esc(x.mimeType||'FILE')+' — '+humanSize(x.size||0)+'<br>ACQUISITO IL '+esc(fmtDate(x.acquiredAt))+(x.workerCf?'<br>CF '+esc(x.workerCf):'')+'</div><div class="consent-actions"><button type="button" class="success" data-open>APRI</button><button type="button" class="secondary" data-download>SALVA COPIA</button><button type="button" class="danger" data-delete>ELIMINA</button></div></div>'}).join(''):'<div class="consent-empty">NESSUN CONSENSO CARTACEO ACQUISITO PER QUESTO LAVORATORE.</div>';
+ $('consentList').querySelectorAll('[data-consent-id]').forEach(function(box){var rec=rows.find(function(x){return x.id===box.dataset.consentId});box.querySelector('[data-open]').onclick=function(){openBlob(rec,false)};box.querySelector('[data-download]').onclick=function(){openBlob(rec,true)};box.querySelector('[data-delete]').onclick=async function(){if(!confirm('ELIMINARE DEFINITIVAMENTE QUESTO CONSENSO DAL DISPOSITIVO?'))return;await remove(rec.id);await render();status('CONSENSO CARTACEO ELIMINATO.')}});
+}
+$('fileConsensoCartaceo').addEventListener('change',async function(e){
+ var id=identity(), files=Array.from(e.target.files||[]);e.target.value='';
+ if(!id.key){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE. È NECESSARIO IL CODICE FISCALE O COGNOME, NOME E DATA DI NASCITA.');return}
+ if(!files.length)return;
+ try{
+  for(var i=0;i<files.length;i++){var f=files[i];if(!(f.type.indexOf('image/')===0||f.type==='application/pdf'||/\.pdf$/i.test(f.name))){alert('FILE NON SUPPORTATO: '+f.name);continue}await put({id:Date.now().toString(36)+'_'+i+'_'+Math.random().toString(36).slice(2,8),workerKey:id.key,workerCf:id.cf,workerLabel:id.label,workerBirth:id.nascita,fileName:f.name||('CONSENSO_'+id.label+'.jpg'),mimeType:f.type||'application/octet-stream',size:f.size,acquiredAt:new Date().toISOString(),blob:f})}
+  status(files.length===1?'CONSENSO CARTACEO ACQUISITO E ASSOCIATO A '+id.label+'.':files.length+' CONSENSI CARTACEI ACQUISITI E ASSOCIATI A '+id.label+'.');
+  alert('ACQUISIZIONE COMPLETATA. IL DOCUMENTO È STATO COLLEGATO A '+id.label+' E RESTA SU QUESTO DISPOSITIVO.');
+ }catch(err){alert('NON È STATO POSSIBILE CONSERVARE IL CONSENSO. VERIFICARE LO SPAZIO DISPONIBILE SUL DISPOSITIVO.')}
+});
+$('btnArchivioConsensi').onclick=async function(){$('consentModal').classList.add('show');$('consentModal').setAttribute('aria-hidden','false');try{await render()}catch(_){$('consentList').innerHTML='<div class="consent-empty">ARCHIVIO NON DISPONIBILE SU QUESTO BROWSER.</div>'}};
+$('btnChiudiConsensi').onclick=function(){$('consentModal').classList.remove('show');$('consentModal').setAttribute('aria-hidden','true')};
+$('consentModal').addEventListener('click',function(e){if(e.target===$('consentModal'))$('btnChiudiConsensi').click()});
+})();
+</script>
+
 </body></html>
