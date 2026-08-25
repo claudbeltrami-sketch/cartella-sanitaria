@@ -20,8 +20,16 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .spirometry-interpretation label{display:block;width:100%;white-space:normal}
 .spirometry-interpretation textarea{display:block;width:100%;min-height:96px;box-sizing:border-box;resize:vertical;line-height:1.45;padding:10px;font-size:14px}
 .compact-exams .spirometry-interpretation textarea{min-height:82px}
-@media(max-width:850px){.spirometry-interpretation{grid-column:1/-1}.spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:96px}}
-@media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px}}
+@media(max-width:850px){
+ .spirometry-grid{grid-template-columns:1fr 1fr!important;gap:6px 10px!important}
+ .spirometry-grid>div:empty{display:none}
+ .spirometry-grid .field{min-height:42px}
+ .spirometry-grid .field label{font-size:14px;white-space:normal;line-height:1.15}
+ .spirometry-grid .field input{min-height:38px!important;padding:3px 5px!important;font-size:17px!important}
+ .spirometry-interpretation{grid-column:1/-1}
+ .spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:72px;height:auto;overflow:hidden;resize:none;font-size:13px;line-height:1.3;padding:8px}
+}
+@media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px;overflow:visible}}
 @media(max-width:850px){body{overflow-x:hidden}.toolbar{width:100%;max-width:none;margin-left:0;grid-template-columns:1fr;position:relative}.toolbar .tool-buttons{display:grid;grid-template-columns:1fr 1fr}.toolbar .tool-buttons>button,.toolbar .tool-buttons>.file-label{width:100%;min-height:54px;font-size:14px;padding:9px}.status{width:100%;max-width:none;margin-left:0;font-size:15px;line-height:1.25}.save-info{width:100%;max-width:none}.page{width:100%;min-height:0;margin-left:0;padding:16px;overflow:hidden}.row,.row3{grid-template-columns:1fr}.checks.three{grid-template-columns:1fr 1fr}}
 @media print{@page{size:A4;margin:0}body{background:#fff;padding:0}.toolbar,.status,.save-info{display:none!important}.page{box-shadow:none;margin:0;width:210mm;min-height:297mm;padding:12mm 13mm}.print-cartella .cartella{display:block}.print-cartella .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-certificato .cartella{display:none}.print-certificato .certificate{display:block}.print-consenso .cartella,.print-consenso .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-consenso .consenso{display:block}.field input,.field select,.field textarea{font-size:14px}.page{overflow:hidden}}
 
@@ -329,7 +337,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </div>
 <div class="section-title">Esiti degli accertamenti</div>
 <div class="row"><div class="field"><label>Audiometria</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>
-<div class="row3"><div class="field"><label>Spirometria – FVC valore</label><input id="spirometria_fvc" inputmode="decimal"></div><div class="field"><label>FVC (%)</label><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – FEV1 valore</label><input id="spirometria_fev1" inputmode="decimal"></div><div class="field"><label>FEV1 (%)</label><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – PEF valore</label><input id="spirometria_pef" inputmode="decimal"></div><div class="field"><label>PEF (%)</label><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div><div></div></div>
+<div class="row3 spirometry-grid"><div class="field"><label>Spirometria – FVC valore</label><input id="spirometria_fvc" inputmode="decimal"></div><div class="field"><label>FVC (%)</label><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – FEV1 valore</label><input id="spirometria_fev1" inputmode="decimal"></div><div class="field"><label>FEV1 (%)</label><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div><div></div><div class="field"><label>Spirometria – PEF valore</label><input id="spirometria_pef" inputmode="decimal"></div><div class="field"><label>PEF (%)</label><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div><div></div></div>
 <div class="row3"><div class="field"><label>FEV1/FVC (%)</label><input id="spirometria_rapporto" readonly></div><div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly></textarea></div></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 <div class="row"><div class="field"><label>Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select></div><div class="field"><label>Correzione / indicazioni</label><input id="visiotest_note" data-upper></div></div>
@@ -957,14 +965,15 @@ function aggiornaSpirometriaAuto(){
  var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1))?fev1/fvc*100:NaN;
  var r=document.getElementById('spirometria_rapporto'),o=document.getElementById('spirometria_interpretazione');
  if(r)r.value=isFinite(ratio)?ratio.toFixed(1):'';
- if(!o)return; if(!isFinite(fvc)||!isFinite(fev1)){o.value='';return;}
+ function adatta(){if(!o)return;o.style.height='auto';o.style.height=Math.max(72,o.scrollHeight)+'px';}
+ if(!o)return; if(!isFinite(fvc)||!isFinite(fev1)){o.value='';adatta();return;}
  var a=[];
  if(isFinite(ratio))a.push(ratio<70?'Rapporto FEV1/FVC ridotto: quadro compatibile con possibile alterazione ventilatoria ostruttiva.':'Rapporto FEV1/FVC non ridotto secondo la soglia fissa del 70%.');
  if(isFinite(fvcPct))a.push(fvcPct<80?'FVC ridotta rispetto al predetto; la restrizione non può essere diagnosticata con la sola spirometria semplice.':'FVC conservata rispetto al predetto.');
  if(isFinite(fev1Pct)&&fev1Pct<80)a.push('FEV1 ridotto rispetto al predetto.');
  if(isFinite(pefPct)&&pefPct<80)a.push('PEF ridotto rispetto al predetto.');
  a.push('Correlare con qualità della manovra, LLN/Z-score, valori di riferimento appropriati e quadro clinico.');
- o.value=a.join(' ');
+ o.value=a.join(' '); adatta();
 }
 ['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',aggiornaSpirometriaAuto);e.addEventListener('change',aggiornaSpirometriaAuto);}});
 document.addEventListener('DOMContentLoaded',aggiornaSpirometriaAuto); setTimeout(aggiornaSpirometriaAuto,0);
