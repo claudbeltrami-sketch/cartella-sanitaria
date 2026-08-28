@@ -1,0 +1,33 @@
+name: Forza cancella lavoratore
+on:
+  push:
+    paths:
+      - '.github/workflows/forza-cancella-lavoratore.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aggiorna versione script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='cambia-lista.js?v=20260828'
+          new='cambia-lista.js?v=20260828-cancella2'
+          if old not in s and new not in s:
+              raise SystemExit('Riferimento cambia-lista.js non trovato')
+          s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Pubblica
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Forza caricamento pulsante CANCELLA lavoratore'
+          git push
