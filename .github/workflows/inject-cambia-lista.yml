@@ -13,18 +13,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inserisce il modulo cambio lista
+      - name: Inserisce o aggiorna il modulo cambio lista
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script src="cambia-lista.js?v=20260828"></script>'
-          if tag not in s:
+          old='<script src="cambia-lista.js?v=20260828"></script>'
+          new='<script src="cambia-lista.js?v=20260828-cancella2"></script>'
+          if old in s:
+              s=s.replace(old,new)
+          elif new not in s:
               if '</body>' not in s:
                   raise SystemExit('Tag </body> non trovato')
-              s=s.replace('</body>', tag+'\n</body>', 1)
-              p.write_text(s, encoding='utf-8')
+              s=s.replace('</body>', new+'\n</body>', 1)
+          p.write_text(s, encoding='utf-8')
           PY
       - name: Pubblica la modifica
         run: |
@@ -32,5 +35,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Attiva pulsante CAMBIA LISTA"
+          git commit -m "Forza caricamento CANCELLA lavoratore"
           git push
