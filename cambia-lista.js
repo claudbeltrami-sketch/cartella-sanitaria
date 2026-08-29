@@ -1,4 +1,4 @@
-/* LUMEN - cambio rapido liste + cancellazione lavoratore. 28/08/2026 */
+/* LUMEN - cambio rapido liste + cancellazione lavoratore. 29/08/2026 */
 (function(){
 'use strict';
 const LISTS_KEY='beltrami_worker_lists_v1';
@@ -31,7 +31,34 @@ function renderSwitcher(){const anchor=document.querySelector('.list-search');if
 function deleteWorker(index){const d=getCurrent(),ws=Array.isArray(d.workers)?d.workers:[];const w=ws[index];if(!w)return;const nome=((w.cognome||'')+' '+(w.nome||'')).trim()||('N. '+(index+1));if(!confirm('CANCELLARE DEFINITIVAMENTE '+nome+' DALLA LISTA?'))return;ws.splice(index,1);let ci=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;if(ci===index)ci=-1;else if(ci>index)ci--;write(WORKERS_KEY,{...d,workers:ws,currentWorkerIndex:ci,when:new Date().toISOString()});const active=localStorage.getItem(ACTIVE_KEY),lists=getLists(),li=lists.findIndex(x=>x.id===active);if(li>=0){lists[li]={...lists[li],workers:ws,currentWorkerIndex:ci,updated:new Date().toISOString()};setLists(lists)}location.reload()}
 function addDeleteButtons(){document.querySelectorAll('#workersBody tr').forEach(tr=>{const td=tr.lastElementChild;if(!td||td.querySelector('.lumen-delete-worker'))return;const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0)return;const b=document.createElement('button');b.type='button';b.className='danger lumen-delete-worker';b.textContent='CANCELLA';b.style.marginLeft='5px';b.onclick=()=>deleteWorker(n);td.appendChild(b)})}
 
-migrateCurrent();renderSwitcher();addDeleteButtons();syncOriginalLists().then(renderSwitcher);
+/* Lista condivisa di emergenza: rende GUIDONIA disponibile anche sui dispositivi
+   che non possiedono il file Excel nell'IndexedDB locale. Non sovrascrive né duplica
+   una Guidonia già importata sul dispositivo. */
+const GUIDONIA_SHARED={
+ id:'SHARED_ORIZZONTE_GUIDONIA_20260904_1330',
+ label:'ORIZZONTE_GUIDONIA_MONTECELIO_04-09-2026_ORE_13-30',
+ attachedSourceName:'ORIZZONTE_GUIDONIA_MONTECELIO_04-09-2026_ORE_13-30.xlsx',
+ currentWorkerIndex:-1,session:null,esiti:{},originalMeta:null,updated:'2026-08-29T08:05:00.000Z',
+ workers:[
+  {id:'orizzonte-guidonia-1',cognome:'MONTALBANO',nome:'MIRIAM',luogo_nascita:'ROMA',data_nascita:'2004-01-10',codice_fiscale:'MNTMRM04A50H501F',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-2',cognome:'DOMI',nome:'ERJOLA',luogo_nascita:'ALBANIA',data_nascita:'1989-02-16',codice_fiscale:'DMORJL89B56Z100X',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-3',cognome:'DANIELI',nome:'ILARIA',luogo_nascita:'TIVOLI',data_nascita:'1992-11-06',codice_fiscale:'DNLLRI92S46L182Z',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-4',cognome:'PASQUONI',nome:'GIADA',luogo_nascita:'ROMA',data_nascita:'1999-06-13',codice_fiscale:'PSQGDI99H53H501X',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-5',cognome:'TAMMARO',nome:'NICOLINA',luogo_nascita:'NAPOLI',data_nascita:'1978-11-26',codice_fiscale:'TMMNLN78S66F839Y',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-6',cognome:'GARCIA BURGOS',nome:'MARCO GILBERTO',luogo_nascita:'ECUADOR',data_nascita:'1992-04-22',codice_fiscale:'GRCMCG92D22Z605U',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-7',cognome:'PASSERO',nome:'DANIELE',luogo_nascita:'ROMA',data_nascita:'2000-05-20',codice_fiscale:'PSSDNL00E20H501W',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
+ ]
+};
+function ensureSharedLists(){
+ const lists=getLists();
+ const hasGuidonia=lists.some(x=>/GUIDONIA/i.test(String(x.label||'')+' '+String(x.attachedSourceName||'')));
+ if(!hasGuidonia){lists.push(JSON.parse(JSON.stringify(GUIDONIA_SHARED)));setLists(lists)}
+}
+
+migrateCurrent();
+ensureSharedLists();
+renderSwitcher();addDeleteButtons();syncOriginalLists().then(()=>{ensureSharedLists();renderSwitcher()});
 const body=document.getElementById('workersBody');if(body)new MutationObserver(()=>{addDeleteButtons();renderSwitcher()}).observe(body,{childList:true,subtree:true});
 window.addEventListener('pagehide',saveCurrentIntoActive);
 window.lumenCambiaLista={activate,getLists,deleteWorker,saveCurrentIntoActive,registerCurrentAsNewList};
