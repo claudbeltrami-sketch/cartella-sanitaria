@@ -916,6 +916,8 @@ function apriInserimentoLavoratore(){const g=document.getElementById('manualGrid
 document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.stringify({workers,currentWorkerIndex,attachedSourceName},null,2)],{type:'application/json'});fallbackDownload(blob,'LISTA_LAVORATORI_'+today()+'.json')};document.getElementById('fileApriLista').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);workers=Array.isArray(d)?d:(d.workers||[]);currentWorkerIndex=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;attachedSourceName=d.attachedSourceName||f.name;renderWorkers();setStatus('STATO DELLA LISTA RIAPERTO CORRETTAMENTE.')}catch(_){alert('File lista non valido.')}};r.readAsText(f);e.target.value=''};
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
+window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
+
 window.addEventListener('afterprint',()=>{document.body.className='';if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
 </script>
@@ -1129,6 +1131,6 @@ input.addEventListener('change',async e=>{
 });
 })();
 </script>
-<script src="cambia-lista.js?v=20260829-liste-4-settembre"></script>
+<script src="cambia-lista.js?v=20260829-apri-prenestina"></script>
 <script src="cambia-lista.js?v=20260828-cancella2"></script>
 </body></html>
