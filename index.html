@@ -21,6 +21,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .audiometry-row.audiometry-head{font-size:12px;font-weight:700;text-align:center;color:#333}
 .audiometry-row label{font-size:13px;font-weight:700;white-space:nowrap}
 .audiometry-row input{width:100%;min-width:0;min-height:29px;border:1px solid #aaa;border-radius:5px;padding:3px;font-size:14px;text-align:center;background:#fff}
+.compact-exams .audiometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:5px}
+.compact-exams .audiometry-interpretation label{white-space:normal}
+.compact-exams .audiometry-interpretation textarea{display:block;width:100%;min-height:110px;font-size:13px;line-height:1.35;padding:8px;border:1px solid #999}
+@media(max-width:850px){.compact-exams .audiometry-interpretation textarea{min-height:125px!important;font-size:13px!important;line-height:1.3!important}}
 @media(max-width:850px){.audiometry-row{grid-template-columns:36px repeat(4,minmax(48px,1fr));gap:4px}.audiometry-row input{font-size:16px;min-height:36px}.audiometry-row.audiometry-head{font-size:10px}}
 .spirometry-grid{display:grid;gap:5px;margin:3px 0 6px}
 .spirometry-row{display:grid;grid-template-columns:58px 46px minmax(70px,1fr) 22px minmax(70px,1fr);gap:7px;align-items:end;min-height:30px}
@@ -1067,6 +1071,12 @@ function aggiornaAudiometriaAuto(){
  if(dati.dx&&dati.sx&&dati.dx.every(isFinite)&&dati.sx.every(isFinite)){
   var diff=freqs.filter(function(_,i){return Math.abs(dati.dx[i]-dati.sx[i])>=15});
   if(diff.length)frasi.push('ASIMMETRIA DX/SX ≥15 DB A '+diff.join(', ')+' HZ: DA VALUTARE CLINICAMENTE.');
+  var esito=document.getElementById('audiometria_esito');
+  if(esito){
+   var tuttiNeiLimiti=dati.dx.concat(dati.sx).every(function(x){return x<=25});
+   esito.value=tuttiNeiLimiti?'NORMALE':'ALTERATA';
+   esito.dispatchEvent(new Event('change',{bubbles:true}));
+  }
  }
  if(!complete)frasi.push('INSERIRE TUTTE LE SOGLIE PER COMPLETARE L’INTERPRETAZIONE.');
  out.value=frasi.join(' ');
