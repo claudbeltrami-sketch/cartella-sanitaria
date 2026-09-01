@@ -401,6 +401,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="audiometry-row"><label>SX</label><input id="audio_sx_500" type="number" step="5" placeholder="40" aria-label="Orecchio sinistro 500 Hz"><input id="audio_sx_1000" type="number" step="5" placeholder="40" aria-label="Orecchio sinistro 1000 Hz"><input id="audio_sx_2000" type="number" step="5" placeholder="40" aria-label="Orecchio sinistro 2000 Hz"><input id="audio_sx_4000" type="number" step="5" placeholder="40" aria-label="Orecchio sinistro 4000 Hz"></div>
 </div>
 <div class="row"><div class="field"><label>Esito audiometria</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>
+<div class="field full audiometry-interpretation"><label>Interpretazione automatica (modificabile dal medico)</label><textarea id="audiometria_interpretazione" data-upper placeholder="COMPILARE LE SOGLIE DX E SX PER OTTENERE L’INTERPRETAZIONE."></textarea></div>
+<div class="small">Supporto orientativo basato sulle soglie inserite. La valutazione clinica e l’eventuale attribuzione professionale restano di competenza del medico.</div>
 <div class="spirometry-grid">
  <div class="spirometry-row"><label>FVC</label><span>Valore</span><input id="spirometria_fvc" inputmode="decimal"><span>%</span><input id="spirometria_fvc_percentuale" type="number" inputmode="decimal"></div>
  <div class="spirometry-row"><label>FEV1</label><span>Valore</span><input id="spirometria_fev1" inputmode="decimal"><span>%</span><input id="spirometria_fev1_percentuale" type="number" inputmode="decimal"></div>
@@ -1035,6 +1037,44 @@ document.getElementById('btnAzzera').addEventListener('click',()=>setTimeout(upd
 ['btnCert','btnStampa'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',updateOutput,true)});
 ['codice_fiscale','cognome','nome','data_nascita'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('change',updateOutput)});
 window.addEventListener('storage',updateOutput);window.addEventListener('beltrami-signature-updated',updateOutput);updateOutput();
+})();
+</script>
+
+<script>
+(function(){
+'use strict';
+var freqs=[500,1000,2000,4000], ears=[['DX','dx'],['SX','sx']];
+function val(id){var e=document.getElementById(id),s=e?String(e.value||'').trim():'';if(s==='')return NaN;var n=parseFloat(s.replace(',','.'));return isFinite(n)?n:NaN}
+function grado(media){
+ if(media<=25)return 'SOGLIA MEDIA NEI LIMITI';
+ if(media<=40)return 'LIEVE RIDUZIONE UDITIVA';
+ if(media<=55)return 'RIDUZIONE UDITIVA MODERATA';
+ if(media<=70)return 'RIDUZIONE UDITIVA MODERATAMENTE GRAVE';
+ if(media<=90)return 'RIDUZIONE UDITIVA GRAVE';
+ return 'RIDUZIONE UDITIVA PROFONDA';
+}
+function aggiornaAudiometriaAuto(){
+ var out=document.getElementById('audiometria_interpretazione');if(!out)return;
+ var dati={},complete=true,frasi=[];
+ ears.forEach(function(e){
+  var a=freqs.map(function(h){return val('audio_'+e[1]+'_'+h)});dati[e[1]]=a;
+  if(a.some(function(x){return !isFinite(x)})){complete=false;frasi.push(e[0]+': DATI INCOMPLETI.');return}
+  var media=(a[0]+a[1]+a[2])/3;
+  var frase=e[0]+': '+grado(media)+' (MEDIA 500-1000-2000 HZ: '+media.toFixed(1)+' DB HL).';
+  if(a[3]>25&&a[3]>=Math.max(a[1],a[2])+15)frase+=' CADUTA PREVALENTE A 4000 HZ DA VALUTARE.';
+  frasi.push(frase);
+ });
+ if(dati.dx&&dati.sx&&dati.dx.every(isFinite)&&dati.sx.every(isFinite)){
+  var diff=freqs.filter(function(_,i){return Math.abs(dati.dx[i]-dati.sx[i])>=15});
+  if(diff.length)frasi.push('ASIMMETRIA DX/SX ≥15 DB A '+diff.join(', ')+' HZ: DA VALUTARE CLINICAMENTE.');
+ }
+ if(!complete)frasi.push('INSERIRE TUTTE LE SOGLIE PER COMPLETARE L’INTERPRETAZIONE.');
+ out.value=frasi.join(' ');
+ out.dispatchEvent(new Event('change',{bubbles:true}));
+}
+freqs.forEach(function(h){['dx','sx'].forEach(function(e){var x=document.getElementById('audio_'+e+'_'+h);if(x){x.addEventListener('input',aggiornaAudiometriaAuto);x.addEventListener('change',aggiornaAudiometriaAuto)}})});
+document.addEventListener('DOMContentLoaded',function(){var any=freqs.some(function(h){return ['dx','sx'].some(function(e){return String((document.getElementById('audio_'+e+'_'+h)||{}).value||'').trim()!==''})});if(any)aggiornaAudiometriaAuto()});
+window.aggiornaAudiometriaAuto=aggiornaAudiometriaAuto;
 })();
 </script>
 
