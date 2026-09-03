@@ -1,4 +1,4 @@
-/* LUMEN - cambio rapido liste + cancellazione lavoratore. 29/08/2026 */
+/* LUMEN - cambio rapido liste + cancellazione lavoratore. 03/09/2026 */
 (function(){
 'use strict';
 const LISTS_KEY='beltrami_worker_lists_v1';
@@ -47,13 +47,26 @@ const GUIDONIA_SHARED={
   {id:'orizzonte-guidonia-5',cognome:'TAMMARO',nome:'NICOLINA',luogo_nascita:'NAPOLI',data_nascita:'1978-11-26',codice_fiscale:'TMMNLN78S66F839Y',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-6',cognome:'GARCIA BURGOS',nome:'MARCO GILBERTO',luogo_nascita:'ECUADOR',data_nascita:'1992-04-22',codice_fiscale:'GRCMCG92D22Z605U',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-7',cognome:'PASSERO',nome:'DANIELE',luogo_nascita:'ROMA',data_nascita:'2000-05-20',codice_fiscale:'PSSDNL00E20H501W',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
+  {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
+  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1994-07-10',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
  ]
 };
 function ensureSharedLists(){
  const lists=getLists();
- const hasGuidonia=lists.some(x=>/GUIDONIA/i.test(String(x.label||'')+' '+String(x.attachedSourceName||'')));
- if(!hasGuidonia){lists.push(JSON.parse(JSON.stringify(GUIDONIA_SHARED)));setLists(lists)}
+ let i=lists.findIndex(x=>/GUIDONIA/i.test(String(x.label||'')+' '+String(x.attachedSourceName||'')));
+ let changed=false;
+ if(i<0){lists.push(JSON.parse(JSON.stringify(GUIDONIA_SHARED)));i=lists.length-1;changed=true}
+ const guidonia=lists[i],rocchi=GUIDONIA_SHARED.workers.find(w=>w.codice_fiscale==='RCCFRC94L10L182H');
+ if(guidonia&&!guidonia.workers.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
+  guidonia.workers.push(JSON.parse(JSON.stringify(rocchi)));guidonia.updated='2026-09-03T11:00:00.000Z';changed=true
+ }
+ if(changed)setLists(lists);
+ if(guidonia&&localStorage.getItem(ACTIVE_KEY)===guidonia.id){
+  const current=getCurrent(),ws=Array.isArray(current.workers)?current.workers:[];
+  if(!ws.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
+   ws.push(JSON.parse(JSON.stringify(rocchi)));write(WORKERS_KEY,{...current,workers:ws,when:new Date().toISOString()})
+  }
+ }
 }
 
 migrateCurrent();
