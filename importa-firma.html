@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Importa firma - Cartella Sanitaria Beltrami</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:18px;font-family:Arial,Helvetica,sans-serif;background:#eef1f4;color:#111}.box{max-width:720px;margin:auto;background:#fff;border:2px solid #1f5f99;border-radius:14px;padding:18px;box-shadow:0 2px 10px #9996}h1{font-size:22px;margin:0 0 8px;color:#1f5f99}.note{font-size:14px;line-height:1.4;margin-bottom:18px}.step{border-top:1px solid #ccd3d9;padding-top:16px;margin-top:16px}.step h2{font-size:17px;margin:0 0 10px}.file{display:block;width:100%;border:2px dashed #8d9aa6;border-radius:10px;padding:13px;background:#f8fafb}.status{margin-top:12px;padding:12px;border-radius:9px;background:#f2f4f6;font-weight:700;white-space:pre-line}.ok{background:#e9f7ee;color:#1f6d3c}.err{background:#fdecec;color:#932a2a}.warn{background:#fff5df;color:#815c0a}button{width:100%;min-height:50px;margin-top:14px;border:0;border-radius:9px;background:#287a46;color:white;font-size:16px;font-weight:800;padding:10px}button:disabled{opacity:.45}.back{display:block;margin-top:16px;text-align:center;color:#1f5f99;font-weight:700;text-decoration:none}.small{font-size:12px;color:#555;margin-top:8px}.idbox{padding:10px;background:#f3f7fb;border-left:5px solid #1f5f99;margin-top:10px;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>IMPORTA FIRMA NELLA CARTELLA</h1>
+<div class="note">Questa pagina lavora solo sul dispositivo: i dati non vengono inviati a server. Seleziona prima la cartella salvata del lavoratore e poi il file della firma. Il consenso già importato non viene modificato.</div>
+
+<div class="step"><h2>1. Scegli la cartella salvata</h2>
+<input class="file" type="file" id="cartellaFile" accept="application/json,.json">
+<div id="cartellaStatus" class="status">NESSUNA CARTELLA SELEZIONATA</div></div>
+
+<div class="step"><h2>2. Scegli la firma</h2>
+<input class="file" type="file" id="firmaFile" accept="application/json,.json,image/png,image/jpeg,image/webp">
+<div id="firmaStatus" class="status">NESSUNA FIRMA SELEZIONATA</div>
+<div class="small">Sono accettati sia il file FIRMA_PER_MAC generato dall’iPhone sia una firma in PNG/JPG/WebP.</div></div>
+
+<div class="step"><h2>3. Inserisci e salva</h2>
+<button id="mergeBtn" disabled>INSERISCI FIRMA E SALVA CARTELLA</button>
+<div id="finalStatus" class="status">IN ATTESA DEI DUE FILE</div></div>
+<a class="back" href="./">TORNA ALLA CARTELLA SANITARIA</a>
+</div>
+<script>
+const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';
+let cartella=null,cartellaName='',firmaData='',firmaPacket=null;
+const $=id=>document.getElementById(id);
+const up=v=>String(v||'').trim().toLocaleUpperCase('it-IT');
+function identity(d){const cf=up(d&&d.codice_fiscale),parts=[up(d&&d.cognome),up(d&&d.nome),up(d&&d.data_nascita)].filter(Boolean);return cf||parts.join('|')}
+function person(d){return [d&&d.cognome,d&&d.nome].filter(Boolean).join(' ').trim()||'LAVORATORE SENZA NOME'}
+function setBox(id,text,kind=''){const el=$(id);el.textContent=text;el.className='status '+kind}
+function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||''));r.onerror=()=>rej(new Error('Impossibile leggere il file.'));r.readAsDataURL(file)})}
+function textFile(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||''));r.onerror=()=>rej(new Error('Impossibile leggere il file.'));r.readAsText(file)})}
+function refresh(){ $('mergeBtn').disabled=!(cartella&&firmaData); }
+$('cartellaFile').addEventListener('change',async e=>{cartella=null;cartellaName='';try{const f=e.target.files[0];if(!f)throw new Error('Nessun file selezionato.');const obj=JSON.parse(await textFile(f));if(!obj||typeof obj!=='object'||Array.isArray(obj))throw new Error('Il file non contiene una cartella valida.');const id=identity(obj);if(!id)throw new Error('Nella cartella non trovo CF oppure Cognome/Nome/Data di nascita.');cartella=obj;cartellaName=f.name;setBox('cartellaStatus','CARTELLA: '+person(obj)+'\nIDENTITÀ: '+id,'ok');validatePacket()}catch(err){setBox('cartellaStatus',err.message||'Cartella non valida.','err')}refresh()});
+$('firmaFile').addEventListener('change',async e=>{firmaData='';firmaPacket=null;try{const f=e.target.files[0];if(!f)throw new Error('Nessun file selezionato.');if((f.type||'').startsWith('image/')||/\.(png|jpe?g|webp)$/i.test(f.name)){firmaData=await dataUrl(f);setBox('firmaStatus','IMMAGINE FIRMA PRONTA: '+f.name+'\nVerrà associata alla cartella selezionata.','warn')}else{const obj=JSON.parse(await textFile(f));if(!obj||obj.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!obj.firma_lavoratore_png)throw new Error('Questo JSON non è un file FIRMA_PER_MAC valido.');firmaPacket=obj;firmaData=obj.firma_lavoratore_png;setBox('firmaStatus','FIRMA IPHONE: '+[obj.cognome,obj.nome].filter(Boolean).join(' ')+'\nIDENTITÀ: '+(obj.identita||'NON INDICATA'),'ok');validatePacket()}}catch(err){setBox('firmaStatus',err.message||'Firma non valida.','err')}refresh()});
+function validatePacket(){if(!cartella||!firmaPacket)return true;const c=identity(cartella),p=String(firmaPacket.identita||'');if(p&&p!==c){firmaData='';setBox('firmaStatus','ATTENZIONE: la firma appartiene a un altro lavoratore.\nFirma: '+p+'\nCartella: '+c,'err');refresh();return false}return true}
+$('mergeBtn').addEventListener('click',()=>{try{if(!cartella||!firmaData)throw new Error('Seleziona prima cartella e firma.');if(!validatePacket())throw new Error('Firma e cartella non corrispondono.');const key=identity(cartella);cartella.firma_lavoratore_png=firmaData;try{const store=JSON.parse(localStorage.getItem(WORKER_SIGNATURE_KEY)||'{}');store[key]=firmaData;localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(_){ }
+const blob=new Blob([JSON.stringify(cartella,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=cartellaName||('CARTELLA_'+up(cartella.cognome)+'_'+up(cartella.nome)+'.json');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);setBox('finalStatus','✓ FIRMA INSERITA NELLA CARTELLA DI '+person(cartella)+'.\nÈ stato creato il file aggiornato. Aprilo dalla Cartella Sanitaria per verificare la firma, poi conservalo al posto della versione precedente.','ok')}catch(err){setBox('finalStatus',err.message||'Errore durante il salvataggio.','err')}});
+</script>
+</body>
+</html>
