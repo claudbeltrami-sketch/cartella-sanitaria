@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260905-controllo-stampa-nomi-pdf-1">
-<script>(function(){var build='20260905-controllo-stampa-nomi-pdf-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260905-invio-certificati-sessione-1">
+<script>(function(){var build='20260905-invio-certificati-sessione-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -325,6 +325,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="v9-phase close-session"><div class="v9-phase-title">3 · CHIUSURA</div><div class="v9-actions">
    <button type="button" id="v9Chiudi" class="v9-orange">CHIUDI SESSIONE</button>
    <button type="button" id="v9Esporta" class="success">ESPORTA LISTA</button>
+   <button type="button" id="v9InvioCertificati" class="success">PREPARA INVIO CERTIFICATI</button>
    <button type="button" id="v9EmailBtn" class="secondary">PREPARA EMAIL</button>
   </div></div>
   <div class="v9-phase settings"><div class="v9-phase-title">4 · IMPOSTAZIONI</div><div class="v9-actions">
@@ -778,10 +779,13 @@ document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTE
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
 function text(id){return(document.getElementById(id)||{}).value||''}
 function checkedValues(sel){return[...document.querySelectorAll(sel+':checked')].map(x=>x.value)}
+function popolaCertificato(luogoVisita,mostra=true){
+ document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(luogoVisita?luogoVisita+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
 document.getElementById('btnCert').onclick=()=>{
  if(!verificaPrimaDelPdf('CERTIFICATO'))return;
  const luogoVisita=(document.getElementById('v9Sede')?.value||'').trim().toUpperCase();
- document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(luogoVisita?luogoVisita+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
+ popolaCertificato(luogoVisita,true);
+};
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
 document.getElementById('btnPrintCert').onclick=async()=>{
  const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
@@ -1000,6 +1004,7 @@ document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.st
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
+window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
@@ -1049,6 +1054,53 @@ function buildReport(){const s=read(K_SESS,collectSession()),ws=workersData(),e=
  let vis=0,ass=0; $('v9ReportBody').innerHTML=ws.map((w,i)=>{let es='DA VERIFICARE';if(e[keyOf(w,i)]==='ASSENTE'){es='ASSENTE';ass++}else if(w.visited){es='VISITATO';vis++}return'<tr><td>'+(i+1)+'</td><td>'+safe(w.cognome)+'</td><td>'+safe(w.nome)+'</td><td>'+safe(w.orario||'')+'</td><td><b>'+es+'</b></td><td>'+(w.sourceRow?'RIGA ORIGINALE '+safe(w.sourceRow):'AGGIUNTO FUORI LISTA')+'</td></tr>'}).join('');$('v9ReportSummary').textContent='TOTALE: '+ws.length+' — VISITATI: '+vis+' — ASSENTI: '+ass+' — SENZA ESITO: '+Math.max(0,ws.length-vis-ass)+(s.note?' — NOTE: '+s.note:'')}
 $('v9Esporta').onclick=()=>{if(!workersData().length)return alert('Non c’è una lista da esportare.');buildReport();document.body.className='print-v9-lista';setTimeout(()=>window.print(),100)};
 $('v9Chiudi').onclick=()=>{const st=stats();if(!read(K_SESS,null))return alert('Prima salva la sessione.');if(st.daGestire>0&&!confirm('Ci sono '+st.daGestire+' lavoratori senza esito. Vuoi chiudere comunque?'))return;const s=collectSession();s.stato='COMPLETATA';s.chiusa=new Date().toISOString();$('v9Stato').value='COMPLETATA';write(K_SESS,s);const h=read(K_HIST,[]),i=h.findIndex(x=>x.id===s.id);const record={...s,riepilogo:st,workers:workersData(),esiti:esiti()};if(i>=0)h[i]=record;else h.push(record);write(K_HIST,h);renderCard(s);buildReport();if(confirm('SESSIONE CHIUSA E SALVATA NELLO STORICO. Vuoi ora esportare la lista elaborata?')){document.body.className='print-v9-lista';setTimeout(()=>window.print(),100)}};
+function sessioniConcluse(){
+ const h=read(K_HIST,[]).filter(s=>s&&s.stato==='COMPLETATA'),active=read(K_SESS,null),all=h.slice();
+ if(active&&active.stato==='COMPLETATA'&&!all.some(s=>s.id===active.id))all.push({...active,workers:workersData(),esiti:esiti(),riepilogo:stats()});
+ return all.sort((a,b)=>String(b.chiusa||b.data||'').localeCompare(String(a.chiusa||a.data||'')));
+}
+function scegliSessioneConclusa(){
+ const all=sessioniConcluse();if(!all.length){alert('NON CI SONO SESSIONI CONCLUSE SU QUESTO DISPOSITIVO.\nPrima premi CHIUDI SESSIONE.');return null}
+ if(all.length===1)return all[0];
+ const righe=all.map((s,i)=>{const r=s.riepilogo||{},v=r.visitati??(s.workers||[]).filter(w=>w.visited).length,a=r.assenti??0;return (i+1)+'. '+fmt(s.data)+' — '+(s.committente||s.azienda||'')+' — '+(s.sede||'')+' — '+v+' VISITATI / '+a+' ASSENTI'});
+ const scelta=prompt('SCEGLI LA SESSIONE DA PREPARARE\n\n'+righe.join('\n')+'\n\nInserisci il numero:','1');if(scelta===null)return null;
+ const n=parseInt(scelta,10);if(!Number.isInteger(n)||n<1||n>all.length){alert('NUMERO NON VALIDO.');return null}return all[n-1];
+}
+function pulisciNomeFile(v){return norm(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')}
+function emailCertificati(s,fileName,count){
+ const archivio=getArch(),comm=archivio.committenti.find(x=>norm(x.nome)===norm(s.committente)),dest=s.email||(comm&&comm.email)||'';
+ const subject='Certificati di idoneità - '+(s.azienda||s.committente||'')+' - '+(s.sede||'')+' - '+fmt(s.data);
+ const referente=s.referente?(' '+s.referente):'';
+ const body='Buongiorno'+referente+',\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+count+' lavoratori visitati il '+fmt(s.data)+' presso '+(s.sede||'la sede indicata')+'.\n\nIl file da allegare è: '+fileName+'\n\nCordiali saluti\nDott. Claudio Beltrami';
+ location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+async function preparaInvioCertificati(){
+ const s=scegliSessioneConclusa();if(!s)return;const api=window.lumenBatchCertApi;
+ if(!api||!window.html2canvas||!window.jspdf?.jsPDF){alert('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE LUMEN.');return}
+ const ws=Array.isArray(s.workers)?s.workers:[],e=s.esiti||{},visitati=ws.filter((w,i)=>w.visited&&e[keyOf(w,i)]!=='ASSENTE');
+ if(!visitati.length){alert('IN QUESTA SESSIONE NON RISULTANO LAVORATORI VISITATI.');return}
+ const trovati=[],mancanti=[];api.setStatus('CONTROLLO DELLE CARTELLE DEI '+visitati.length+' LAVORATORI VISITATI...');
+ for(const w of visitati){const rec=await api.getCartellaRecord(api.cartellaId(w));if(rec&&rec.data)trovati.push({w,rec});else mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim())}
+ if(mancanti.length){alert('PREPARAZIONE SOSPESA.\n\nNon trovo nell’ARCHIVIO CARTELLE:\n\n• '+mancanti.join('\n• ')+'\n\nApri o importa queste cartelle e premi SALVA CARTELLA, poi riprova.');api.setStatus('INVIO SOSPESO: MANCANO '+mancanti.length+' CARTELLE NELL’ARCHIVIO.');return}
+ const btn=$('v9InvioCertificati'),oldText=btn.textContent,original=api.collect(),cert=$('certificate'),cart=document.querySelector('.cartella'),certEraVisibile=getComputedStyle(cert).display!=='none',sedeCorrente=$('v9Sede').value;
+ btn.disabled=true;btn.textContent='CREAZIONE 0 / '+trovati.length;
+ try{
+  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}),page=cert.querySelector('.page');
+  for(let i=0;i<trovati.length;i++){
+   btn.textContent='CREAZIONE '+(i+1)+' / '+trovati.length;api.setStatus('CREAZIONE CERTIFICATO '+(i+1)+' DI '+trovati.length+' — '+(trovati[i].w.cognome||'')+' '+(trovati[i].w.nome||'')+'...');
+   api.apply({...trovati[i].rec.data});api.popolaCertificato(norm(s.sede||''),false);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
+   if(i>0)pdf.addPage('a4','portrait');pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,210,297,undefined,'FAST');
+  }
+  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
+  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nControllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);
+  api.setStatus('PDF MULTIPAGINA CREATO: '+trovati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
+ }catch(err){alert('NON È STATO POSSIBILE CREARE IL PDF.\n'+(err.message||String(err)));api.setStatus('ERRORE NELLA CREAZIONE DEL PDF DEI CERTIFICATI.')}finally{
+  api.apply(original);if(certEraVisibile)api.popolaCertificato(sedeCorrente,true);else{cert.style.display='none';cart.classList.remove('hidden')}btn.disabled=false;btn.textContent=oldText;
+ }
+}
+$('v9InvioCertificati').onclick=preparaInvioCertificati;
 $('v9EmailBtn').onclick=()=>{const s=read(K_SESS,collectSession());if(!s.email)return alert('Inserire l’indirizzo email del committente.');const sub='Lista lavoratori elaborata - '+(s.azienda||'')+' - '+fmt(s.data);const body='Buongiorno,%0D%0A%0D%0Atrasmetto la lista dei lavoratori elaborata relativa alla sessione del '+fmt(s.data)+' presso '+(s.sede||'')+'.%0D%0A%0D%0ACordiali saluti%0D%0ADott. Claudio Beltrami%0D%0A%0D%0ANOTA: allegare il PDF appena esportato.';location.href='mailto:'+encodeURIComponent(s.email)+'?subject='+encodeURIComponent(sub)+'&body='+body};
 window.addEventListener('afterprint',()=>{if(document.body.className==='print-v9-lista')document.body.className=''});
 $('v9Data').value=today();renderArchives();const active=read(K_SESS,null);if(active)applySession(active);decorateRows();renderCard(active);
