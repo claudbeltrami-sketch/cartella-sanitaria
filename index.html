@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260905-audiometria-media-4freq-1">
-<script>(function(){var build='20260905-audiometria-media-4freq-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260905-grafici-spirometria-1">
+<script>(function(){var build='20260905-grafici-spirometria-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -38,6 +38,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .spirometry-row label{font-size:13px;font-weight:700;white-space:nowrap}
 .spirometry-row span{font-size:12px;font-weight:700;white-space:nowrap;padding-bottom:5px}
 .spirometry-row input{width:100%;min-width:0;min-height:25px;border:0;border-bottom:1px dotted #333;padding:3px 5px;font-size:14px;text-transform:uppercase;background:#fff}
+.spirometry-charts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;break-inside:avoid;page-break-inside:avoid}.spirometry-chart{border:1px solid #9aa6b2;border-radius:8px;background:#fff;padding:6px}.spirometry-chart-title{text-align:center;font-weight:800;font-size:12px;margin-bottom:2px}.spirometry-chart svg{display:block;width:100%;height:auto;max-height:190px}.spirometry-graph-summary{grid-column:1/-1;text-align:center;font-size:11px;font-weight:700;color:#333}.spirometry-graph-warning{grid-column:1/-1;text-align:center;font-size:10px;color:#7a2d19;font-weight:800}
 
 .spirometry-interpretation{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;grid-column:1/-1}
 .spirometry-interpretation label{display:block;width:100%;white-space:normal}
@@ -53,8 +54,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .spirometry-interpretation textarea,.compact-exams .spirometry-interpretation textarea{min-height:56px;height:auto;overflow:hidden;resize:none;font-size:11.5px!important;line-height:1.18;padding:6px 7px}
  .spirometry-interpretation label{font-size:12px!important;line-height:1.1}
  .spirometry-interpretation+.small,.spirometry-interpretation .small{font-size:10.5px!important;line-height:1.18}
+ .spirometry-charts{grid-template-columns:1fr}.spirometry-chart svg{max-height:180px}
 }
-@media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px;overflow:visible}}
+@media print{.compact-exams .spirometry-interpretation textarea{min-height:105px;font-size:12px;overflow:visible}.spirometry-charts{grid-template-columns:1fr 1fr!important}.spirometry-chart svg{max-height:125px}.spirometry-chart{padding:3px}.spirometry-graph-summary{font-size:9px}.spirometry-graph-warning{font-size:8px}}
 @media(max-width:850px){body{overflow-x:hidden}.toolbar{width:100%;max-width:none;margin-left:0;grid-template-columns:1fr;position:relative}.toolbar .tool-buttons{display:grid;grid-template-columns:1fr 1fr}.toolbar .tool-buttons>button,.toolbar .tool-buttons>.file-label{width:100%;min-height:54px;font-size:14px;padding:9px}.status{width:100%;max-width:none;margin-left:0;font-size:15px;line-height:1.25}.save-info{width:100%;max-width:none}.page{width:100%;min-height:0;margin-left:0;padding:16px;overflow:hidden}.row,.row3{grid-template-columns:1fr}.checks.three{grid-template-columns:1fr 1fr}}
 @media print{@page{size:A4;margin:0}body{background:#fff;padding:0}.toolbar,.status,.save-info{display:none!important}.page{box-shadow:none;margin:0;width:210mm;min-height:297mm;padding:12mm 13mm}.print-cartella .cartella{display:block}.print-cartella .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-certificato .cartella{display:none}.print-certificato .certificate{display:block}.print-consenso .cartella,.print-consenso .certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.print-consenso .consenso{display:block}.field input,.field select,.field textarea{font-size:14px}.page{overflow:hidden}}
 
@@ -423,6 +425,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="spirometry-row"><label>PEF</label><span>Valore</span><input id="spirometria_pef" inputmode="decimal"><span>%</span><input id="spirometria_pef_percentuale" type="number" inputmode="decimal"></div>
 </div>
 <div class="row3"><div class="field"><label>FEV1/FVC (%)</label><input id="spirometria_rapporto" readonly></div><div class="field full spirometry-interpretation"><label>Interpretazione spirometrica automatica</label><textarea id="spirometria_interpretazione" readonly></textarea></div></div>
+<div id="spirometryCharts" class="spirometry-charts hidden"><div class="spirometry-chart"><div class="spirometry-chart-title">CURVA VOLUME–TEMPO INDICATIVA</div><svg id="spirometryVolumeTimeSvg" viewBox="0 0 330 220" role="img" aria-label="Ricostruzione indicativa della curva volume tempo"></svg></div><div class="spirometry-chart"><div class="spirometry-chart-title">CURVA FLUSSO–VOLUME INDICATIVA</div><svg id="spirometryFlowVolumeSvg" viewBox="0 0 330 220" role="img" aria-label="Ricostruzione indicativa della curva flusso volume"></svg></div><div id="spirometryGraphSummary" class="spirometry-graph-summary"></div><div class="spirometry-graph-warning">RICOSTRUZIONE INDICATIVA DAI VALORI INSERITI — NON È IL TRACCIATO REALE DELLO SPIROMETRO</div></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 <div class="row"><div class="field"><label>Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select></div><div class="field"><label>Correzione / indicazioni</label><input id="visiotest_note" data-upper></div></div>
 <div class="field"><label>Altri accertamenti</label><input id="altri_accertamenti" data-upper></div>
@@ -1145,8 +1148,29 @@ window.aggiornaAudiometriaAuto=aggiornaAudiometriaAuto;
 <script>
 (function(){
 function n(id){var e=document.getElementById(id);return e?parseFloat(String(e.value||'').replace(',','.')):NaN;}
+function svgVolumeTempo(fvc,fev1){
+ var l=42,r=318,t=15,b=182,xmax=6,ymax=Math.max(1,Math.ceil(fvc*1.15)),sx=function(x){return l+x/xmax*(r-l)},sy=function(y){return b-y/ymax*(b-t)},p=['<rect width="330" height="220" fill="#fff"/>'];
+ for(var x=0;x<=6;x++){var xx=sx(x);p.push('<line x1="'+xx+'" y1="'+t+'" x2="'+xx+'" y2="'+b+'" stroke="#e2e6e9"/><text x="'+xx+'" y="199" text-anchor="middle" font-size="10">'+x+'</text>')}
+ for(var i=0;i<=4;i++){var y=ymax*i/4,yy=sy(y);p.push('<line x1="'+l+'" y1="'+yy+'" x2="'+r+'" y2="'+yy+'" stroke="#e2e6e9"/><text x="35" y="'+(yy+3)+'" text-anchor="end" font-size="10">'+y.toFixed(1)+'</text>')}
+ var rapporto=Math.max(.03,Math.min(.995,fev1/fvc)),k=-Math.log(1-rapporto),d='';for(var j=0;j<=60;j++){var sec=j/10,vol=fvc*(1-Math.exp(-k*sec));d+=(j?' L ':'M ')+sx(sec).toFixed(1)+' '+sy(vol).toFixed(1)}
+ p.push('<line x1="'+l+'" y1="'+sy(fvc)+'" x2="'+r+'" y2="'+sy(fvc)+'" stroke="#777" stroke-dasharray="4 4"/><path d="'+d+'" fill="none" stroke="#6b3fa0" stroke-width="3"/><line x1="'+sx(1)+'" y1="'+t+'" x2="'+sx(1)+'" y2="'+b+'" stroke="#1f5f99" stroke-dasharray="4 4"/><circle cx="'+sx(1)+'" cy="'+sy(fev1)+'" r="4" fill="#1f5f99"/><text x="'+(sx(1)+5)+'" y="'+(sy(fev1)-5)+'" font-size="10" font-weight="700">FEV1</text><text x="'+(r-3)+'" y="'+(sy(fvc)-4)+'" text-anchor="end" font-size="10" font-weight="700">FVC</text><text x="180" y="216" text-anchor="middle" font-size="10" font-weight="700">TEMPO (S)</text><text x="12" y="100" text-anchor="middle" font-size="10" font-weight="700" transform="rotate(-90 12 100)">VOLUME (L)</text>');return p.join('')
+}
+function svgFlussoVolume(fvc,fev1,pefLs){
+ var l=42,r=318,t=15,b=182,xmax=Math.max(1,Math.ceil(fvc*1.1)),ymax=Math.max(2,Math.ceil(pefLs/2)*2),sx=function(x){return l+x/xmax*(r-l)},sy=function(y){return b-y/ymax*(b-t)},p=['<rect width="330" height="220" fill="#fff"/>'];
+ for(var i=0;i<=4;i++){var x=xmax*i/4,xx=sx(x),y=ymax*i/4,yy=sy(y);p.push('<line x1="'+xx+'" y1="'+t+'" x2="'+xx+'" y2="'+b+'" stroke="#e2e6e9"/><text x="'+xx+'" y="199" text-anchor="middle" font-size="10">'+x.toFixed(1)+'</text><line x1="'+l+'" y1="'+yy+'" x2="'+r+'" y2="'+yy+'" stroke="#e2e6e9"/><text x="35" y="'+(yy+3)+'" text-anchor="end" font-size="10">'+y.toFixed(1)+'</text>')}
+ var rapporto=fev1/fvc,forma=rapporto<.7?1.8:rapporto<.8?1.15:.75,piccoX=fvc*.08,d='M '+sx(0)+' '+sy(0)+' L '+sx(fvc*.035)+' '+sy(pefLs*.72)+' L '+sx(piccoX)+' '+sy(pefLs);for(var j=1;j<=30;j++){var q=j/30,vol=piccoX+(fvc-piccoX)*q,flusso=pefLs*Math.pow(1-q,forma);d+=' L '+sx(vol).toFixed(1)+' '+sy(flusso).toFixed(1)}
+ p.push('<path d="'+d+'" fill="none" stroke="#b66a16" stroke-width="3"/><circle cx="'+sx(piccoX)+'" cy="'+sy(pefLs)+'" r="4" fill="#b66a16"/><text x="'+(sx(piccoX)+6)+'" y="'+(sy(pefLs)+11)+'" font-size="10" font-weight="700">PEF</text><text x="180" y="216" text-anchor="middle" font-size="10" font-weight="700">VOLUME (L)</text><text x="12" y="100" text-anchor="middle" font-size="10" font-weight="700" transform="rotate(-90 12 100)">FLUSSO (L/S)</text>');return p.join('')
+}
+function aggiornaGraficiSpirometria(d){
+ var box=document.getElementById('spirometryCharts'),vt=document.getElementById('spirometryVolumeTimeSvg'),fv=document.getElementById('spirometryFlowVolumeSvg'),sum=document.getElementById('spirometryGraphSummary');if(!box||!vt||!fv||!sum)return;
+ var valori=[d.fvc,d.fev1,d.pef,d.fvcPct,d.fev1Pct,d.pefPct],ok=valori.every(function(x){return isFinite(x)&&x>0})&&d.fev1<=d.fvc;
+ box.classList.toggle('hidden',!ok);if(!ok){vt.innerHTML='';fv.innerHTML='';sum.textContent='';return}
+ var pefLs=d.pef>25?d.pef/60:d.pef,pefLabel=d.pef>25?d.pef.toFixed(0)+' L/MIN ('+pefLs.toFixed(1)+' L/S NEL GRAFICO)':d.pef.toFixed(1)+' L/S';
+ vt.innerHTML=svgVolumeTempo(d.fvc,d.fev1);fv.innerHTML=svgFlussoVolume(d.fvc,d.fev1,pefLs);sum.textContent='FVC '+d.fvc.toFixed(2)+' L ('+d.fvcPct.toFixed(0)+'%) · FEV1 '+d.fev1.toFixed(2)+' L ('+d.fev1Pct.toFixed(0)+'%) · PEF '+pefLabel+' ('+d.pefPct.toFixed(0)+'%)';
+}
 function aggiornaSpirometriaAuto(){
- var fvc=n('spirometria_fvc'),fev1=n('spirometria_fev1'),fvcPct=n('spirometria_fvc_percentuale'),fev1Pct=n('spirometria_fev1_percentuale'),pefPct=n('spirometria_pef_percentuale');
+ var fvc=n('spirometria_fvc'),fev1=n('spirometria_fev1'),pef=n('spirometria_pef'),fvcPct=n('spirometria_fvc_percentuale'),fev1Pct=n('spirometria_fev1_percentuale'),pefPct=n('spirometria_pef_percentuale');
+ aggiornaGraficiSpirometria({fvc:fvc,fev1:fev1,pef:pef,fvcPct:fvcPct,fev1Pct:fev1Pct,pefPct:pefPct});
  var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1))?fev1/fvc*100:NaN;
  var r=document.getElementById('spirometria_rapporto'),o=document.getElementById('spirometria_interpretazione');
  if(r)r.value=isFinite(ratio)?ratio.toFixed(1):'';
