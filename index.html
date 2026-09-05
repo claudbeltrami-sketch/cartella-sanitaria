@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260905-grafici-spirometria-1">
-<script>(function(){var build='20260905-grafici-spirometria-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260905-controllo-stampa-nomi-pdf-1">
+<script>(function(){var build='20260905-controllo-stampa-nomi-pdf-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -662,8 +662,32 @@ function collect(){syncLavoratore();rememberMansione();const d={};allFields().fo
 function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return {cognome:value||'',nome:''};return {cognome:parts.shift(),nome:parts.join(' ')}}
 function apply(d){if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}if(!d.cognome&&!d.nome){if(d.cf_cognome||d.cf_nome){d.cognome=d.cf_cognome||'';d.nome=d.cf_nome||''}else if(d.lavoratore){const legacy=splitLegacyName(d.lavoratore);d.cognome=legacy.cognome;d.nome=legacy.nome}}allFields().forEach(e=>{if(!(e.id in d))return;if(e.type==='checkbox')e.checked=!!d[e.id];else e.value=d[e.id]||''});if(d.rischi)document.querySelectorAll('#rischi input').forEach(x=>x.checked=d.rischi.includes(x.value));if(d.protocollo)document.querySelectorAll('#protocollo input').forEach(x=>x.checked=d.protocollo.includes(x.value));if(d.giudizio)document.querySelectorAll('input[name="giudizio"]').forEach(x=>x.checked=x.value===d.giudizio);restoreWorkerSignature(d);document.getElementById('altezza_feet').value='';document.getElementById('altezza_inches').value='';convertiAltezzaInCm();aggiornaBmi();if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaInvalidita();syncLavoratore();syncCFBarcode()}
 function filename(prefix,ext){const cognome=(text('cognome')||'SENZA_COGNOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');const nome=(text('nome')||'SENZA_NOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');return prefix+'_'+cognome+'_'+nome+'_'+today()+'.'+ext}
+function pdfBaseName(tipo){
+ const clean=v=>String(v||'').trim().toLocaleUpperCase('it-IT').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+ const cognome=clean(text('cognome'))||'SENZA_COGNOME',nome=clean(text('nome'))||'SENZA_NOME';
+ const data=(text('data_giudizio')||text('data_cartella')||today()).replace(/-/g,'');
+ return cognome+'_'+nome+'_'+data+'_'+tipo;
+}
+function campiEssenzialiMancanti(){
+ const req=[['cognome','COGNOME'],['nome','NOME'],['data_nascita','DATA DI NASCITA'],['sesso','SESSO'],['codice_fiscale','CODICE FISCALE'],['datore_lavoro','DATORE DI LAVORO'],['mansione','MANSIONE'],['data_cartella','DATA CARTELLA'],['periodicita','PERIODICITÀ'],['data_giudizio','DATA DEL GIUDIZIO']];
+ const out=req.filter(([id])=>!text(id).trim()).map(([id,label])=>({id,label}));
+ if(!document.querySelector('#rischi input:checked')&&!text('altri_rischi').trim())out.push({id:'rischi',label:'ALMENO UN FATTORE DI RISCHIO'});
+ if(!document.querySelector('input[name="giudizio"]:checked'))out.push({id:'giudizi',label:'GIUDIZIO DI IDONEITÀ'});
+ if(text('periodicita')==='ALTRO'&&!text('periodicita_altro').trim())out.push({id:'periodicita_altro',label:'SPECIFICA PERIODICITÀ'});
+ return out;
+}
+function verificaPrimaDelPdf(tipo){
+ const mancanti=campiEssenzialiMancanti();
+ if(!mancanti.length)return true;
+ const continua=confirm('CONTROLLO PRIMA DEL PDF\n\nMancano questi campi essenziali:\n\n• '+mancanti.map(x=>x.label).join('\n• ')+'\n\nPremi OK per creare comunque il PDF oppure ANNULLA per completare la cartella.');
+ if(!continua){
+  const el=document.getElementById(mancanti[0].id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>{try{el.focus()}catch(_){}},350)}
+  setStatus('PDF '+tipo+' SOSPESO: COMPLETARE I CAMPI SEGNALATI.');
+ }
+ return continua;
+}
 const saveInfo=document.getElementById('saveInfo'),saveTitle=document.getElementById('saveTitle'),saveDetail=document.getElementById('saveDetail'),saveActions=document.getElementById('saveActions');
-let lastVerifiedFile=null,lastVerifiedHandle=null,pendingPrint='';
+let lastVerifiedFile=null,lastVerifiedHandle=null,pendingPrint='',titleBeforePrint='';
 function clock(){return new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function showSaveInfo(kind,title,detail,actions=[]){saveInfo.className='save-info '+kind;saveTitle.textContent=title;saveDetail.textContent=detail;saveActions.innerHTML='';actions.forEach(a=>{const b=document.createElement('button');b.type='button';b.textContent=a.label;b.className=a.className||'secondary';b.onclick=a.onclick;saveActions.appendChild(b)});saveInfo.style.display='block'}
 async function openVerifiedCopy(){try{let f=lastVerifiedFile;if(lastVerifiedHandle)f=await lastVerifiedHandle.getFile();if(!f)throw new Error('File non disponibile');const url=URL.createObjectURL(f);window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){showSaveInfo('error','IMPOSSIBILE APRIRE IL FILE',e.message||String(e))}}
@@ -750,17 +774,19 @@ document.getElementById('btnInviaCartellaCompletaIphone').onclick=inviaCartellaC
 document.getElementById('fileImportaFirmaIphone').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{window.beltramiFirmaIphone.importPacket(JSON.parse(r.result))}catch(err){alert(err.message||'File firma non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';apply(isRequest?parsed.cartella:parsed);if(isRequest){sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify({id:parsed.id,identita:parsed.identita}));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;form.reset();document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaBmi();if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
-document.getElementById('btnStampa').onclick=()=>{pendingPrint='PDF CARTELLA';document.body.className='print-cartella';window.print()};
+document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTELLA'))return;pendingPrint='PDF CARTELLA';titleBeforePrint=document.title;document.title=pdfBaseName('CARTELLA_SANITARIA');document.body.className='print-cartella';window.print()};
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
 function text(id){return(document.getElementById(id)||{}).value||''}
 function checkedValues(sel){return[...document.querySelectorAll(sel+':checked')].map(x=>x.value)}
 document.getElementById('btnCert').onclick=()=>{
+ if(!verificaPrimaDelPdf('CERTIFICATO'))return;
  const luogoVisita=(document.getElementById('v9Sede')?.value||'').trim().toUpperCase();
  document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(luogoVisita?luogoVisita+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
 document.getElementById('btnPrintCert').onclick=async()=>{
  const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
  try{
+  if(!verificaPrimaDelPdf('CERTIFICATO'))return;
   if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
   btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
   const page=document.querySelector('#certificate .page');
@@ -769,14 +795,11 @@ document.getElementById('btnPrintCert').onclick=async()=>{
   const img=canvas.toDataURL('image/jpeg',0.96);
   pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');
   const blob=pdf.output('blob');
-  const clean=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^A-Za-z0-9_-]/g,'');
-  const nome=(clean(text('cognome'))+clean(text('nome')))||'CERTIFICATO';
-  const data=(text('data_giudizio')||text('data_cartella')||today()).replace(/-/g,'');
-  const fileName=nome+'_'+data+'.pdf';
+  const fileName=pdfBaseName('CERTIFICATO_IDONEITA')+'.pdf';
   const url=URL.createObjectURL(blob);
-  showSaveInfo('ok','PDF CERTIFICATO CREATO',fileName+' — PDF A4 senza link, data/ora o numero pagina. Usa Condividi per salvarlo o stamparlo.');
-  setStatus('APERTURA PDF CERTIFICATO SENZA INTESTAZIONI O PIÈ DI PAGINA...');
-  window.location.assign(url);
+  const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
+  showSaveInfo('ok','PDF CERTIFICATO CREATO E NOMINATO',fileName+' — PDF A4 senza link, data/ora o numero pagina.');
+  setStatus('PDF CERTIFICATO CREATO CON IL NOME DEL LAVORATORE.');
   setTimeout(()=>URL.revokeObjectURL(url),300000);
  }catch(err){
   alert(err.message||String(err));setStatus('ERRORE NELLA CREAZIONE DEL PDF CERTIFICATO.');
@@ -978,7 +1001,7 @@ try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
 
-window.addEventListener('afterprint',()=>{document.body.className='';if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
+window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
 </script>
 
