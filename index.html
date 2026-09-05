@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260905-audiogramma-1">
-<script>(function(){var build='20260905-audiogramma-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260905-audiometria-media-4freq-1">
+<script>(function(){var build='20260905-audiometria-media-4freq-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -1117,8 +1117,8 @@ function aggiornaAudiometriaAuto(){
  ears.forEach(function(e){
   var a=dati[e[1]];
   if(a.some(function(x){return !isFinite(x)})){complete=false;frasi.push(e[0]+': DATI INCOMPLETI.');return}
-  var media=(a[0]+a[1]+a[2])/3;
-  var frase=e[0]+': '+grado(media)+' (MEDIA 500-1000-2000 HZ: '+media.toFixed(1)+' DB HL).';
+  var media=(a[0]+a[1]+a[2]+a[3])/4;
+  var frase=e[0]+': '+grado(media)+' (MEDIA 500-1000-2000-4000 HZ: '+media.toFixed(1)+' DB HL).';
   if(a[3]>20&&a[3]>=Math.max(a[1],a[2])+15)frase+=' CADUTA PREVALENTE A 4000 HZ DA VALUTARE.';
   frasi.push(frase);
  });
