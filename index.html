@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260904-qr-stabile-1">
-<script>(function(){var build='20260904-qr-stabile-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260905-cartella-completa-iphone-1">
+<script>(function(){var build='20260905-cartella-completa-iphone-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -207,9 +207,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   </div>
  </section>
  <section class="tool-group handoff-tools">
-  <div class="tool-group-title">2 · FIRMA IPHONE–MAC</div>
+  <div class="tool-group-title">2 · IPHONE–MAC</div>
   <div class="tool-buttons">
    <button type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
+   <button type="button" id="btnInviaCartellaCompletaIphone">INVIA CARTELLA COMPLETA A IPHONE</button>
    <label class="file-label">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
   </div>
  </section>
@@ -657,6 +658,21 @@ function handoffEncode(o){return btoa(unescape(encodeURIComponent(JSON.stringify
 function handoffDecode(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
 function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});overlay.querySelector('button').onclick=()=>overlay.remove();setStatus('INQUADRARE IL CODICE QR CON LA FOTOCAMERA DELL’IPHONE.');return true}
 async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
+async function inviaCartellaCompletaIphone(){
+ const d=collect();
+ if(!workerSignatureIdentity(d)){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
+ const name=filename('CARTELLA_IPHONE','json'),file=new File([JSON.stringify(d,null,2)],name,{type:'application/json'});
+ try{
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+   await navigator.share({files:[file],title:'Cartella sanitaria per iPhone'});
+   showSaveInfo('ok','CARTELLA COMPLETA INVIATA','Sull’iPhone apri LUMEN, premi APRI DATI e scegli il file ricevuto con AirDrop.\nNome: '+name);
+   setStatus('CARTELLA COMPLETA PREPARATA PER IPHONE.');return;
+  }
+ }catch(e){if(e&&e.name==='AbortError'){setStatus('INVIO CARTELLA ANNULLATO.');return}}
+ fallbackDownload(file,name);
+ showSaveInfo('warn','FILE COMPLETO SALVATO SUL MAC','Invia questo file all’iPhone con AirDrop. Poi, sull’iPhone, apri LUMEN, premi APRI DATI e scegli il file.\nNome: '+name);
+ setStatus('FILE COMPLETO PRONTO PER AIRDROP.');
+}
 window.beltramiFirmaIphone={
  prepare:async()=>{const d=collect(),identita=workerSignatureIdentity(d);if(!identita){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:1,id:handoffId(),creato:new Date().toISOString(),identita,cartella:d},ok=await shareOrDownloadPacket(packet,handoffName('DA_FIRMARE_SU_IPHONE',d),'Cartella da firmare su iPhone');if(!ok){setStatus('PASSAGGIO ALL’IPHONE ANNULLATO.');return}showSaveInfo('ok','PASSAGGIO ALL’IPHONE PREPARATO','Salva il file nella cartella privata iCloud Drive “CARTELLA SANITARIA”.\nSull’iPhone apri la cartella sanitaria, premi APRI DATI SALVATI e scegli questo file. Il riquadro firma si aprirà automaticamente.');setStatus('FILE PER LA FIRMA IPHONE PREPARATO.')},
  finish:async firma=>{let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}if(!h||!h.id)return false;const d=collect(),packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};const ok=await shareOrDownloadPacket(packet,handoffName('FIRMA_PER_MAC',d),'Firma del lavoratore per il Mac');if(ok){sessionStorage.removeItem('beltrami_firma_handoff');showSaveInfo('ok','FIRMA PRONTA PER IL MAC','Salva il file nella stessa cartella privata iCloud Drive. Sul Mac premi RICEVI FIRMA DA IPHONE e scegli questo file.');setStatus('FIRMA ACQUISITA SU IPHONE E PRONTA PER IL MAC.')}return true},
@@ -714,6 +730,7 @@ document.getElementById('archiveQuery').addEventListener('keydown',e=>{if(e.key=
 document.getElementById('archiveModal').addEventListener('click',e=>{if(e.target.id==='archiveModal')e.currentTarget.classList.remove('show')});
 
 document.getElementById('btnSalva').onclick=saveCartellaVerified;
+document.getElementById('btnInviaCartellaCompletaIphone').onclick=inviaCartellaCompletaIphone;
 document.getElementById('fileImportaFirmaIphone').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{window.beltramiFirmaIphone.importPacket(JSON.parse(r.result))}catch(err){alert(err.message||'File firma non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';apply(isRequest?parsed.cartella:parsed);if(isRequest){sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify({id:parsed.id,identita:parsed.identita}));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;form.reset();document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
