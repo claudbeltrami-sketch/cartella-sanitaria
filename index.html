@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260906-conteggio-visite-6">
+<meta name="lumen-build" content="20260906-apertura-archivio-2">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260906-conteggio-visite-6';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260906-apertura-archivio-2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -781,7 +781,18 @@ async function openArchiveRecord(id){
  // nella schermata (o in una vecchia copia interna) non può bloccare l'archivio
  // sull'ultimo lavoratore aperto.
  const data={...(r.data||{}),cognome:r.cognome||'',nome:r.nome||'',data_nascita:r.dataNascita||'',codice_fiscale:r.cf||((r.data||{}).codice_fiscale||'')};
+ // Il vecchio campo unico poteva contenere il lavoratore aperto in precedenza.
+ // Lo rigeneriamo esclusivamente dall'identità della riga scelta.
+ data.lavoratore=[data.cognome,data.nome].filter(Boolean).join(' ');
  apply(data);
+ // Scrittura finale esplicita: evita che Safari conservi i valori precedenti
+ // dopo la chiusura della finestra di conferma.
+ document.getElementById('cognome').value=data.cognome;
+ document.getElementById('nome').value=data.nome;
+ document.getElementById('data_nascita').value=data.data_nascita;
+ document.getElementById('codice_fiscale').value=data.codice_fiscale;
+ syncLavoratore();
+ syncCFBarcode();
  const loadedId=cartellaId(collect());
  if(loadedId!==r.id){
   alert('APERTURA NON COMPLETATA: la cartella selezionata non corrisponde ai dati caricati. Riprovare.');
