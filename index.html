@@ -6,8 +6,31 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260905-invio-certificati-sessione-1">
-<script>(function(){var build='20260905-invio-certificati-sessione-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<meta name="lumen-build" content="20260906-trasferimento-lista-safari-1">
+<script>
+/* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
+   collegamento principale viene aperto direttamente in Safari. */
+(function(){
+ var m=location.hash.match(/^#lumen-transfer=(.+)$/);if(!m)return;
+ try{
+  var raw=atob(m[1].replace(/-/g,'+').replace(/_/g,'/'));
+  var bytes=Uint8Array.from(raw,function(c){return c.charCodeAt(0)});
+  var packet=JSON.parse(new TextDecoder().decode(bytes));
+  if(!packet||packet.tipo!=='LUMEN_LISTA_LOCALE_V1'||!Array.isArray(packet.workers)||!packet.workers.length)throw new Error('Lista non valida');
+  var lists=[];try{lists=JSON.parse(localStorage.getItem('beltrami_worker_lists_v1')||'[]');if(!Array.isArray(lists))lists=[]}catch(_){lists=[]}
+  var id='LISTA_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  var source=packet.attachedSourceName||'LISTA';
+  lists.push({id:id,label:String(source).replace(/\.(xlsx?|csv|tsv|txt)$/i,''),workers:packet.workers,currentWorkerIndex:-1,attachedSourceName:source,session:null,esiti:{},updated:new Date().toISOString()});
+  localStorage.setItem('beltrami_worker_lists_v1',JSON.stringify(lists));
+  localStorage.setItem('beltrami_worker_list_active_v1',id);
+  localStorage.setItem('beltrami_workers_v8',JSON.stringify({workers:packet.workers,currentWorkerIndex:-1,attachedSourceName:source}));
+  localStorage.removeItem('beltrami_v9_sessione_attiva');
+  localStorage.setItem('beltrami_v9_esiti','{}');
+  history.replaceState(null,'',location.pathname+'?lista-trasferita='+Date.now());
+ }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
+})();
+</script>
+<script>(function(){var build='20260906-trasferimento-lista-safari-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
