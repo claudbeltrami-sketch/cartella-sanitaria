@@ -31,9 +31,8 @@ function renderSwitcher(){const anchor=document.querySelector('.list-search');if
 function deleteWorker(index){const d=getCurrent(),ws=Array.isArray(d.workers)?d.workers:[];const w=ws[index];if(!w)return;const nome=((w.cognome||'')+' '+(w.nome||'')).trim()||('N. '+(index+1));if(!confirm('CANCELLARE DEFINITIVAMENTE '+nome+' DALLA LISTA?'))return;ws.splice(index,1);let ci=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;if(ci===index)ci=-1;else if(ci>index)ci--;write(WORKERS_KEY,{...d,workers:ws,currentWorkerIndex:ci,when:new Date().toISOString()});const active=localStorage.getItem(ACTIVE_KEY),lists=getLists(),li=lists.findIndex(x=>x.id===active);if(li>=0){lists[li]={...lists[li],workers:ws,currentWorkerIndex:ci,updated:new Date().toISOString()};setLists(lists)}location.reload()}
 function addDeleteButtons(){document.querySelectorAll('#workersBody tr').forEach(tr=>{const td=tr.lastElementChild;if(!td||td.querySelector('.lumen-delete-worker'))return;const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0)return;const b=document.createElement('button');b.type='button';b.className='danger lumen-delete-worker';b.textContent='CANCELLA';b.style.marginLeft='5px';b.onclick=()=>deleteWorker(n);td.appendChild(b)})}
 
-/* Lista condivisa di emergenza: rende GUIDONIA disponibile anche sui dispositivi
-   che non possiedono il file Excel nell'IndexedDB locale. Non sovrascrive né duplica
-   una Guidonia già importata sul dispositivo. */
+/* Copia di ripristino Guidonia: viene usata solo per completare una Guidonia già
+   presente. Non viene più imposta come lista predefinita sui nuovi dispositivi. */
 const GUIDONIA_SHARED={
  id:'SHARED_ORIZZONTE_GUIDONIA_20260904_1330',
  label:'ORIZZONTE_GUIDONIA_MONTECELIO_04-09-2026_ORE_13-30',
@@ -55,18 +54,18 @@ function ensureSharedLists(){
  const lists=getLists();
  let i=lists.findIndex(x=>/GUIDONIA/i.test(String(x.label||'')+' '+String(x.attachedSourceName||'')));
  let changed=false;
- if(i<0){lists.push(JSON.parse(JSON.stringify(GUIDONIA_SHARED)));i=lists.length-1;changed=true}
+ if(i<0)return false;
  const guidonia=lists[i],rocchi=GUIDONIA_SHARED.workers.find(w=>w.codice_fiscale==='RCCFRC94L10L182H');
  if(guidonia&&!guidonia.workers.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
   guidonia.workers.push(JSON.parse(JSON.stringify(rocchi)));guidonia.updated='2026-09-03T11:00:00.000Z';changed=true
  }
- if(changed)setLists(lists);
  if(guidonia&&localStorage.getItem(ACTIVE_KEY)===guidonia.id){
   const current=getCurrent(),ws=Array.isArray(current.workers)?current.workers:[];
   if(!ws.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
    ws.push(JSON.parse(JSON.stringify(rocchi)));write(WORKERS_KEY,{...current,workers:ws,when:new Date().toISOString()})
   }
  }
+ if(changed)setLists(lists);
 }
 
 migrateCurrent();
