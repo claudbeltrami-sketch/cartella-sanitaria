@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260906-conteggio-visite-2">
+<meta name="lumen-build" content="20260906-conteggio-visite-3">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260906-conteggio-visite-2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260906-conteggio-visite-3';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -1091,19 +1091,25 @@ function scegliSessioneConclusa(){
  const n=parseInt(scelta,10);if(!Number.isInteger(n)||n<1||n>all.length){alert('NUMERO NON VALIDO.');return null}return all[n-1];
 }
 function encodeConteggioVisite(v){const bytes=new TextEncoder().encode(JSON.stringify(v));let raw='';bytes.forEach(b=>raw+=String.fromCharCode(b));return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-function scegliListaConVisitati(){
+async function workerVisitatoNellaSessione(w,s,i){
+ const e=s.esiti||{};if(e[keyOf(w,i)]==='ASSENTE')return false;if(w.visited)return true;
+ const api=window.lumenBatchCertApi;if(!api||!s.data)return false;
+ try{const rec=await api.getCartellaRecord(api.cartellaId(w));return !!(rec&&rec.data&&String(rec.updatedAt||rec.createdAt||'').slice(0,10)===s.data)}catch(_){return false}
+}
+async function scegliListaConVisitati(){
+ if(window.lumenCambiaLista)window.lumenCambiaLista.saveCurrentIntoActive();
  const concluse=sessioniConcluse().map(s=>({...s,_fonte:'SESSIONE'}));
  const salvate=(window.lumenCambiaLista?window.lumenCambiaLista.getLists():[]).map(x=>({...x,_fonte:'LISTA',data:(x.session&&x.session.data)||'',committente:(x.session&&x.session.committente)||'',sede:(x.session&&x.session.sede)||x.label||'',azienda:(x.session&&x.session.azienda)||''}));
- const viste=new Set(),all=[...concluse,...salvate].filter(s=>{const ws=Array.isArray(s.workers)?s.workers:[],e=s.esiti||{},n=ws.filter((w,i)=>w.visited&&e[keyOf(w,i)]!=='ASSENTE').length,k=s.id||s.label;if(!n||viste.has(k))return false;viste.add(k);s._visitati=n;return true});
+ const viste=new Set(),all=[];for(const s of [...concluse,...salvate]){const k=s.id||s.label;if(viste.has(k))continue;const ws=Array.isArray(s.workers)?s.workers:[],flags=await Promise.all(ws.map((w,i)=>workerVisitatoNellaSessione(w,s,i)));const visitati=ws.filter((_,i)=>flags[i]);if(!visitati.length)continue;viste.add(k);s._visitati=visitati.length;s._workersVisitati=visitati;all.push(s)}
  if(!all.length){alert('NON TROVO LISTE SALVATE CON LAVORATORI SEGNATI VISITATO.');return null}
  if(all.length===1)return all[0];
  const righe=all.map((s,i)=>(i+1)+'. '+(s.data?fmt(s.data)+' — ':'')+(s.committente||s.label||s.sede||'LISTA')+' — '+s._visitati+' VISITATI');
  const scelta=prompt('SCEGLI LA LISTA DA AGGIUNGERE A CONTEGGIO VISITE\n\n'+righe.join('\n')+'\n\nInserisci il numero:','1');if(scelta===null)return null;
  const n=parseInt(scelta,10);if(!Number.isInteger(n)||n<1||n>all.length){alert('NUMERO NON VALIDO.');return null}return all[n-1];
 }
-function inviaVisitatiAConteggio(){
- const s=scegliListaConVisitati();if(!s)return;const ws=Array.isArray(s.workers)?s.workers:[],e=s.esiti||{};
- const visitati=ws.filter((w,i)=>w.visited&&e[keyOf(w,i)]!=='ASSENTE');
+async function inviaVisitatiAConteggio(){
+ const s=await scegliListaConVisitati();if(!s)return;
+ const visitati=s._workersVisitati||[];
  const guidonia=/GUIDONIA/i.test([s.label,s.sede,s.attachedSourceName].join(' '));
  const packet={tipo:'LUMEN_VISITE_V1',id:s.id||[s.data,s.committente,s.sede,s.label].join('|'),date:s.data||(guidonia?'2026-09-04':today()),client:s.committente||'GRUPPO ORIZZONTE',place:s.sede||s.label||'',people:visitati.map(w=>({name:((w.cognome||'')+' '+(w.nome||'')).trim(),company:w.datore_lavoro||s.azienda||''}))};
  location.href='https://conteggio-visite.mh2f6rcb4p.chatgpt.site/#lumen-visite='+encodeConteggioVisite(packet);
