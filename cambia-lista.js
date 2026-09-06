@@ -75,3 +75,12 @@ const body=document.getElementById('workersBody');if(body)new MutationObserver((
 window.addEventListener('pagehide',saveCurrentIntoActive);
 window.lumenCambiaLista={activate,getLists,deleteWorker,saveCurrentIntoActive,registerCurrentAsNewList};
 })();
+
+
+/* LUMEN FIRME LEGGERE V1: comprime ogni firma prima dell'importazione per evitare il limite della memoria browser. */
+(function(){
+'use strict';
+function comprimiFirma(data){return new Promise(resolve=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const scala=Math.min(1,700/im.naturalWidth,240/im.naturalHeight),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*scala));c.height=Math.max(1,Math.round(im.naturalHeight*scala));c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/png'))};im.onerror=()=>resolve(data);im.src=data})}
+async function installa(){if(!window.beltramiFirmaIphone||window.beltramiFirmaIphone.__firmeLeggere)return;const originale=window.beltramiFirmaIphone.importPacket;window.beltramiFirmaIphone.importPacket=async packet=>{if(packet&&packet.firma_lavoratore_png)packet={...packet,firma_lavoratore_png:await comprimiFirma(packet.firma_lavoratore_png)};return originale(packet)};window.beltramiFirmaIphone.__firmeLeggere=true}
+installa();window.addEventListener('load',installa);
+})();
