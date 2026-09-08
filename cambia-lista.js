@@ -1,4 +1,4 @@
-/* LUMEN hotfix 08/09/2026 - pulsanti certificati V2 */
+/* LUMEN hotfix 08/09/2026 - pulsanti certificati V3 Mac */
 (function(){
 'use strict';
 var S='beltrami_v9_sessione_attiva',W='beltrami_workers_v8',E='beltrami_v9_esiti',L='beltrami_worker_lists_v1',A='beltrami_worker_list_active_v1';
@@ -58,10 +58,10 @@ async function prepara(){
    if(i)pdf.addPage('a4','portrait');pdf.addImage(c.toDataURL('image/jpeg',.94),'JPEG',0,0,210,297,undefined,'FAST');
   }
   var date=String(s.data||new Date().toISOString().slice(0,10)).replace(/-/g,''),name=[s.committente||s.azienda||'SESSIONE',sede||'SEDE',date,found.length+' CERTIFICATI'].map(safe).filter(Boolean).join('_')+'.pdf';
-  var blob=pdf.output('blob'),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},300000);
+  var blob=pdf.output('blob'),u=URL.createObjectURL(blob);window.lumenUltimoPdfCertificati={url:u,fileName:name,count:found.length,created:Date.now()};var box=document.createElement('div');box.id='lumenPdfReadyBox';box.style.cssText='position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:999999;background:#fff;border:4px solid #287a46;border-radius:14px;padding:18px;width:min(92vw,620px);box-shadow:0 12px 35px #0008;text-align:center';box.innerHTML='<div style="font-size:20px;font-weight:800;margin-bottom:8px">PDF PRONTO: '+found.length+' CERTIFICATI DI IDONEITÀ</div><div style="font-size:16px;line-height:1.35;margin-bottom:14px">NON contiene le cartelle sanitarie.</div>';var op=document.createElement('button');op.type='button';op.textContent='APRI / SCARICA PDF CUMULATIVO';op.style.cssText='display:block;width:100%;min-height:54px;background:#287a46;color:#fff;border:0;border-radius:9px;font-size:17px;font-weight:800;margin-bottom:10px';op.onclick=function(){var w=window.open(u,'_blank');if(!w){var a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()}};var dl=document.createElement('button');dl.type='button';dl.textContent='SCARICA PDF';dl.style.cssText='display:block;width:100%;min-height:48px;background:#1f5f99;color:#fff;border:0;border-radius:9px;font-size:16px;font-weight:800;margin-bottom:10px';dl.onclick=function(){var a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()};var cl=document.createElement('button');cl.type='button';cl.textContent='CHIUDI';cl.style.cssText='display:block;width:100%;min-height:44px;background:#666;color:#fff;border:0;border-radius:9px;font-size:15px;font-weight:700';cl.onclick=function(){box.remove()};box.appendChild(op);box.appendChild(dl);box.appendChild(cl);var prev=document.getElementById('lumenPdfReadyBox');if(prev)prev.remove();document.body.appendChild(box);
   api.apply(original);cert.style.display=oldDisplay||'none';if(cart&&!cartWasHidden)cart.classList.remove('hidden');
   if(api.setStatus)api.setStatus('PDF PRONTO: '+found.length+' CERTIFICATI. SOLO CERTIFICATI.');
-  alert('PDF PRONTO: '+found.length+' CERTIFICATI DI IDONEITÀ.\nNON contiene le cartelle sanitarie.');
+  
  }catch(e){alert('ERRORE PREPARA INVIO CERTIFICATI:\n'+((e&&e.message)||String(e)))}finally{if(b){b.disabled=false;b.textContent='PREPARA INVIO CERTIFICATI'}}
 }
 function email(){
