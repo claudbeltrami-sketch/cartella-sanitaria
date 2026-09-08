@@ -25,7 +25,7 @@ const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(t
  document:{getElementById:get,querySelectorAll:queryAll,querySelector:sel=>sel==='.cartella'?get('cartella'):null,body:get('body')},
  form:{querySelectorAll:()=>fields,reset(){for(const x of fields){x.value='';x.checked=false}Object.values(groups).flat().forEach(x=>x.checked=false)}},
  today:()=> '2026-09-08',rememberMansione(){},syncCFBarcode(){},convertiAltezzaInCm(){},aggiornaInvalidita(){},
- renderWorkers(){},setStatus(v){c.lastStatus=v},fmt:v=>v,getCartellaRecord:async()=>null,workers:[],currentWorkerIndex:-1};
+ renderWorkers(){},setStatus(v){c.lastStatus=v},showSaveInfo(){},fmt:v=>v,getCartellaRecord:async()=>null,listCartelleArchive:async()=>[],workers:[],currentWorkerIndex:-1};
 c.window={dispatchEvent(){outputUpdate()},scrollTo(){}};
 vm.createContext(c);
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
@@ -93,6 +93,47 @@ async function run(){
  store.set('beltrami_v9_sessione_attiva',JSON.stringify({data:'2026-09-07',sede:'LATINA'}));
  c.apply(B);assert.equal(c.collect().luogo_visita,'');
  store.delete('beltrami_v9_sessione_attiva');
- console.log(`PASS: ${scriptCount} scripts parse; complete replacement; BMI; signature isolation; drafts; saved visits; asynchronous selection; no archive mutations; certificate place/date; saved location; session dates; missing-place entry and cancellation.`);
+ // The imported list may lack the CF which was added before archiving the visit.
+ get('v9Data').value='2026-09-08';
+ const G={...B,cognome:'TESTSETTE',nome:'ETA',codice_fiscale:''};
+ const savedG={...G,codice_fiscale:'TEST_WORKER_G',farmaci:'DATI ARCHIVIATI ETA',firma_lavoratore_png:'SIGNATURE_G'};
+ const recG={id:'CF_TESTWORKERG',data:savedG};c.workers.push(G);
+ c.getCartellaRecord=async()=>null;c.listCartelleArchive=async()=>[recG];
+ await c.selectWorker(c.workers.length-1);
+ assert.equal(c.collect().farmaci,'DATI ARCHIVIATI ETA','recover an archived CF from an incomplete list');
+ assert.equal(c.collect().codice_fiscale,'TEST_WORKER_G');signatureIs('SIGNATURE_G');
+ // Untouched blank screens must not become drafts that block a subsequent archive lookup.
+ c.listCartelleArchive=async()=>[];
+ const H={...B,cognome:'TESTOTTO',nome:'THETA',codice_fiscale:'TEST_WORKER_H'};c.workers.push(H);const hi=c.workers.length-1;
+ let resolveH;c.getCartellaRecord=()=>new Promise(resolve=>resolveH=resolve);
+ const openingH=c.selectWorker(hi);
+ c.getCartellaRecord=async()=>null;await c.selectWorker(0);
+ resolveH({data:{...H,farmaci:'DATI THETA',firma_lavoratore_png:'SIGNATURE_H'}});await openingH;
+ c.getCartellaRecord=async()=>({data:{...H,farmaci:'DATI THETA',firma_lavoratore_png:'SIGNATURE_H'}});
+ await c.selectWorker(hi);assert.equal(c.collect().farmaci,'DATI THETA','retry archive read after leaving a blank loading screen');signatureIs('SIGNATURE_H');
+ // Recovered CFs must not prevent an edited draft from reopening through the original list.
+ const gi=c.workers.indexOf(G);await c.selectWorker(gi);get('farmaci').value='BOZZA ETA MODIFICATA';
+ await c.selectWorker(hi);await c.selectWorker(gi);assert.equal(c.collect().farmaci,'BOZZA ETA MODIFICATA');
+ assert.equal(c.collect().codice_fiscale,'TEST_WORKER_G');signatureIs('SIGNATURE_G');
+ // A conflicting CF or ambiguous names must never load someone else's clinical data.
+ const I={...B,cognome:'TESTNOVE',nome:'IOTA',codice_fiscale:'TEST_WORKER_I',visited:true};c.workers.push(I);
+ c.getCartellaRecord=async()=>null;c.listCartelleArchive=async()=>[{data:{...I,codice_fiscale:'CONFLICTING_CF',farmaci:'NON CARICARE',firma_lavoratore_png:'WRONG_SIGNATURE'}}];
+ await c.selectWorker(c.workers.length-1);assert.equal(c.collect().farmaci,'');signatureIs('');
+ const J={...B,cognome:'TESTDIECI',nome:'KAPPA',codice_fiscale:'',data_nascita:'',visited:true};c.workers.push(J);
+ c.listCartelleArchive=async()=>[{data:{...J,data_nascita:'1980-01-01',codice_fiscale:'NAMESAKE_A',farmaci:'NON CARICARE'}}];
+ await c.selectWorker(c.workers.length-1);assert.equal(c.collect().farmaci,'');signatureIs('');
+ assert.match(c.lastStatus,/archivio/);
+ const K={...J,cognome:'TESTUNDICI',data_nascita:'1980-01-01'};c.workers.push(K);
+ c.listCartelleArchive=async()=>[{data:{...K,codice_fiscale:'NAMESAKE_A',farmaci:'NON CARICARE'}},{data:{...K,codice_fiscale:'NAMESAKE_B',farmaci:'NON CARICARE'}}];
+ await c.selectWorker(c.workers.length-1);assert.equal(c.collect().farmaci,'');signatureIs('');
+ // RIAPRI actually opens the record, preserving the attendance mark.
+ const selectOriginal=c.selectWorker;let selectedIndex=-1,saves=0;
+ c.selectWorker=async i=>{selectedIndex=i};c.saveWorkersLocal=()=>saves++;
+ c.workers[hi].visited=true;await c.handleWorkerVisit(hi);
+ assert.equal(selectedIndex,hi);assert.equal(c.workers[hi].visited,true);assert.equal(saves,0);
+ c.workers[gi].visited=false;await c.handleWorkerVisit(gi);
+ assert.equal(c.workers[gi].visited,true);assert.equal(saves,1);assert.equal(selectedIndex,hi);
+ c.selectWorker=selectOriginal;
+ console.log(`PASS: ${scriptCount} scripts parse; record and signature isolation; saved visits and place/date; missing-place entry; incomplete-list CF recovery; empty loading screens; edited drafts; conflicting and ambiguous identities; RIAPRI opens without clearing attendance.`);
 }
 run().catch(e=>{console.error(e);process.exitCode=1});
