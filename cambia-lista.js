@@ -47,7 +47,7 @@ const GUIDONIA_SHARED={
   {id:'orizzonte-guidonia-6',cognome:'GARCIA BURGOS',nome:'MARCO GILBERTO',luogo_nascita:'ECUADOR',data_nascita:'1992-04-22',codice_fiscale:'GRCMCG92D22Z605U',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-7',cognome:'PASSERO',nome:'DANIELE',luogo_nascita:'ROMA',data_nascita:'2000-05-20',codice_fiscale:'PSSDNL00E20H501W',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
+  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1994-07-10',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
  ]
 };
 function ensureSharedLists(){
