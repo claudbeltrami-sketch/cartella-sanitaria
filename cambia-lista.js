@@ -1,112 +1,61 @@
-/* LUMEN - cambio rapido liste + cancellazione lavoratore. 03/09/2026 */
+/* LUMEN hotfix 08/09/2026 - pulsanti certificati */
 (function(){
 'use strict';
-const LISTS_KEY='beltrami_worker_lists_v1';
-const ACTIVE_KEY='beltrami_worker_list_active_v1';
-const WORKERS_KEY='beltrami_workers_v8';
-const SESSION_KEY='beltrami_v9_sessione_attiva';
-const ESITI_KEY='beltrami_v9_esiti';
-const ORIGINAL_META_KEY='beltrami_lista_originale_attiva_v1';
-let originalSources=[];
-
-function read(k,def){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?def:v}catch(_){return def}}
-function write(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}
-function uid(){return 'LISTA_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)}
-function cleanName(v){return String(v||'').replace(/\.(xlsx?|csv|pdf|docx?|json)$/i,'').trim()||'LISTA SENZA NOME'}
-function getLists(){const v=read(LISTS_KEY,[]);return Array.isArray(v)?v:[]}
-function setLists(v){write(LISTS_KEY,v)}
-function getCurrent(){const d=read(WORKERS_KEY,{workers:[],currentWorkerIndex:-1,attachedSourceName:''});return Array.isArray(d)?{workers:d,currentWorkerIndex:-1,attachedSourceName:''}:d}
-function currentSnapshot(id,label){const d=getCurrent();return {id:id||uid(),label:cleanName(label||d.attachedSourceName||''),workers:Array.isArray(d.workers)?d.workers:[],currentWorkerIndex:Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1,attachedSourceName:d.attachedSourceName||label||'',session:read(SESSION_KEY,null),esiti:read(ESITI_KEY,{}),originalMeta:read(ORIGINAL_META_KEY,null),updated:new Date().toISOString()}}
-function migrateCurrent(){let lists=getLists(),active=localStorage.getItem(ACTIVE_KEY)||'';if(!lists.length){const d=getCurrent();if(Array.isArray(d.workers)&&d.workers.length){const id=uid();lists=[currentSnapshot(id,d.attachedSourceName||'LISTA 1')];active=id;setLists(lists);localStorage.setItem(ACTIVE_KEY,id)}}if(lists.length&&!lists.some(x=>x.id===active)){active=lists[0].id;localStorage.setItem(ACTIVE_KEY,active)}return active}
-function saveCurrentIntoActive(){const id=localStorage.getItem(ACTIVE_KEY);if(!id)return;const lists=getLists(),i=lists.findIndex(x=>x.id===id);if(i<0)return;lists[i]=currentSnapshot(id,lists[i].label);setLists(lists)}
-function registerCurrentAsNewList(label){const lists=getLists(),rec=currentSnapshot(uid(),label);lists.push(rec);setLists(lists);localStorage.setItem(ACTIVE_KEY,rec.id);return rec}
-function activate(id){saveCurrentIntoActive();const rec=getLists().find(x=>x.id===id);if(!rec)return;write(WORKERS_KEY,{workers:rec.workers||[],currentWorkerIndex:Number.isInteger(rec.currentWorkerIndex)?rec.currentWorkerIndex:-1,attachedSourceName:rec.attachedSourceName||rec.label||'',when:new Date().toISOString()});if(rec.session)write(SESSION_KEY,rec.session);else localStorage.removeItem(SESSION_KEY);write(ESITI_KEY,rec.esiti||{});if(rec.originalMeta)write(ORIGINAL_META_KEY,rec.originalMeta);else localStorage.removeItem(ORIGINAL_META_KEY);localStorage.setItem(ACTIVE_KEY,id);location.reload()}
-async function loadOriginalSources(){if(!window.indexedDB)return[];const db=await new Promise((res,rej)=>{const r=indexedDB.open('beltrami_lumen_files_v1',1);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});if(!db.objectStoreNames.contains('originali')){db.close();return[]}const rows=await new Promise((res,rej)=>{const r=db.transaction('originali','readonly').objectStore('originali').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});db.close();originalSources=rows;return rows}
-async function sourceWorkers(src){const p=window.lumenListaParser||{},name=String(src.name||'').toLowerCase(),buf=await src.blob.arrayBuffer();let rows;if(/\.xlsx$/i.test(name)&&p.parseXlsx)rows=await p.parseXlsx(buf);else if(/\.docx$/i.test(name)&&p.parseDocx)rows=await p.parseDocx(buf);else if(/\.pdf$/i.test(name)&&p.parsePdf)rows=await p.parsePdf(buf);else if(p.parseDelimited)rows=p.parseDelimited(new TextDecoder('utf-8').decode(buf));return rows&&p.rowsToWorkers?p.rowsToWorkers(rows):[]}
-function sourceRecord(src,ws){return {id:uid(),label:cleanName(src.name),workers:ws,currentWorkerIndex:-1,attachedSourceName:src.name||'',session:null,esiti:{},originalMeta:{id:src.id,name:src.name,type:src.type,size:src.size,lastModified:src.lastModified,savedAt:src.savedAt},updated:src.savedAt||new Date().toISOString()}}
-async function activateOriginal(id){const src=originalSources.find(x=>x.id===id);if(!src)return;const sel=document.getElementById('lumenListaSelect');if(sel)sel.disabled=true;try{const ws=await sourceWorkers(src);if(!ws.length)throw new Error('Nessun lavoratore riconosciuto');saveCurrentIntoActive();const lists=getLists(),rec=sourceRecord(src,ws);lists.push(rec);setLists(lists);localStorage.setItem(ACTIVE_KEY,rec.id);write(WORKERS_KEY,{workers:rec.workers,currentWorkerIndex:-1,attachedSourceName:rec.attachedSourceName,when:new Date().toISOString()});write(ESITI_KEY,{});write(ORIGINAL_META_KEY,rec.originalMeta);location.reload()}catch(e){alert('NON È STATO POSSIBILE APRIRE “'+(src.name||'LISTA')+'”. '+(e.message||''));if(sel)sel.disabled=false;renderSwitcher()}}
-async function syncOriginalLists(){try{const originals=await loadOriginalSources();renderSwitcher();const lists=getLists(),known=new Set(lists.map(x=>x.originalMeta&&x.originalMeta.id).filter(Boolean));for(const src of originals){if(known.has(src.id)||!src.blob)continue;try{const ws=await sourceWorkers(src);if(!ws.length)continue;lists.push(sourceRecord(src,ws));known.add(src.id)}catch(_){}}setLists(lists)}catch(_){}}
-function renderSwitcher(){const anchor=document.querySelector('.list-search');if(!anchor)return;let bar=document.getElementById('lumenCambiaLista');if(!bar){bar=document.createElement('div');bar.id='lumenCambiaLista';bar.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:10px;border:2px solid #173a5e;border-radius:10px;background:#f6f9fc';const lab=document.createElement('strong');lab.textContent='CAMBIA LISTA';lab.style.cssText='font-size:15px;white-space:nowrap';const sel=document.createElement('select');sel.id='lumenListaSelect';sel.style.cssText='min-height:44px;min-width:230px;max-width:100%;font-size:16px;font-weight:700;padding:6px 10px';sel.onchange=()=>{if(sel.value.startsWith('SOURCE::'))activateOriginal(sel.value.slice(8));else if(sel.value&&sel.value!==localStorage.getItem(ACTIVE_KEY))activate(sel.value)};const info=document.createElement('span');info.id='lumenListaInfo';info.style.cssText='font-size:12px;font-weight:700';bar.append(lab,sel,info);anchor.parentNode.insertBefore(bar,anchor)}const sel=document.getElementById('lumenListaSelect'),info=document.getElementById('lumenListaInfo'),lists=getLists(),active=localStorage.getItem(ACTIVE_KEY)||'',known=new Set(lists.map(x=>x.originalMeta&&x.originalMeta.id).filter(Boolean)),sources=originalSources.filter(x=>!known.has(x.id));sel.innerHTML='';lists.forEach((x,i)=>{const o=document.createElement('option');o.value=x.id;o.textContent=(i+1)+'. '+x.label+' — '+(x.workers||[]).length+' LAVORATORI';o.selected=x.id===active;sel.appendChild(o)});sources.forEach(x=>{const o=document.createElement('option');o.value='SOURCE::'+x.id;o.textContent=cleanName(x.name)+' — LISTA IMPORTATA';sel.appendChild(o)});if(!lists.length&&!sources.length){const o=document.createElement('option');o.textContent='NESSUNA LISTA SALVATA';o.value='';sel.appendChild(o)}const a=lists.find(x=>x.id===active);info.textContent=a?'ATTIVA: '+a.label:''}
-
-function deleteWorker(index){const d=getCurrent(),ws=Array.isArray(d.workers)?d.workers:[];const w=ws[index];if(!w)return;const nome=((w.cognome||'')+' '+(w.nome||'')).trim()||('N. '+(index+1));if(!confirm('CANCELLARE DEFINITIVAMENTE '+nome+' DALLA LISTA?'))return;ws.splice(index,1);let ci=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;if(ci===index)ci=-1;else if(ci>index)ci--;write(WORKERS_KEY,{...d,workers:ws,currentWorkerIndex:ci,when:new Date().toISOString()});const active=localStorage.getItem(ACTIVE_KEY),lists=getLists(),li=lists.findIndex(x=>x.id===active);if(li>=0){lists[li]={...lists[li],workers:ws,currentWorkerIndex:ci,updated:new Date().toISOString()};setLists(lists)}location.reload()}
-function addDeleteButtons(){document.querySelectorAll('#workersBody tr').forEach(tr=>{const td=tr.lastElementChild;if(!td||td.querySelector('.lumen-delete-worker'))return;const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0)return;const b=document.createElement('button');b.type='button';b.className='danger lumen-delete-worker';b.textContent='CANCELLA';b.style.marginLeft='5px';b.onclick=()=>deleteWorker(n);td.appendChild(b)})}
-
-/* Copia di ripristino Guidonia: viene usata solo per completare una Guidonia già
-   presente. Non viene più imposta come lista predefinita sui nuovi dispositivi. */
-const GUIDONIA_SHARED={
- id:'SHARED_ORIZZONTE_GUIDONIA_20260904_1330',
- label:'ORIZZONTE_GUIDONIA_MONTECELIO_04-09-2026_ORE_13-30',
- attachedSourceName:'ORIZZONTE_GUIDONIA_MONTECELIO_04-09-2026_ORE_13-30.xlsx',
- currentWorkerIndex:-1,session:null,esiti:{},originalMeta:null,updated:'2026-08-29T08:05:00.000Z',
- workers:[
-  {id:'orizzonte-guidonia-1',cognome:'MONTALBANO',nome:'MIRIAM',luogo_nascita:'ROMA',data_nascita:'2004-01-10',codice_fiscale:'MNTMRM04A50H501F',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-2',cognome:'DOMI',nome:'ERJOLA',luogo_nascita:'ALBANIA',data_nascita:'1989-02-16',codice_fiscale:'DMORJL89B56Z100X',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-3',cognome:'DANIELI',nome:'ILARIA',luogo_nascita:'TIVOLI',data_nascita:'1992-11-06',codice_fiscale:'DNLLRI92S46L182Z',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-4',cognome:'PASQUONI',nome:'GIADA',luogo_nascita:'ROMA',data_nascita:'1999-06-13',codice_fiscale:'PSQGDI99H53H501X',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-5',cognome:'TAMMARO',nome:'NICOLINA',luogo_nascita:'NAPOLI',data_nascita:'1978-11-26',codice_fiscale:'TMMNLN78S66F839Y',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-6',cognome:'GARCIA BURGOS',nome:'MARCO GILBERTO',luogo_nascita:'ECUADOR',data_nascita:'1992-04-22',codice_fiscale:'GRCMCG92D22Z605U',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-7',cognome:'PASSERO',nome:'DANIELE',luogo_nascita:'ROMA',data_nascita:'2000-05-20',codice_fiscale:'PSSDNL00E20H501W',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1994-07-10',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
- ]
-};
-function ensureSharedLists(){
- const lists=getLists();
- let i=lists.findIndex(x=>/GUIDONIA/i.test(String(x.label||'')+' '+String(x.attachedSourceName||'')));
- let changed=false;
- if(i<0)return false;
- const guidonia=lists[i],rocchi=GUIDONIA_SHARED.workers.find(w=>w.codice_fiscale==='RCCFRC94L10L182H');
- if(guidonia&&!guidonia.workers.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
-  guidonia.workers.push(JSON.parse(JSON.stringify(rocchi)));guidonia.updated='2026-09-03T11:00:00.000Z';changed=true
- }
- if(guidonia&&localStorage.getItem(ACTIVE_KEY)===guidonia.id){
-  const current=getCurrent(),ws=Array.isArray(current.workers)?current.workers:[];
-  if(!ws.some(w=>w.codice_fiscale==='RCCFRC94L10L182H'||(w.cognome==='ROCCHI'&&w.nome==='FEDERICO'))){
-   ws.push(JSON.parse(JSON.stringify(rocchi)));write(WORKERS_KEY,{...current,workers:ws,when:new Date().toISOString()})
+const S='beltrami_v9_sessione_attiva',W='beltrami_workers_v8',E='beltrami_v9_esiti',L='beltrami_worker_lists_v1',A='beltrami_worker_list_active_v1';
+function read(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(_){return d}}
+function norm(v){return String(v||'').trim().toUpperCase()}
+function fmt(d){const a=String(d||'').split('-');return a.length===3?a[2]+'/'+a[1]+'/'+a[0]:String(d||'')}
+function safe(v){return norm(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')}
+function sessione(){
+ let s=read(S,null),d=read(W,{workers:[]});
+ if(!s){const ls=read(L,[]),id=localStorage.getItem(A)||'',r=Array.isArray(ls)?ls.find(x=>x&&x.id===id):null;if(r&&r.session)s={...r.session,workers:r.workers||[],esiti:r.esiti||{}}}
+ if(!s)return null;
+ if(!Array.isArray(s.workers))s={...s,workers:Array.isArray(d.workers)?d.workers:[]};
+ if(!s.esiti)s={...s,esiti:read(E,{})};
+ return s;
+}
+function key(w,i){return String((w&&w.id)||(w&&w.codice_fiscale)||i)}
+async function prepara(){
+ const b=document.getElementById('v9InvioCertificati');
+ try{
+  const s=sessione();if(!s)return alert('NESSUNA SESSIONE DISPONIBILE.');
+  const api=window.lumenBatchCertApi;if(!api)return alert('ARCHIVIO CARTELLE NON DISPONIBILE. RICARICARE LUMEN.');
+  if(!window.html2canvas||!window.jspdf?.jsPDF)return alert('MODULO PDF NON DISPONIBILE. RICARICARE LUMEN.');
+  const es=s.esiti||{},ws=s.workers||[];
+  let vis=ws.filter((w,i)=>w&&w.visited&&norm(es[key(w,i)])!=='ASSENTE');
+  if(!vis.length)vis=ws.filter((w,i)=>w&&norm(es[key(w,i)])&&norm(es[key(w,i)])!=='ASSENTE');
+  if(!vis.length)return alert('NON RISULTANO LAVORATORI VISITATI.');
+  b.disabled=true;b.textContent='CONTROLLO CARTELLE...';
+  const found=[],missing=[];
+  for(const w of vis){const r=await api.getCartellaRecord(api.cartellaId(w));if(r&&r.data)found.push({w,r});else missing.push(((w.cognome||'')+' '+(w.nome||'')).trim())}
+  if(missing.length)return alert('MANCANO LE CARTELLE SALVATE DI:\n\n• '+missing.join('\n• '));
+  const cert=document.getElementById('certificate'),page=cert&&cert.querySelector('.page'),cart=document.querySelector('.cartella');
+  if(!page)return alert('PAGINA CERTIFICATO NON TROVATA.');
+  const original=api.collect(),oldDisplay=cert.style.display,cartWasHidden=cart&&cart.classList.contains('hidden');
+  cert.style.display='block';if(cart)cart.classList.add('hidden');
+  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+  const sede=(s.sede||((document.getElementById('v9Sede')||{}).value)||'').trim();
+  for(let i=0;i<found.length;i++){
+   b.textContent='CERTIFICATO '+(i+1)+' / '+found.length;
+   const d={...found[i].r.data};if(!d.luogo_visita&&sede)d.luogo_visita=sede;
+   api.apply(d);api.popolaCertificato(undefined,false);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const c=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+   if(i)pdf.addPage('a4','portrait');pdf.addImage(c.toDataURL('image/jpeg',.94),'JPEG',0,0,210,297,undefined,'FAST');
   }
- }
- if(changed)setLists(lists);
+  const date=String(s.data||new Date().toISOString().slice(0,10)).replace(/-/g,''),name=[s.committente||s.azienda||'SESSIONE',sede||'SEDE',date,found.length+' CERTIFICATI'].map(safe).filter(Boolean).join('_')+'.pdf';
+  const blob=pdf.output('blob'),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),300000);
+  api.apply(original);cert.style.display=oldDisplay||'none';if(cart&&!cartWasHidden)cart.classList.remove('hidden');
+  if(api.setStatus)api.setStatus('PDF PRONTO: '+found.length+' CERTIFICATI. SOLO CERTIFICATI.');
+  alert('PDF PRONTO: '+found.length+' CERTIFICATI DI IDONEITÀ.\nNON contiene le cartelle sanitarie.');
+ }catch(e){alert('ERRORE PREPARA INVIO CERTIFICATI:\n'+(e?.message||String(e)))}finally{if(b){b.disabled=false;b.textContent='PREPARA INVIO CERTIFICATI'}}
 }
-
-migrateCurrent();
-ensureSharedLists();
-renderSwitcher();addDeleteButtons();syncOriginalLists().then(()=>{ensureSharedLists();renderSwitcher()});
-const body=document.getElementById('workersBody');if(body)new MutationObserver(()=>{addDeleteButtons();renderSwitcher()}).observe(body,{childList:true,subtree:true});
-window.addEventListener('pagehide',saveCurrentIntoActive);
-window.lumenCambiaLista={activate,getLists,deleteWorker,saveCurrentIntoActive,registerCurrentAsNewList};
-})();
-
-
-/* LUMEN FIRME LEGGERE V1: comprime ogni firma prima dell'importazione per evitare il limite della memoria browser. */
-(function(){
-'use strict';
-function comprimiFirma(data){return new Promise(resolve=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const scala=Math.min(1,700/im.naturalWidth,240/im.naturalHeight),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*scala));c.height=Math.max(1,Math.round(im.naturalHeight*scala));c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/png'))};im.onerror=()=>resolve(data);im.src=data})}
-async function installa(){if(!window.beltramiFirmaIphone||window.beltramiFirmaIphone.__firmeLeggere)return;const originale=window.beltramiFirmaIphone.importPacket;window.beltramiFirmaIphone.importPacket=async packet=>{if(packet&&packet.firma_lavoratore_png)packet={...packet,firma_lavoratore_png:await comprimiFirma(packet.firma_lavoratore_png)};return originale(packet)};window.beltramiFirmaIphone.__firmeLeggere=true}
-installa();window.addEventListener('load',installa);
-})();
-
-/* HOTFIX 08/09/2026: PREPARA EMAIL deve riferirsi ai certificati di idoneità, non alla lista lavoratori. */
-(function(){
-'use strict';
-function read(k,def){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?def:v}catch(_){return def}}
-function fmt(d){if(!d)return'';const a=String(d).split('-');return a.length===3?a[2]+'/'+a[1]+'/'+a[0]:String(d)}
-function install(){
- const btn=document.getElementById('v9EmailBtn');
- if(!btn||btn.dataset.certEmailHotfix==='1')return;
- btn.dataset.certEmailHotfix='1';
- btn.textContent='PREPARA EMAIL CERTIFICATI';
- btn.onclick=function(){
-  const s=read('beltrami_v9_sessione_attiva',null);
-  if(!s)return alert('NESSUNA SESSIONE ATTIVA.');
-  const d=read('beltrami_workers_v8',{workers:[]}),workers=Array.isArray(s.workers)?s.workers:(Array.isArray(d.workers)?d.workers:[]);
-  const count=workers.filter(w=>w&&w.visited).length;
-  const dest=s.email||'';
-  if(!dest)return alert('INSERIRE L’INDIRIZZO EMAIL DEL COMMITTENTE.');
-  const subject='Certificati di idoneità - '+(s.azienda||s.committente||'')+' - '+(s.sede||'')+' - '+fmt(s.data);
-  const referente=s.referente?(' '+s.referente):'';
-  const body='Buongiorno'+referente+',\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+count+' lavoratori visitati il '+fmt(s.data)+' presso '+(s.sede||'la sede indicata')+'.\n\nAllegare il PDF dei certificati appena creato con PREPARA INVIO CERTIFICATI.\n\nCordiali saluti\nDott. Claudio Beltrami';
-  location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
- };
+function email(){
+ const s=sessione();if(!s)return alert('NESSUNA SESSIONE DISPONIBILE.');
+ const dest=s.email||((document.getElementById('v9Email')||{}).value)||'';if(!dest)return alert('INSERIRE L’INDIRIZZO EMAIL DEL COMMITTENTE.');
+ const n=(s.workers||[]).filter(w=>w&&w.visited).length,sub='Certificati di idoneità - '+(s.azienda||s.committente||'')+' - '+(s.sede||'')+' - '+fmt(s.data),body='Buongiorno,\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+n+' lavoratori visitati il '+fmt(s.data)+'.\n\nCordiali saluti\nDott. Claudio Beltrami';
+ location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
 }
-install();window.addEventListener('load',install);
+function install(){const a=document.getElementById('v9InvioCertificati'),m=document.getElementById('v9EmailBtn');if(a)a.onclick=prepara;if(m){m.textContent='PREPARA EMAIL CERTIFICATI';m.onclick=email}}
+install();addEventListener('load',install);setTimeout(install,500);
 })();
