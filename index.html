@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260908-luogo-certificato-1">
+<meta name="lumen-build" content="20260908-riapertura-cartelle-1">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -1043,37 +1043,86 @@ async function parseXlsx(buf){
  let z=await unzipEntries(buf),td=new TextDecoder();let shared=[];if(z['xl/sharedStrings.xml']){let doc=new DOMParser().parseFromString(td.decode(z['xl/sharedStrings.xml']),'application/xml');shared=[...doc.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}let sheetName=Object.keys(z).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));if(!sheetName)throw new Error('Nessun foglio trovato nel file Excel.');let doc=new DOMParser().parseFromString(td.decode(z[sheetName]),'application/xml'),rows=[];for(const r of doc.getElementsByTagName('row')){let arr=[];for(const c of r.getElementsByTagName('c')){let ref=c.getAttribute('r')||'A1',letters=(ref.match(/[A-Z]+/)||['A'])[0],col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;col--;let t=c.getAttribute('t'),v=(c.getElementsByTagName('v')[0]||{}).textContent||'';if(t==='s')v=shared[Number(v)]??'';else if(t==='inlineStr')v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');arr[col]=v}rows.push(arr)}return rows
 }
 function saveWorkersLocal(){try{localStorage.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
-function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>{w.visited=!w.visited;saveWorkersLocal();renderWorkers()};td.appendChild(v);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
+function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
 const workerDrafts=new Map();
+let emptyWorkerScreen=null;
 function draftKey(d){return cartellaId(d)+'|'+signatureVisit(d)}
+function workerDate(value){const s=String(value||'').trim(),m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):s}
+function workerMatch(a,b){
+ const x=cartellaIdentity(a),y=cartellaIdentity(b);
+ if(x.cf&&y.cf)return x.cf===y.cf?2:0;
+ if(!x.cognome||!x.nome||x.cognome!==y.cognome||x.nome!==y.nome)return 0;
+ if(x.dn&&y.dn)return workerDate(x.dn)===workerDate(y.dn)?2:0;
+ return 1;
+}
+function workerRecordData(rec,data=rec.data||{}){
+ return {...data,cognome:data.cognome||rec.cognome||'',nome:data.nome||rec.nome||'',codice_fiscale:data.codice_fiscale||rec.cf||'',data_nascita:data.data_nascita||rec.dataNascita||''};
+}
+function mergeWorkerData(data,base){
+ const merged={...base,...data};
+ for(const key of ['cognome','nome','codice_fiscale','data_nascita'])merged[key]=data[key]||base[key]||'';
+ for(const field of allFields())if(field.type==='date'&&merged[field.id])merged[field.id]=workerDate(merged[field.id]);
+ return merged;
+}
+function workerDraftFor(base){
+ const exact=workerDrafts.get(draftKey(base));if(exact)return exact;
+ const matches=[...workerDrafts.values()].filter(d=>workerMatch(base,d)===2&&workerDate(signatureVisit(d))===workerDate(signatureVisit(base)));
+ return matches.length===1?matches[0]:null;
+}
+async function findWorkerArchive(base){
+ const exact=await getCartellaRecord(cartellaId(base));
+ if(exact&&workerMatch(base,workerRecordData(exact))===2)return {records:[exact],possible:[]};
+ const rows=await listCartelleArchive([base.cognome,base.nome].filter(Boolean).join(' '));
+ const records=rows.filter(r=>workerMatch(base,workerRecordData(r))===2),possible=rows.filter(r=>workerMatch(base,workerRecordData(r))===1);
+ const differentCF=new Set(records.map(r=>cartellaIdentity(workerRecordData(r)).cf).filter(Boolean));
+ if(!cartellaIdentity(base).cf&&differentCF.size>1)return {records:[],possible:[...records,...possible]};
+ return {records,possible};
+}
+function showWorkerArchiveSearch(base,message){
+ showSaveInfo('warn','CONTROLLO CARTELLA SALVATA',message,[{label:'CERCA NELL’ARCHIVIO',className:'success',onclick:()=>{
+  document.getElementById('archiveModal').classList.add('show');
+  const query=[base.cognome,base.nome].filter(Boolean).join(' ');
+  document.getElementById('archiveQuery').value=query;renderArchive(query);
+ }}]);
+}
 async function selectWorker(i){
  const w=workers[i];if(!w)return;
  const previous=collect();
- if(previous.cognome&&previous.nome)workerDrafts.set(draftKey(previous),previous);
+ // A blank screen shown while reading the archive is not an edited draft.
+ if(previous.cognome&&previous.nome&&JSON.stringify(previous)!==emptyWorkerScreen)workerDrafts.set(draftKey(previous),previous);
  const dataVisita=text('v9Data')||today();
  const base={cognome:w.cognome||'',nome:w.nome||'',luogo_nascita:w.luogo_nascita||'',data_nascita:w.data_nascita||'',codice_fiscale:w.codice_fiscale||'',sesso:w.sesso||'',datore_lavoro:w.datore_lavoro||text('v9Azienda'),mansione:w.mansione||'',data_cartella:dataVisita,data_giudizio:dataVisita,data_dichiarazione:dataVisita,firma_lavoratore_png:''};
- const identity={cognome:base.cognome,nome:base.nome,codice_fiscale:base.codice_fiscale,data_nascita:base.data_nascita};
  currentWorkerIndex=i;
- const draft=workerDrafts.get(draftKey(base));
- apply(draft?{...draft,...identity}:base);
+ const draft=workerDraftFor(base);
+ apply(draft?mergeWorkerData(draft,base):base);
+ const initial=JSON.stringify(collect());
+ emptyWorkerScreen=draft?null:initial;
  document.getElementById('certificate').style.display='none';
  document.querySelector('.cartella').classList.remove('hidden');
  document.body.className='';
  renderWorkers();
  const version=workerSelectionVersion;
- setStatus('LAVORATORE SELEZIONATO: '+base.cognome+' '+base.nome+'.');
+ setStatus((draft?'BOZZA RIAPERTA: ':'RICERCA CARTELLA SALVATA: ')+base.cognome+' '+base.nome+'.');
  document.getElementById('cognome').scrollIntoView({behavior:'smooth',block:'center'});
  if(draft)return;
- // Restore only the selected person's record for this visit; never another date.
- const initial=JSON.stringify(collect());
+ // Look up the saved CF when it was completed after importing the list.
+ // Ambiguous identities and visits on other dates require an explicit archive selection.
  try{
-  const rec=await getCartellaRecord(cartellaId(base));
+  const found=await findWorkerArchive(base);
   if(version!==workerSelectionVersion||JSON.stringify(collect())!==initial)return;
-  const candidates=rec?[{data:rec.data},...(rec.history||[]).slice().reverse()]:[];
-  const saved=candidates.find(x=>x.data&&cartellaId(x.data)===cartellaId(base)&&signatureVisit(x.data)===dataVisita);
-  if(saved){apply({...saved.data,...identity});setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.')}
- }catch(_){if(version===workerSelectionVersion)setStatus('LAVORATORE SELEZIONATO. ARCHIVIO NON DISPONIBILE: CONTROLLARE PRIMA DI COMPILARE UNA NUOVA CARTELLA.')}
+  const candidates=found.records.flatMap(rec=>[{data:rec.data},...(rec.history||[]).slice().reverse()].filter(x=>x.data).map(x=>workerRecordData(rec,x.data)));
+  const saved=candidates.find(d=>workerMatch(base,d)===2&&workerDate(signatureVisit(d))===workerDate(dataVisita));
+  if(saved){
+   apply(mergeWorkerData(saved,base));emptyWorkerScreen=null;
+   setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.');
+  }else if(w.visited||found.records.length||found.possible.length){
+   const message='Non è stato possibile recuperare automaticamente la cartella di '+base.cognome+' '+base.nome+' per il '+fmt(dataVisita)+'. Apri l’archivio per controllare nominativo e data. Nessuna cartella salvata è stata modificata.';
+   setStatus(message);showWorkerArchiveSearch(base,message);
+  }else setStatus('NUOVA CARTELLA DI '+base.cognome+' '+base.nome+': NESSUN SALVATAGGIO TROVATO PER QUESTA VISITA.');
+ }catch(_){if(version===workerSelectionVersion){const message='LETTURA DELL’ARCHIVIO NON RIUSCITA. CONTROLLARE LA CARTELLA SALVATA PRIMA DI COMPILARNE UNA NUOVA.';setStatus(message);showWorkerArchiveSearch(base,message)}}
 }
+
+function handleWorkerVisit(i){const w=workers[i];if(!w)return;if(w.visited)return selectWorker(i);w.visited=true;saveWorkersLocal();renderWorkers()}
 
 function moveWorker(step){if(!workers.length)return;let i=currentWorkerIndex<0?(step>0?0:workers.length-1):Math.max(0,Math.min(workers.length-1,currentWorkerIndex+step));selectWorker(i)}
 document.getElementById('workerSearch').addEventListener('input',renderWorkers);document.getElementById('btnPrecedente').onclick=()=>moveWorker(-1);document.getElementById('btnSuccessivo').onclick=()=>moveWorker(1);
