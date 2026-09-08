@@ -1,4 +1,4 @@
-name: Fix PDF cumulativo Mac
+name: Fix PDF cumulativo Mac V4
 
 on:
   push:
@@ -14,43 +14,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Correggi apertura e download PDF cumulativo
+      - name: Correggi cache e caricamento modulo certificati
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          old = """  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
-  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\\
-\\
-Controllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\\
-Ora premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);"""
-          new = """  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob);
-  // Safari su Mac può bloccare il download automatico dopo una generazione asincrona.
-  // Manteniamo quindi il PDF disponibile e chiediamo un secondo clic esplicito,
-  // che Safari considera un gesto dell'utente e non blocca.
-  window.lumenUltimoPdfCertificati={url:url,fileName:fileName,created:Date.now()};
-  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\\
-\\
-Controllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\\
-Premi APRI / SCARICA PDF per visualizzarlo sul Mac, poi PREPARA EMAIL.',[
-   {label:'APRI / SCARICA PDF',className:'success',onclick:()=>{const w=window.open(url,'_blank');if(!w)location.href=url}},
-   {label:'SCARICA PDF',className:'secondary',onclick:()=>{const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove()}},
-   {label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}
-  ]);"""
-          if old not in s:
-              raise SystemExit('Blocco da correggere non trovato: nessuna modifica eseguita')
-          s = s.replace(old, new, 1)
-          # aggiorna build per forzare il refresh della pagina pubblicata
-          s = s.replace('content="20260908-riapertura-cartelle-1"','content="20260908-pdf-cumulativo-mac-1"',1)
+          build = '20260908-pdf-cumulativo-mac-v4'
+
+          # Il build dichiarato e quello controllato a pageshow devono coincidere.
+          s = re.sub(r'<meta name="lumen-build" content="[^"]+">',
+                     f'<meta name="lumen-build" content="{build}">', s, count=1)
+          s = re.sub(r"var build='[^']+';window\.addEventListener\('pageshow'",
+                     f"var build='{build}';window.addEventListener('pageshow'", s, count=1)
+
+          # Carica una sola volta il modulo esterno. Le tre inclusioni precedenti
+          # potevano lasciare in Safari copie cache diverse dello stesso script.
+          s = re.sub(
+              r'(?:<script src="cambia-lista\.js\?v=[^"]+"></script>\s*){2,}',
+              '<script src="cambia-lista.js?v=20260908-pdf-cumulativo-v4"></script>\n',
+              s,
+              count=1
+          )
+
+          # Anche nel caso fosse rimasta una singola inclusione, forza V4.
+          s = re.sub(r'<script src="cambia-lista\.js\?v=[^"]+"></script>',
+                     '<script src="cambia-lista.js?v=20260908-pdf-cumulativo-v4"></script>',
+                     s,
+                     count=1)
+
           p.write_text(s, encoding='utf-8')
           PY
+
+      - name: Verifica correzione
+        run: |
+          grep -q 'content="20260908-pdf-cumulativo-mac-v4"' index.html
+          grep -q "var build='20260908-pdf-cumulativo-mac-v4'" index.html
+          test "$(grep -o 'cambia-lista.js?v=' index.html | wc -l)" -eq 1
+
       - name: Commit della correzione
         run: |
           git config user.name "LUMEN Fix"
           git config user.email "actions@users.noreply.github.com"
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m "Fix apertura PDF cumulativo su Mac"
+          git commit -m "Fix definitivo caricamento PDF cumulativo Mac V4"
           git push
