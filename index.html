@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260908-collatina-1">
+<meta name="lumen-build" content="20260908-luogo-certificato-1">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -519,7 +519,7 @@ window.convertiAltezzaIOS=convertiAltezzaSubito;
 </div>
 <div class="field"><label>Prescrizioni / limitazioni</label><textarea id="prescrizioni" data-upper></textarea></div>
 <div class="row"><div class="field"><label>Periodicità visita medica</label><select id="periodicita"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>QUINQUENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_altro" data-upper></div></div>
-<div class="field"><label>Data</label><input id="data_giudizio" type="date" class="today"></div>
+<div class="row"><div class="field"><label for="luogo_visita">Luogo visita</label><input id="luogo_visita" data-upper placeholder="COMUNE / SEDE DELLA VISITA"></div><div class="field"><label>Data</label><input id="data_giudizio" type="date" class="today"></div></div>
 <p class="small">Avverso il giudizio di idoneità è ammesso ricorso all’Organo di vigilanza territorialmente competente entro 30 giorni. Il lavoratore dichiara di aver ricevuto le informazioni sui rischi lavorativi e sui risultati degli accertamenti sanitari personali.</p>
 <div class="signature-grid"><div class="cartella-worker-signature"><b>Il lavoratore per presa visione</b><div class="worker-sign-output"><img id="cartellaFinaleWorkerSignature" alt="Firma del lavoratore"></div><div class="signature-line"></div></div><div><b>Il Medico Competente</b><div class="firma-medico-cartella"></div><div class="signature-line"></div></div></div>
 <div class="section-title" style="margin-top:50px">9. TRASMISSIONE DEL GIUDIZIO AL DATORE DI LAVORO</div>
@@ -693,7 +693,7 @@ function workerSignatureStore(){try{return JSON.parse(localStorage.getItem(WORKE
 function optimizeWorkerSignature(data){return new Promise(resolve=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const maxW=700,maxH=240,scale=Math.min(1,maxW/im.naturalWidth,maxH/im.naturalHeight),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale)),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);resolve(cv.toDataURL('image/png'))};im.onerror=()=>resolve(data);im.src=data})}
 async function saveWorkerSignature(key,data){const optimized=await optimizeWorkerSignature(data),store=workerSignatureStore();store[key]=optimized;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(e){throw new Error('MEMORIA FIRME PIENA. CREARE UN BACKUP PRIMA DI PROSEGUIRE.')}if(key===workerSignatureIdentity(collect()))useWorkerSignature(optimized);else window.dispatchEvent(new Event('beltrami-signature-updated'));return optimized}
 function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=workerSignatureIdentity(d);if(!key)return;const store=workerSignatureStore();store[key]=d.firma_lavoratore_png;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'))}catch(_){}}
-function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);return d}
+function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();return d}
 function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return {cognome:value||'',nome:''};return {cognome:parts.shift(),nome:parts.join(' ')}}
 // A complete load always replaces the visible record, including absent fields.
 let workerSelectionVersion=0;
@@ -721,6 +721,7 @@ function apply(source){
  document.querySelector('.cartella').classList.remove('hidden');
  document.body.className='';
  allFields().forEach(e=>{if(e.type==='checkbox')e.checked=!!d[e.id];else e.value=d[e.id]??(e.id==='rachide'?'NDR':(e.classList.contains('today')?today():''))});
+ if(d.cognome||d.nome||d.codice_fiscale)document.getElementById('luogo_visita').value=luogoVisitaCorrente();
  document.querySelectorAll('#rischi input').forEach(x=>x.checked=Array.isArray(d.rischi)&&d.rischi.includes(x.value));
  document.querySelectorAll('#protocollo input').forEach(x=>x.checked=Array.isArray(d.protocollo)&&d.protocollo.includes(x.value));
  document.querySelectorAll('input[name="giudizio"]').forEach(x=>x.checked=!!d.giudizio&&x.value===d.giudizio);
@@ -884,25 +885,46 @@ document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTE
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
 function text(id){return(document.getElementById(id)||{}).value||''}
 function checkedValues(sel){return[...document.querySelectorAll(sel+':checked')].map(x=>x.value)}
+function luogoVisitaSessione(dataVisita){
+ const campo=text('v9Sede').trim(),dataSessione=text('v9Data');
+ if(campo&&dataVisita&&dataSessione===dataVisita)return campo.toUpperCase();
+ try{
+  const sessione=JSON.parse(localStorage.getItem('beltrami_v9_sessione_attiva')||'null');
+  if(dataVisita&&sessione?.data===dataVisita)return String(sessione.sede||'').trim().toUpperCase();
+ }catch(_){}
+ return '';
+}
 function luogoVisitaCorrente(preferito=''){
- if((preferito||'').trim())return preferito.trim().toUpperCase();
- const campo=(document.getElementById('v9Sede')?.value||'').trim();
- if(campo)return campo.toUpperCase();
- try{return String(JSON.parse(localStorage.getItem('beltrami_v9_sessione_attiva')||'null')?.sede||'').trim().toUpperCase()}catch(_){return''}
+ const salvato=text('luogo_visita').trim();
+ if(salvato)return salvato.toUpperCase();
+ if(String(preferito||'').trim())return String(preferito).trim().toUpperCase();
+ return luogoVisitaSessione(text('data_giudizio')||text('data_cartella'));
+}
+function completaLuogoCertificato(){
+ let luogo=luogoVisitaCorrente();
+ if(!luogo){
+  const risposta=prompt('LUOGO DELLA VISITA DA RIPORTARE SUL CERTIFICATO (COMUNE / SEDE):','');
+  if(risposta===null||!risposta.trim()){setStatus('CERTIFICATO NON GENERATO: INSERIRE IL LUOGO DELLA VISITA.');return false}
+  luogo=risposta.trim().toUpperCase();
+ }
+ document.getElementById('luogo_visita').value=luogo;
+ return true;
 }
 function popolaCertificato(luogoVisita,mostra=true){
  window.dispatchEvent(new Event('beltrami-signature-updated'));
- const sede=luogoVisitaCorrente(luogoVisita);document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_luogo_visita').textContent=sede;document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(sede?sede+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
+ const sede=luogoVisitaCorrente(luogoVisita);document.getElementById('luogo_visita').value=sede;document.getElementById('c_lavoratore').textContent=syncLavoratore();document.getElementById('c_sesso').textContent=text('sesso');document.getElementById('c_luogo').textContent=text('luogo_nascita');document.getElementById('c_data_nascita').textContent=fmt(text('data_nascita'));document.getElementById('c_codice_fiscale').textContent=text('codice_fiscale');syncCFBarcode();document.getElementById('c_azienda').textContent=text('datore_lavoro');document.getElementById('c_mansione').textContent=text('mansione');document.getElementById('c_data_visita').textContent=fmt(text('data_giudizio')||text('data_cartella'));document.getElementById('c_periodicita').textContent=text('periodicita')==='ALTRO'?text('periodicita_altro'):text('periodicita');document.getElementById('c_luogo_visita').textContent=sede;document.getElementById('c_rischi').textContent=[...checkedValues('#rischi input'),text('altri_rischi')].filter(Boolean).join(', ');document.getElementById('c_giudizio').textContent=checkedValues('input[name="giudizio"]')[0]||'';document.getElementById('c_prescrizioni').textContent=text('prescrizioni');document.getElementById('c_luogo_data').textContent=(sede?sede+', ':'')+fmt(text('data_giudizio')||today());document.querySelector('.cartella').classList.add('hidden');document.getElementById('certificate').style.display='block';window.scrollTo({top:0,behavior:'smooth'});setStatus('CERTIFICATO GENERATO DAI DATI DELLA CARTELLA.')};
 document.getElementById('btnCert').onclick=()=>{
  if(!verificaPrimaDelPdf('CERTIFICATO'))return;
- const luogoVisita=(document.getElementById('v9Sede')?.value||'').trim().toUpperCase();
- popolaCertificato(luogoVisita,true);
+ if(!completaLuogoCertificato())return;
+ popolaCertificato(undefined,true);
 };
 document.getElementById('btnTorna').onclick=()=>{document.getElementById('certificate').style.display='none';document.querySelector('.cartella').classList.remove('hidden');document.body.className='';window.scrollTo({top:0,behavior:'smooth'})};
 document.getElementById('btnPrintCert').onclick=async()=>{
  const btn=document.getElementById('btnPrintCert'),oldText=btn.textContent;
  try{
   if(!verificaPrimaDelPdf('CERTIFICATO'))return;
+  if(!completaLuogoCertificato())return;
+  popolaCertificato(undefined,false);
   if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
   btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
   const page=document.querySelector('#certificate .page');
@@ -1281,13 +1303,18 @@ async function preparaInvioCertificati(){
  const trovati=[],mancanti=[];api.setStatus('CONTROLLO DELLE CARTELLE DEI '+visitati.length+' LAVORATORI VISITATI...');
  for(const w of visitati){const rec=await api.getCartellaRecord(api.cartellaId(w));if(rec&&rec.data)trovati.push({w,rec});else mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim())}
  if(mancanti.length){alert('PREPARAZIONE SOSPESA.\n\nNon trovo nell’ARCHIVIO CARTELLE:\n\n• '+mancanti.join('\n• ')+'\n\nApri o importa queste cartelle e premi SALVA CARTELLA, poi riprova.');api.setStatus('INVIO SOSPESO: MANCANO '+mancanti.length+' CARTELLE NELL’ARCHIVIO.');return}
+ if(!norm(s.sede||'')&&trovati.some(x=>!norm(x.rec.data.luogo_visita||''))){
+  const luogo=prompt('LUOGO DELLA VISITA PER I CERTIFICATI DEL '+fmt(s.data)+' (COMUNE / SEDE):','');
+  if(luogo===null||!luogo.trim())return;
+  s.sede=norm(luogo);
+ }
  const btn=$('v9InvioCertificati'),oldText=btn.textContent,original=api.collect(),cert=$('certificate'),cart=document.querySelector('.cartella'),certEraVisibile=getComputedStyle(cert).display!=='none',sedeCorrente=$('v9Sede').value;
  btn.disabled=true;btn.textContent='CREAZIONE 0 / '+trovati.length;
  try{
   const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}),page=cert.querySelector('.page');
   for(let i=0;i<trovati.length;i++){
    btn.textContent='CREAZIONE '+(i+1)+' / '+trovati.length;api.setStatus('CREAZIONE CERTIFICATO '+(i+1)+' DI '+trovati.length+' — '+(trovati[i].w.cognome||'')+' '+(trovati[i].w.nome||'')+'...');
-   api.apply({...trovati[i].rec.data});api.popolaCertificato(norm(s.sede||''),false);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   api.apply({...trovati[i].rec.data,luogo_visita:norm(trovati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
    if(i>0)pdf.addPage('a4','portrait');pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,210,297,undefined,'FAST');
   }
@@ -1296,7 +1323,7 @@ async function preparaInvioCertificati(){
   api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nControllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);
   api.setStatus('PDF MULTIPAGINA CREATO: '+trovati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
  }catch(err){alert('NON È STATO POSSIBILE CREARE IL PDF.\n'+(err.message||String(err)));api.setStatus('ERRORE NELLA CREAZIONE DEL PDF DEI CERTIFICATI.')}finally{
-  api.apply(original);if(certEraVisibile)api.popolaCertificato(sedeCorrente,true);else{cert.style.display='none';cart.classList.remove('hidden')}btn.disabled=false;btn.textContent=oldText;
+  api.apply(original);if(certEraVisibile)api.popolaCertificato(undefined,true);else{cert.style.display='none';cart.classList.remove('hidden')}btn.disabled=false;btn.textContent=oldText;
  }
 }
 $('v9InvioCertificati').onclick=preparaInvioCertificati;
