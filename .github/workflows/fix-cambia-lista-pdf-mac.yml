@@ -1,0 +1,39 @@
+name: Fix certificati cumulativi Mac
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-cambia-lista-pdf-mac.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correggi download PDF su Mac
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('cambia-lista.js')
+          s=p.read_text(encoding='utf-8')
+          old="var blob=pdf.output('blob'),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},300000);"
+          new="var blob=pdf.output('blob'),u=URL.createObjectURL(blob);window.lumenUltimoPdfCertificati={url:u,fileName:name,count:found.length,created:Date.now()};var box=document.createElement('div');box.id='lumenPdfReadyBox';box.style.cssText='position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:999999;background:#fff;border:4px solid #287a46;border-radius:14px;padding:18px;width:min(92vw,620px);box-shadow:0 12px 35px #0008;text-align:center';box.innerHTML='<div style=\"font-size:20px;font-weight:800;margin-bottom:8px\">PDF PRONTO: '+found.length+' CERTIFICATI DI IDONEITÀ</div><div style=\"font-size:16px;line-height:1.35;margin-bottom:14px\">NON contiene le cartelle sanitarie.</div>';var op=document.createElement('button');op.type='button';op.textContent='APRI / SCARICA PDF CUMULATIVO';op.style.cssText='display:block;width:100%;min-height:54px;background:#287a46;color:#fff;border:0;border-radius:9px;font-size:17px;font-weight:800;margin-bottom:10px';op.onclick=function(){var w=window.open(u,'_blank');if(!w){var a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()}};var dl=document.createElement('button');dl.type='button';dl.textContent='SCARICA PDF';dl.style.cssText='display:block;width:100%;min-height:48px;background:#1f5f99;color:#fff;border:0;border-radius:9px;font-size:16px;font-weight:800;margin-bottom:10px';dl.onclick=function(){var a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()};var cl=document.createElement('button');cl.type='button';cl.textContent='CHIUDI';cl.style.cssText='display:block;width:100%;min-height:44px;background:#666;color:#fff;border:0;border-radius:9px;font-size:15px;font-weight:700';cl.onclick=function(){box.remove()};box.appendChild(op);box.appendChild(dl);box.appendChild(cl);var prev=document.getElementById('lumenPdfReadyBox');if(prev)prev.remove();document.body.appendChild(box);"
+          if old not in s:
+              raise SystemExit('Blocco download non trovato')
+          s=s.replace(old,new,1)
+          s=s.replace("alert('PDF PRONTO: '+found.length+' CERTIFICATI DI IDONEITÀ.\\nNON contiene le cartelle sanitarie.');","",1)
+          s=s.replace('pulsanti certificati V2','pulsanti certificati V3 Mac',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit e pubblica
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cambia-lista.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix PDF cumulativo su Mac"
+          git push
