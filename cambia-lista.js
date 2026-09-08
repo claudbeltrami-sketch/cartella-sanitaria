@@ -47,7 +47,7 @@ const GUIDONIA_SHARED={
   {id:'orizzonte-guidonia-6',cognome:'GARCIA BURGOS',nome:'MARCO GILBERTO',luogo_nascita:'ECUADOR',data_nascita:'1992-04-22',codice_fiscale:'GRCMCG92D22Z605U',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-7',cognome:'PASSERO',nome:'DANIELE',luogo_nascita:'ROMA',data_nascita:'2000-05-20',codice_fiscale:'PSSDNL00E20H501W',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
   {id:'orizzonte-guidonia-8',cognome:'RIENZI',nome:'SIMONA',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RNZSMN81R61L182V',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false},
-  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1994-07-10',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
+  {id:'orizzonte-guidonia-9',cognome:'ROCCHI',nome:'FEDERICO',luogo_nascita:'TIVOLI',data_nascita:'1981-10-21',codice_fiscale:'RCCFRC94L10L182H',datore_lavoro:'BLANCA S.R.L.',mansione:'',orario:'',visited:false}
  ]
 };
 function ensureSharedLists(){
@@ -83,4 +83,30 @@ window.lumenCambiaLista={activate,getLists,deleteWorker,saveCurrentIntoActive,re
 function comprimiFirma(data){return new Promise(resolve=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const scala=Math.min(1,700/im.naturalWidth,240/im.naturalHeight),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*scala));c.height=Math.max(1,Math.round(im.naturalHeight*scala));c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/png'))};im.onerror=()=>resolve(data);im.src=data})}
 async function installa(){if(!window.beltramiFirmaIphone||window.beltramiFirmaIphone.__firmeLeggere)return;const originale=window.beltramiFirmaIphone.importPacket;window.beltramiFirmaIphone.importPacket=async packet=>{if(packet&&packet.firma_lavoratore_png)packet={...packet,firma_lavoratore_png:await comprimiFirma(packet.firma_lavoratore_png)};return originale(packet)};window.beltramiFirmaIphone.__firmeLeggere=true}
 installa();window.addEventListener('load',installa);
+})();
+
+/* HOTFIX 08/09/2026: PREPARA EMAIL deve riferirsi ai certificati di idoneità, non alla lista lavoratori. */
+(function(){
+'use strict';
+function read(k,def){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?def:v}catch(_){return def}}
+function fmt(d){if(!d)return'';const a=String(d).split('-');return a.length===3?a[2]+'/'+a[1]+'/'+a[0]:String(d)}
+function install(){
+ const btn=document.getElementById('v9EmailBtn');
+ if(!btn||btn.dataset.certEmailHotfix==='1')return;
+ btn.dataset.certEmailHotfix='1';
+ btn.textContent='PREPARA EMAIL CERTIFICATI';
+ btn.onclick=function(){
+  const s=read('beltrami_v9_sessione_attiva',null);
+  if(!s)return alert('NESSUNA SESSIONE ATTIVA.');
+  const d=read('beltrami_workers_v8',{workers:[]}),workers=Array.isArray(s.workers)?s.workers:(Array.isArray(d.workers)?d.workers:[]);
+  const count=workers.filter(w=>w&&w.visited).length;
+  const dest=s.email||'';
+  if(!dest)return alert('INSERIRE L’INDIRIZZO EMAIL DEL COMMITTENTE.');
+  const subject='Certificati di idoneità - '+(s.azienda||s.committente||'')+' - '+(s.sede||'')+' - '+fmt(s.data);
+  const referente=s.referente?(' '+s.referente):'';
+  const body='Buongiorno'+referente+',\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+count+' lavoratori visitati il '+fmt(s.data)+' presso '+(s.sede||'la sede indicata')+'.\n\nAllegare il PDF dei certificati appena creato con PREPARA INVIO CERTIFICATI.\n\nCordiali saluti\nDott. Claudio Beltrami';
+  location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+ };
+}
+install();window.addEventListener('load',install);
 })();
