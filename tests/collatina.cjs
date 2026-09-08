@@ -34,6 +34,10 @@ vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);
 vm.runInContext(html.slice(html.indexOf('const workerDrafts='),html.indexOf('\nfunction moveWorker(')),c);
+vm.runInContext(line('checkedValues'),c);
+vm.runInContext(html.match(/^const fmt=v=>.+/m)[0],c);
+vm.runInContext(html.slice(html.indexOf('function luogoVisitaSessione('),html.indexOf("document.getElementById('btnTorna').onclick")),c);
+c.verificaPrimaDelPdf=()=>true;
 const signBlock=html.slice(html.indexOf('function updateOutput(){'),html.indexOf('\nfunction sizeCanvas(){'));
 vm.runInContext("const outputs=['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'].map(document.getElementById); function identity(){return {key:workerSignatureIdentity(collect())}} function readStore(){return workerSignatureStore()}"+signBlock,c);
 c.window.lumenBatchCertApi={collect:c.collect};outputUpdate=c.updateOutput;
@@ -63,6 +67,32 @@ async function run(){
  const F={...B,cognome:'TESTSEI',nome:'ZETA',codice_fiscale:'TEST_WORKER_F'};c.workers.push(F);
  const typing=c.selectWorker(5);get('farmaci').value='TYPED';resolve({data:{...F,farmaci:'STALE'}});await typing;assert.equal(c.collect().farmaci,'TYPED');
  assert.equal(JSON.parse(store.get('beltrami_firme_lavoratori_v1')).TEST_WORKER_A,'OLD_SIGNATURE_A');
- console.log(`PASS: ${scriptCount} scripts parse; complete replacement; BMI; signature isolation; empty/old signatures; numeric zero; drafts; saved visits; asynchronous selection; no archive mutations.`);
+ // Archived visits retain their own place even without a session or with a different one open.
+ get('v9Sede').value='';get('v9Data').value='';
+ c.apply({...A,luogo_visita:' Roma '});c.popolaCertificato();
+ assert.equal(get('c_luogo_data').textContent,'ROMA, 08/09/2026');
+ assert.equal(get('c_luogo_visita').textContent,'ROMA');signatureIs('SIGNATURE_A');
+ const archived=JSON.parse(JSON.stringify(c.collect()));
+ get('v9Sede').value='Milano';get('v9Data').value='2026-09-09';
+ c.apply(archived);c.popolaCertificato();assert.equal(get('c_luogo_data').textContent,'ROMA, 08/09/2026');
+ // An unrelated session, workplace or birthplace must not become the visit location.
+ c.apply({...B,sede_lavoro:'SEDE AZIENDA',luogo_nascita:'COMUNE NASCITA'});
+ assert.equal(c.collect().luogo_visita,'');signatureIs('');
+ c.prompt=()=>null;get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
+ c.prompt=()=> '  ';get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
+ c.prompt=()=> ' Roma Collatina ';get('btnCert').onclick();
+ assert.equal(get('c_luogo_data').textContent,'ROMA COLLATINA, 08/09/2026');
+ assert.equal(c.collect().luogo_visita,'ROMA COLLATINA');
+ c.prompt=()=>{throw new Error('A known visit location must not prompt again')};get('btnCert').onclick();
+ // Same-day session locations initialize a new record and survive its export/reopening.
+ get('v9Data').value='2026-09-08';get('v9Sede').value='COLLATINA';c.apply(B);
+ assert.equal(c.collect().luogo_visita,'COLLATINA');
+ get('v9Sede').value='';get('v9Data').value='';
+ store.set('beltrami_v9_sessione_attiva',JSON.stringify({data:'2026-09-08',sede:'Roma'}));
+ c.apply(B);assert.equal(c.collect().luogo_visita,'ROMA');
+ store.set('beltrami_v9_sessione_attiva',JSON.stringify({data:'2026-09-07',sede:'LATINA'}));
+ c.apply(B);assert.equal(c.collect().luogo_visita,'');
+ store.delete('beltrami_v9_sessione_attiva');
+ console.log(`PASS: ${scriptCount} scripts parse; complete replacement; BMI; signature isolation; drafts; saved visits; asynchronous selection; no archive mutations; certificate place/date; saved location; session dates; missing-place entry and cancellation.`);
 }
 run().catch(e=>{console.error(e);process.exitCode=1});
