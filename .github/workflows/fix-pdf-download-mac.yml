@@ -1,0 +1,56 @@
+name: Fix PDF cumulativo Mac
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-pdf-download-mac.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correggi apertura e download PDF cumulativo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = """  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
+  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\\
+\\
+Controllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\\
+Ora premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);"""
+          new = """  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob);
+  // Safari su Mac può bloccare il download automatico dopo una generazione asincrona.
+  // Manteniamo quindi il PDF disponibile e chiediamo un secondo clic esplicito,
+  // che Safari considera un gesto dell'utente e non blocca.
+  window.lumenUltimoPdfCertificati={url:url,fileName:fileName,created:Date.now()};
+  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\\
+\\
+Controllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\\
+Premi APRI / SCARICA PDF per visualizzarlo sul Mac, poi PREPARA EMAIL.',[
+   {label:'APRI / SCARICA PDF',className:'success',onclick:()=>{const w=window.open(url,'_blank');if(!w)location.href=url}},
+   {label:'SCARICA PDF',className:'secondary',onclick:()=>{const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove()}},
+   {label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}
+  ]);"""
+          if old not in s:
+              raise SystemExit('Blocco da correggere non trovato: nessuna modifica eseguita')
+          s = s.replace(old, new, 1)
+          # aggiorna build per forzare il refresh della pagina pubblicata
+          s = s.replace('content="20260908-riapertura-cartelle-1"','content="20260908-pdf-cumulativo-mac-1"',1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit della correzione
+        run: |
+          git config user.name "LUMEN Fix"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix apertura PDF cumulativo su Mac"
+          git push
