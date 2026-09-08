@@ -13,21 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inserisce o aggiorna il modulo cambio lista
+      - name: Forza versione corrente del modulo LUMEN
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          old='<script src="cambia-lista.js?v=20260828"></script>'
-          new='<script src="cambia-lista.js?v=20260828-cancella2"></script>'
-          if old in s:
-              s=s.replace(old,new)
-          elif new not in s:
-              if '</body>' not in s:
-                  raise SystemExit('Tag </body> non trovato')
-              s=s.replace('</body>', new+'\n</body>', 1)
-          p.write_text(s, encoding='utf-8')
+          tag='<script src="cambia-lista.js?v=20260908-pdf-cumulativo-v3"></script>'
+          pattern=r'<script src="cambia-lista\.js(?:\?v=[^"]*)?"></script>'
+          if re.search(pattern,s):
+              s=re.sub(pattern,tag,s,count=1)
+          elif '</body>' in s:
+              s=s.replace('</body>',tag+'\n</body>',1)
+          else:
+              raise SystemExit('Tag </body> non trovato')
+          p.write_text(s,encoding='utf-8')
           PY
       - name: Pubblica la modifica
         run: |
@@ -35,5 +36,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Forza caricamento CANCELLA lavoratore"
+          git commit -m "Forza hotfix PDF cumulativo V3"
           git push
