@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: print-layout-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   print-layout:
     runs-on: ubuntu-latest
@@ -28,7 +32,7 @@ jobs:
       - name: Genera PDF e verifica il ciclo di stampa
         env:
           NODE_PATH: /tmp/lumen-print-check/node_modules
-        run: node tests/print-layout.cjs
+        run: timeout 120s node tests/print-layout.cjs
       - name: Controlla pagine, margini e contenuti PDF
         if: always()
         run: python tests/verify-print-pdfs.py

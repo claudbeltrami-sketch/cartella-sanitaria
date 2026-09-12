@@ -42,6 +42,8 @@ async function snapshot(page){return page.evaluate(async()=>({
 }));}
 async function readyImages(page){await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('#cartellaForm img[src]')].map(i=>i.decode()));});}
 async function prepare(page){
+ // Match the A4 content area for DOM measurements; PDF pagination uses @page.
+ await page.setViewportSize({width:Math.round(186*96/25.4),height:1100});
  await page.emulateMedia({media:'print'});
  await page.evaluate(()=>{document.body.className='print-cartella';window.dispatchEvent(new Event('beforeprint'));});
  await readyImages(page);
@@ -63,14 +65,17 @@ async function metrics(page){return page.evaluate(()=>{
 });}
 async function run(engine,name,viewport){
  const browser=await engine.launch({headless:true});
+ try{
  const context=await browser.newContext({viewport});
  const page=await context.newPage();
+ page.setDefaultTimeout(15000);
  page.on('dialog',dialog=>dialog.accept());
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const origin=`http://127.0.0.1:${server.address().port}`;
  await page.route('**/*',r=>r.request().url().startsWith(origin)?r.continue():r.abort());
  await page.goto(origin,{waitUntil:'load'});
  await page.waitForFunction(()=>!!window.lumenBatchCertApi);
+ console.log(`${name}: application loaded`);
  await page.evaluate(async d=>{
   const c=document.createElement('canvas');c.width=600;c.height=160;
   const ctx=c.getContext('2d');ctx.font='italic 44px sans-serif';ctx.fillText('FIRMA DI PROVA',25,100);
@@ -82,6 +87,7 @@ async function run(engine,name,viewport){
   await openArchiveRecord(id);
  },fixture);
  await readyImages(page);
+ console.log(`${name}: saved record reopened`);
  assert.equal(await page.locator('#cognome').inputValue(),'PROVA');
  assert.ok(await page.locator('#cartellaFinaleWorkerSignature').getAttribute('src'),'Reopened worker signature');
  const before=await snapshot(page);
@@ -124,8 +130,8 @@ async function run(engine,name,viewport){
   assert.deepEqual(await snapshot(page),longBefore);
  }
  assert.deepEqual(errors,[],`${name}: JavaScript errors`);
- await browser.close();
  console.log(`PASS ${name}: print rendering, archive reopen, signatures, cancellation and repeated printing`);
+ }finally{await browser.close();}
 }
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -134,4 +140,4 @@ async function run(engine,name,viewport){
   await run(chromium,'chromium-mobile',{width:390,height:844});
   await run(webkit,'webkit',{width:390,height:844});
  }finally{server.close();}
-})().catch(e=>{console.error(e);process.exitCode=1;});
+})().catch(e=>{fs.writeFileSync(path.join(out,'browser-error.txt'),String(e.stack||e));console.error(e);process.exitCode=1;});
