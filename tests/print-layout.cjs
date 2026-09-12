@@ -36,7 +36,7 @@ const fixture={
 async function snapshot(page){return page.evaluate(async()=>({
  data:window.lumenBatchCertApi.collect(),
  storage:Object.fromEntries(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])),
- archive:await listCartelleArchive(),
+ archive:await window.lumenBatchCertApi.getCartellaRecord('CF_TSTPRV80A01H501X'),
  signatures:[...document.querySelectorAll('#cartellaForm img')].map(x=>x.getAttribute('src')),
  fields:document.querySelectorAll('#cartellaForm input,#cartellaForm select,#cartellaForm textarea').length
 }));}
@@ -76,16 +76,19 @@ async function run(engine,name,viewport){
  await page.goto(origin,{waitUntil:'load'});
  await page.waitForFunction(()=>!!window.lumenBatchCertApi);
  console.log(`${name}: application loaded`);
- await page.evaluate(async d=>{
+ await page.evaluate(d=>{
   const c=document.createElement('canvas');c.width=600;c.height=160;
   const ctx=c.getContext('2d');ctx.font='italic 44px sans-serif';ctx.fillText('FIRMA DI PROVA',25,100);
   d.firma_lavoratore_png=c.toDataURL('image/png');
   window.lumenBatchCertApi.apply(d);
-  await saveToLocalArchive();
-  const id=window.lumenBatchCertApi.cartellaId(d);
-  window.lumenBatchCertApi.apply({});
-  await openArchiveRecord(id);
+  // Cancel only the optional file export after the real local-archive save.
+  window.showSaveFilePicker=async()=>{throw new DOMException('Test export cancelled','AbortError');};
  },fixture);
+ await page.locator('#btnSalva').click();
+ await page.waitForFunction(async()=>!!(await window.lumenBatchCertApi.getCartellaRecord('CF_TSTPRV80A01H501X')));
+ await page.evaluate(()=>window.lumenBatchCertApi.apply({}));
+ await page.locator('#btnArchivioCartelle').click();
+ await page.locator('[data-archive-id="CF_TSTPRV80A01H501X"]').click();
  await readyImages(page);
  console.log(`${name}: saved record reopened`);
  assert.equal(await page.locator('#cognome').inputValue(),'PROVA');
