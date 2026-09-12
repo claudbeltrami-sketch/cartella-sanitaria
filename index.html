@@ -231,8 +231,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .lumen-print-value{display:none}
 @media print{
  @page lumen-cartella{size:A4 portrait;margin:10mm 12mm}
- html:has(body.print-cartella){width:auto!important;height:auto!important;overflow:visible!important}
- body.print-cartella{width:auto!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important}
+ html:has(body.print-cartella){width:auto!important;height:auto!important;overflow:visible!important;background:#fff!important}
+ body.print-cartella{width:auto!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}
  body.print-cartella> :not(.cartella){display:none!important}
  body.print-cartella>.cartella{display:block!important;width:auto!important;page:lumen-cartella}
  .print-cartella .cartella>.page{width:auto;height:auto;min-height:0;max-height:none;margin:0;padding:0;overflow:visible;box-shadow:none;break-inside:auto;page-break-inside:auto;break-after:page;page-break-after:always}

@@ -16,6 +16,9 @@ for name in expected:
     summary.append({'file': name, 'pages': len(pdf), 'text_lengths': list(map(len, texts))})
     if name != 'testi-lunghi.pdf' and len(pdf) != 5:
         problems.append(f'{name}: expected 5 pages, got {len(pdf)}')
+    bottom = pdf[-1].get_pixmap()
+    if bottom.pixel(bottom.width // 2, bottom.height - 45)[:3] != (255, 255, 255):
+        problems.append(f'{name}: non-white background at bottom of last page')
     for i, page in enumerate(pdf):
         page.get_pixmap(matrix=fitz.Matrix(1.2, 1.2)).save(root / f'{path.stem}-page-{i+1}.png')
         if abs(page.rect.width - 595.28) > 1 or abs(page.rect.height - 841.89) > 1:
@@ -44,7 +47,7 @@ for name in expected:
         problems.append(f'{name}: graph shown without exam data')
     if name == 'testi-lunghi.pdf':
         for i in range(1, 131):
-            if f'RIGA {i:03d}:' not in joined:
+            if f'RIGA {i:03d}: NOTA DI COLLAUDO PER VERIFICARE IL TESTO COMPLETO SENZA TAGLI.' not in joined:
                 problems.append(f'{name}: line {i} truncated')
         for marker in ['ULTIMA NOTA CLINICA DI COLLAUDO', 'FINE PRESCRIZIONI DI COLLAUDO']:
             if marker not in joined:
