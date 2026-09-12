@@ -89,6 +89,7 @@ async function run(engine,name,viewport){
  await page.evaluate(()=>window.lumenBatchCertApi.apply({}));
  await page.locator('#btnArchivioCartelle').click();
  await page.locator('[data-archive-id="CF_TSTPRV80A01H501X"]').click();
+ await page.locator('#archiveModal').waitFor({state:'hidden'});
  await readyImages(page);
  console.log(`${name}: saved record reopened`);
  assert.equal(await page.locator('#cognome').inputValue(),'PROVA');
