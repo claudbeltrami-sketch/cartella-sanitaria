@@ -1,0 +1,44 @@
+name: Verifica stampa cartella A4
+
+on:
+  push:
+    branches: [main, fix/stampa-cartella-a4-20260912]
+    paths: [index.html, tests/print-layout.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: print-layout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  print-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installa strumenti di collaudo
+        run: |
+          npm install --prefix /tmp/lumen-print-check --no-save playwright@1.62.1
+          node /tmp/lumen-print-check/node_modules/playwright/cli.js install --with-deps chromium webkit
+          python -m pip install pymupdf==1.26.6
+      - name: Controlla cartelle e firme salvate
+        run: node tests/collatina.cjs
+      - name: Genera PDF e verifica il ciclo di stampa
+        env:
+          NODE_PATH: /tmp/lumen-print-check/node_modules
+        run: timeout 120s node tests/print-layout.cjs
+      - name: Controlla pagine, margini e contenuti PDF
+        if: always()
+        run: python tests/verify-print-pdfs.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verifica-stampa-a4
+          path: tmp/print-layout/
+          retention-days: 7

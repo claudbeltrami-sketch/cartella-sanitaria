@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260912-firma-prima-pagina-v1">
+<meta name="lumen-build" content="20260912-stampa-cartella-a4-v2">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260912-firma-prima-pagina-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260912-stampa-cartella-a4-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -226,6 +226,45 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- OCR: il motore viene caricato da CDN, mentre l'immagine è elaborata nel browser -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style id="lumen-print-layout-20260912">
+/* Cartella A4: five logical pages, with natural overflow for longer records. */
+.lumen-print-value{display:none}
+@media print{
+ @page lumen-cartella{size:A4 portrait;margin:10mm 12mm}
+ html:has(body.print-cartella){width:auto!important;height:auto!important;overflow:visible!important;background:#fff!important}
+ body.print-cartella{width:auto!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}
+ body.print-cartella> :not(.cartella){display:none!important}
+ body.print-cartella>.cartella{display:block!important;width:auto!important;page:lumen-cartella}
+ .print-cartella .cartella>.page{width:auto;height:auto;min-height:0;max-height:none;margin:0;padding:0;overflow:visible;box-shadow:none;break-inside:auto;page-break-inside:auto;break-after:page;page-break-after:always}
+ .print-cartella .cartella>.page:last-child{break-after:auto;page-break-after:auto}
+ .print-cartella .row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .print-cartella .row3{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .print-cartella .checks.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .print-cartella .section-title{break-after:avoid;page-break-after:avoid;break-inside:avoid;page-break-inside:avoid}
+ .print-cartella .field{min-width:0;align-items:baseline;break-inside:avoid;page-break-inside:avoid}
+ .print-cartella .field label{white-space:normal;flex-shrink:0;max-width:60%}
+ .print-cartella .row3 .field{flex-wrap:wrap;align-content:start}
+ .print-cartella .row3 .field label{max-width:100%}
+ .print-cartella .bmi-classification{grid-column:auto}
+ .print-cartella .clinical-page>.row3{break-inside:avoid;page-break-inside:avoid}
+ .print-cartella .signature-grid,.print-cartella .audiometry-grid,.print-cartella .spirometry-grid{break-inside:avoid;page-break-inside:avoid}
+ .print-cartella .audiometry-row{grid-template-columns:36px repeat(4,minmax(0,1fr))}
+ .print-cartella .spirometry-row{grid-template-columns:50px 42px minmax(0,1fr) 20px minmax(0,1fr);min-height:25px}
+ .print-cartella .audiogramma-box svg{max-height:42mm}
+ .print-cartella .spirometry-chart svg{max-height:32mm}
+ .print-cartella .lumen-print-source{display:none!important}
+ .print-cartella .lumen-print-value{display:block;flex:1 1 0;min-width:0;min-height:23px;padding:2px 3px;border-bottom:1px dotted #333;font-size:12.5px;line-height:1.3;color:#000;white-space:pre-wrap;overflow-wrap:anywhere;text-transform:uppercase}
+ .print-cartella .audiometry-row .lumen-print-value{text-align:center;border:1px solid #aaa;border-radius:3px}
+ .print-cartella .field:has(.lumen-print-multiline){display:block;break-inside:auto;page-break-inside:auto}
+ .print-cartella .field:has(.lumen-print-multiline)>label{display:block;max-width:none;margin-bottom:3px;break-after:avoid;page-break-after:avoid}
+ .print-cartella .lumen-print-multiline{min-height:42px;border:1px solid #999;padding:5px;orphans:3;widows:3}
+ .print-cartella .lines .lumen-print-multiline{min-height:65px}
+ .print-cartella .audiometry-interpretation .lumen-print-multiline,.print-cartella .spirometry-interpretation .lumen-print-multiline{font-size:11.5px;min-height:30px}
+ .print-cartella .cartella-worker-signature .worker-sign-output{height:19mm}
+ .print-cartella .cartella-worker-signature .signature-line{margin-top:0}
+ .print-cartella .page>.small:has(+.section-title){break-after:avoid}
+}
+</style>
 </head>
 <body>
 <div class="toolbar" aria-label="Comandi principali">
@@ -463,6 +502,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="row"><div class="field"><label>Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select></div><div class="field"><label>Correzione / indicazioni</label><input id="visiotest_note" data-upper></div></div>
 <div class="field"><label>Altri accertamenti</label><input id="altri_accertamenti" data-upper></div>
 <div class="row"><div class="field"><label>Periodicità protocollo</label><select id="periodicita_protocollo"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_protocollo_altro" data-upper></div></div>
+</section>
+
+<section class="page compact-exams clinical-page">
 <div class="section-title">5. ESAME CLINICO GENERALE</div>
 <div class="row3"><div class="field"><label>Altezza (cm)</label><input id="altezza" type="number" min="50" max="250" step="0.1" inputmode="decimal" style="min-width:88px;font-weight:700;color:#185a32"></div><div class="field altezza-temporary"><label>Feet (input temporaneo)</label><input id="altezza_feet" data-temporary type="text" inputmode="numeric" pattern="[0-8]*" placeholder="ES. 5" autocomplete="off"></div><div class="field altezza-temporary"><label>Inches (input temporaneo)</label><input id="altezza_inches" data-temporary type="text" inputmode="decimal" placeholder="ES. 9" autocomplete="off"></div><div class="field"><label>Peso (kg)</label><input id="peso" inputmode="decimal" placeholder="ES. 72,5"></div><div class="field bmi-output"><label>BMI (kg/m²)</label><input id="bmi" readonly aria-live="polite"></div><div class="field bmi-classification"><label>Classificazione BMI</label><input id="bmi_classificazione" readonly aria-live="polite"></div><div class="field"><label>PAS</label><input id="pas" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>PAD</label><input id="pad" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>Polso</label><input id="polso" inputmode="numeric"></div></div>
 <div class="small altezza-temporary">Feet e inches servono soltanto per la conversione: il dato sanitario salvato e stampato resta l’altezza in centimetri.</div>
@@ -1625,4 +1667,37 @@ input.addEventListener('change',async e=>{
 })();
 </script>
 <script src="cambia-lista.js?v=20260908-pdf-cumulativo-v3"></script>
+<script id="lumen-print-values-20260912">
+/* Temporary print text uses current form values; it never saves or edits a record. */
+(function(){
+ let nativeCartella=false;
+ function clearPrintValues(){
+  document.querySelectorAll('#cartellaForm .lumen-print-value').forEach(el=>el.remove());
+  document.querySelectorAll('#cartellaForm .lumen-print-source').forEach(el=>el.classList.remove('lumen-print-source'));
+ }
+ window.addEventListener('beforeprint',function(){
+  const form=document.getElementById('cartellaForm');
+  if(!form)return;
+  if(!document.body.className.trim()&&!form.classList.contains('hidden')){
+   nativeCartella=true;document.body.classList.add('print-cartella');
+  }
+  if(!document.body.classList.contains('print-cartella'))return;
+  clearPrintValues();
+  form.querySelectorAll('input,select,textarea').forEach(el=>{
+   if(['hidden','checkbox','radio','button','file','submit','reset'].includes(el.type)||el.closest('.cf-helper,.altezza-temporary'))return;
+   let value=el.value||'';
+   if(el.tagName==='SELECT')value=el.selectedOptions[0]?.textContent||'';
+   if(el.type==='date'&&/^\d{4}-\d{2}-\d{2}$/.test(value))value=value.split('-').reverse().join('/');
+   const output=document.createElement('div');
+   output.className='lumen-print-value'+(el.tagName==='TEXTAREA'?' lumen-print-multiline':'');
+   output.textContent=value;
+   el.classList.add('lumen-print-source');el.after(output);
+  });
+ });
+ window.addEventListener('afterprint',function(){
+  clearPrintValues();
+  if(nativeCartella){document.body.classList.remove('print-cartella');nativeCartella=false;}
+ });
+})();
+</script>
 </body></html>
