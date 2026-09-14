@@ -284,6 +284,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="tool-buttons">
    <button type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
    <button type="button" id="btnInviaCartellaCompletaIphone">INVIA CARTELLA COMPLETA A IPHONE</button>
+   <button type="button" onclick="location.href='recupera-firme.html'">RECUPERA FIRME</button>
    <label class="file-label">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
   </div>
  </section>
@@ -834,7 +835,28 @@ async function inviaCartellaCompletaIphone(){
 }
 window.beltramiFirmaIphone={
  prepare:async()=>{const d=collect(),identita=workerSignatureIdentity(d);if(!identita){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:1,id:handoffId(),creato:new Date().toISOString(),identita,cartella:d},ok=await shareOrDownloadPacket(packet,handoffName('DA_FIRMARE_SU_IPHONE',d),'Cartella da firmare su iPhone');if(!ok){setStatus('PASSAGGIO ALL’IPHONE ANNULLATO.');return}showSaveInfo('ok','PASSAGGIO ALL’IPHONE PREPARATO','Salva il file nella cartella privata iCloud Drive “CARTELLA SANITARIA”.\nSull’iPhone apri la cartella sanitaria, premi APRI DATI SALVATI e scegli questo file. Il riquadro firma si aprirà automaticamente.');setStatus('FILE PER LA FIRMA IPHONE PREPARATO.')},
- finish:async firma=>{let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}if(!h||!h.id)return false;const d=collect(),packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};const ok=await shareOrDownloadPacket(packet,handoffName('FIRMA_PER_MAC',d),'Firma del lavoratore per il Mac');if(ok){sessionStorage.removeItem('beltrami_firma_handoff');showSaveInfo('ok','FIRMA PRONTA PER IL MAC','Salva il file nella stessa cartella privata iCloud Drive. Sul Mac premi RICEVI FIRMA DA IPHONE e scegli questo file.');setStatus('FIRMA ACQUISITA SU IPHONE E PRONTA PER IL MAC.')}return true},
+ finish:async firma=>{
+  let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}
+  if(!h||!h.id)return false;
+  const d=collect(),packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
+  const name=handoffName('FIRMA_PER_MAC',d);
+  const actions=[{label:'RIPROVA INVIO AL MAC',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),name)}];
+  try{
+   const file=new File([JSON.stringify(packet,null,2)],name,{type:'application/json'});
+   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    await navigator.share({files:[file],title:'Firma del lavoratore per il Mac'});
+    showSaveInfo('ok','CONDIVISIONE COMPLETATA','Sul Mac premi RICEVI DA IPHONE e scegli '+name+'. La condivisione non conferma ancora l’importazione nella cartella.',actions);
+    setStatus('FIRMA CONSERVATA SU IPHONE. CONDIVISIONE COMPLETATA; IMPORTARE IL FILE SUL MAC.');
+   }else{
+    fallbackDownload(file,name);
+    showSaveInfo('warn','DOWNLOAD FIRMA AVVIATO — DA VERIFICARE','Controlla che '+name+' sia presente nei Download. Poi trasferiscilo al Mac e premi RICEVI DA IPHONE.',actions);
+   }
+  }catch(e){
+   showSaveInfo('warn',e&&e.name==='AbortError'?'INVIO ANNULLATO — FIRMA CONSERVATA SU IPHONE':'INVIO NON RIUSCITO — FIRMA CONSERVATA SU IPHONE','Puoi riprovare oppure salvare il file. Le firme conservate sono disponibili anche in RECUPERA FIRME.',actions);
+   setStatus('FIRMA CONSERVATA SU IPHONE. INVIO AL MAC NON COMPLETATO.');
+  }
+  return true;
+ },
  importPacket:async packet=>{if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!packet.firma_lavoratore_png)throw new Error('Questo non è un file firma valido.');const d=collect(),corrente=workerSignatureIdentity(d);if(!corrente)throw new Error('Sul Mac deve essere aperta la cartella del lavoratore.');if(packet.identita!==corrente)throw new Error('La firma appartiene a '+[packet.cognome,packet.nome].filter(Boolean).join(' ')+', non al lavoratore aperto sul Mac.');setStatus('IMPORTAZIONE FIRMA IN CORSO…');await saveWorkerSignature(corrente,packet.firma_lavoratore_png);showSaveInfo('ok','✓ FIRMA RICEVUTA DALL’IPHONE',[packet.cognome,packet.nome].filter(Boolean).join(' ')+'\nOra: '+clock()+'\nLa firma è stata inserita nella cartella e nel certificato.');setStatus('FIRMA IPHONE RICEVUTA E INSERITA CORRETTAMENTE.')}
 };
 window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');apply(packet.cartella||{});sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify({id:packet.id,identita:packet.identita}));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
@@ -1464,14 +1486,14 @@ document.getElementById('btnFirmaLavoratore').addEventListener('click',()=>{
 });
 document.getElementById('workerSignCancel').onclick=()=>{modal.classList.remove('show');modal.setAttribute('aria-hidden','true')};
 document.getElementById('workerSignClear').onclick=clearCanvas;
-document.getElementById('workerSignConfirm').onclick=()=>{
+document.getElementById('workerSignConfirm').onclick=async()=>{
  if(currentKey!==identity().key){alert('IL LAVORATORE È CAMBIATO. RIAPRIRE IL RIQUADRO FIRMA.');return}
  if(!hasInk){alert('LA FIRMA È VUOTA. FIRMARE NEL RIQUADRO O PREMERE ANNULLA.');return}
  const firma=canvas.toDataURL('image/png'),store=readStore();store[currentKey]=firma;try{localStorage.setItem('beltrami_firme_lavoratori_v1',JSON.stringify(store))}catch(_){alert('NON È STATO POSSIBILE CONSERVARE LA FIRMA SU QUESTO DISPOSITIVO.');return}
  if(window.lumenBatchCertApi)window.lumenBatchCertApi.useWorkerSignature(firma);
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');updateOutput();
  const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NELLA CARTELLA E NEL CERTIFICATO.';
- if(window.beltramiFirmaIphone)window.beltramiFirmaIphone.finish(firma);
+ if(window.beltramiFirmaIphone)await window.beltramiFirmaIphone.finish(firma);
 };
 document.getElementById('btnAzzera').addEventListener('click',()=>setTimeout(updateOutput,0));
 ['btnCert','btnStampa'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',updateOutput,true)});
