@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260912-stampa-cartella-a4-v2">
+<meta name="lumen-build" content="20260915-firma-visita-v1">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260912-stampa-cartella-a4-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260915-firma-visita-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -733,7 +733,7 @@ function allFields(){return [...form.querySelectorAll('input,select,textarea')].
 const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';
 function workerSignatureIdentity(d){const up=v=>String(v||'').trim().toLocaleUpperCase('it-IT'),cf=up(d.codice_fiscale),parts=[up(d.cognome),up(d.nome),up(d.data_nascita)].filter(Boolean);return cf||parts.join('|')}
 function workerSignatureStore(){try{return JSON.parse(localStorage.getItem(WORKER_SIGNATURE_KEY)||'{}')}catch(_){return {}}}
-function optimizeWorkerSignature(data){return new Promise(resolve=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const maxW=700,maxH=240,scale=Math.min(1,maxW/im.naturalWidth,maxH/im.naturalHeight),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale)),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);resolve(cv.toDataURL('image/png'))};im.onerror=()=>resolve(data);im.src=data})}
+function optimizeWorkerSignature(data,strict=false){return new Promise((resolve,reject)=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const maxW=700,maxH=240,scale=Math.min(1,maxW/im.naturalWidth,maxH/im.naturalHeight),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale)),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);resolve(cv.toDataURL('image/png'))};im.onerror=()=>strict?reject(new Error('IMMAGINE FIRMA NON LEGGIBILE. RIPETERE L’INVIO.')):resolve(data);im.src=data})}
 async function saveWorkerSignature(key,data){const optimized=await optimizeWorkerSignature(data),store=workerSignatureStore();store[key]=optimized;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(e){throw new Error('MEMORIA FIRME PIENA. CREARE UN BACKUP PRIMA DI PROSEGUIRE.')}if(key===workerSignatureIdentity(collect()))useWorkerSignature(optimized);else window.dispatchEvent(new Event('beltrami-signature-updated'));return optimized}
 function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=workerSignatureIdentity(d);if(!key)return;const store=workerSignatureStore();store[key]=d.firma_lavoratore_png;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'))}catch(_){}}
 function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();return d}
@@ -816,7 +816,7 @@ function handoffId(){return new Date().toISOString().replace(/\D/g,'').slice(0,1
 function handoffName(prefix,d){const c=String(d.cognome||'SENZA_COGNOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_'),n=String(d.nome||'SENZA_NOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_');return prefix+'_'+c+'_'+n+'_'+today()+'.json'}
 function handoffEncode(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function handoffDecode(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
-function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});overlay.querySelector('button').onclick=()=>overlay.remove();setStatus('INQUADRARE IL CODICE QR CON LA FOTOCAMERA DELL’IPHONE.');return true}
+function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});overlay.querySelector('button').onclick=()=>overlay.remove();setStatus('INQUADRARE IL CODICE QR CON LA FOTOCAMERA DELL’IPHONE.');return true}
 async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
 async function inviaCartellaCompletaIphone(){
  const d=collect();
@@ -833,12 +833,56 @@ async function inviaCartellaCompletaIphone(){
  showSaveInfo('warn','FILE COMPLETO SALVATO SUL MAC','Invia questo file all’iPhone con AirDrop. Poi, sull’iPhone, apri LUMEN, premi APRI DATI e scegli il file.\nNome: '+name);
  setStatus('FILE COMPLETO PRONTO PER AIRDROP.');
 }
+// Requests are stored only on this device, and survive reloads of the Mac page.
+function signatureRequestKey(id){return 'beltrami_richiesta_firma_v2_'+id}
+function checkedSignatureVisit(d){const visit=signatureVisit(d);if(!/^\d{4}-\d{2}-\d{2}$/.test(visit))throw new Error('IMPOSTARE LA DATA DELLA VISITA PRIMA DELLA FIRMA.');return visit}
+function checkSignatureRequest(packet){
+ if(!packet||packet.versione!==2||!packet.id||!packet.visita||packet.visita!==checkedSignatureVisit(packet.cartella||{})||packet.identita!==workerSignatureIdentity(packet.cartella||{}))throw new Error('RICHIESTA FIRMA PRIVA DI DATA O NON VALIDA. GENERARE UN NUOVO QR DAL MAC.');
+ return {id:packet.id,identita:packet.identita,visita:packet.visita};
+}
+function checkReturnedSignature(packet,d){
+ if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(packet.firma_lavoratore_png||''))throw new Error('Questo non è un file firma PNG valido.');
+ const identity=workerSignatureIdentity(d),visit=checkedSignatureVisit(d);
+ if(!identity||packet.identita!==identity)throw new Error('La firma non appartiene al lavoratore aperto.');
+ if(packet.versione!==2||!packet.visita)throw new Error('QUESTA FIRMA NON IDENTIFICA LA VISITA. CONSERVARE IL FILE STORICO; PER LA VISITA CORRENTE GENERARE UN NUOVO QR E ACQUISIRE LA FIRMA.');
+ if(packet.visita!==visit)throw new Error('La firma è per la visita del '+packet.visita+', non per quella del '+visit+'.');
+ let request=null;try{request=JSON.parse(localStorage.getItem(signatureRequestKey(packet.id))||'null')}catch(_){}
+ if(!request||request.identita!==identity||request.visita!==visit)throw new Error('RICHIESTA FIRMA NON RICONOSCIUTA SU QUESTO DISPOSITIVO. APRIRE LA VISITA SUL MAC CHE HA GENERATO IL QR.');
+}
+async function archiveVisitSignature(snapshot,image){
+ const selection=workerSelectionVersion,identita=workerSignatureIdentity(snapshot),visita=checkedSignatureVisit(snapshot);
+ const optimized=await optimizeWorkerSignature(image,true);
+ // Image decoding can finish after a different patient, visit or draft is opened.
+ if(selection!==workerSelectionVersion||JSON.stringify(collect())!==JSON.stringify(snapshot))throw new Error('LA CARTELLA È CAMBIATA DURANTE L’IMPORTAZIONE. RIAPRIRE LA VISITA CORRETTA E RIPROVARE.');
+ snapshot.firma_lavoratore_png=optimized;
+ const saved=await saveToLocalArchive(snapshot);
+ const verified=await getCartellaRecord(saved.rec.id);
+ if(!verified||JSON.stringify(verified.data)!==JSON.stringify(snapshot))throw new Error('SALVATAGGIO DELLA FIRMA NON CONFERMATO. CONSERVARE IL FILE E RIPROVARE.');
+ // Do not insert this signature into a different screen while the archive is saving.
+ const current=collect();
+ if(selection===workerSelectionVersion&&workerSignatureIdentity(current)===identita&&signatureVisit(current)===visita)useWorkerSignature(optimized);
+ showSaveInfo('ok','✓ FIRMA E CARTELLA SALVATE NELL’ARCHIVIO',[snapshot.cognome,snapshot.nome].filter(Boolean).join(' ')+' — VISITA '+visita+'\nOra: '+clock()+'\nSalvataggio verificato. La firma resta nella cartella alla riapertura.');
+ setStatus('FIRMA ARCHIVIATA PER '+[snapshot.cognome,snapshot.nome].filter(Boolean).join(' ')+' — '+visita+'.');
+}
+async function archiveReceivedSignature(packet){const snapshot=collect();checkReturnedSignature(packet,snapshot);return archiveVisitSignature(snapshot,packet.firma_lavoratore_png)}
 window.beltramiFirmaIphone={
- prepare:async()=>{const d=collect(),identita=workerSignatureIdentity(d);if(!identita){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:1,id:handoffId(),creato:new Date().toISOString(),identita,cartella:d},ok=await shareOrDownloadPacket(packet,handoffName('DA_FIRMARE_SU_IPHONE',d),'Cartella da firmare su iPhone');if(!ok){setStatus('PASSAGGIO ALL’IPHONE ANNULLATO.');return}showSaveInfo('ok','PASSAGGIO ALL’IPHONE PREPARATO','Salva il file nella cartella privata iCloud Drive “CARTELLA SANITARIA”.\nSull’iPhone apri la cartella sanitaria, premi APRI DATI SALVATI e scegli questo file. Il riquadro firma si aprirà automaticamente.');setStatus('FILE PER LA FIRMA IPHONE PREPARATO.')},
+ archiveLocal:async firma=>archiveVisitSignature(collect(),firma),
+ prepare:async()=>{
+  try{
+   const d=collect(),identita=workerSignatureIdentity(d),visita=checkedSignatureVisit(d);
+   if(!identita||!d.cognome||!d.nome)throw new Error('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');
+   const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:2,id:handoffId(),creato:new Date().toISOString(),identita,visita,cartella:d};
+   localStorage.setItem(signatureRequestKey(packet.id),JSON.stringify({id:packet.id,identita,visita}));
+   if(!showFirmaQr(packet))return;
+   showSaveInfo('warn','IN ATTESA DELLA FIRMA DALL’IPHONE','Inquadra il QR, firma e trasferisci il file FIRMA_PER_MAC al Mac. Qui premi RICEVI DA IPHONE: la firma verrà salvata nella cartella della visita del '+visita+'.');
+  }catch(e){showSaveInfo('error','RICHIESTA FIRMA NON PREPARATA',e.message||String(e))}
+ },
  finish:async firma=>{
   let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}
   if(!h||!h.id)return false;
-  const d=collect(),packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
+  const d=collect();
+  if(!h.visita||h.visita!==signatureVisit(d)||h.identita!==workerSignatureIdentity(d)){showSaveInfo('error','INVIO FIRMA SOSPESO','Il lavoratore o la visita non corrispondono alla richiesta. Generare un nuovo QR dal Mac.');return true}
+  const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,visita:h.visita,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
   const name=handoffName('FIRMA_PER_MAC',d);
   const actions=[{label:'RIPROVA INVIO AL MAC',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),name)}];
   try{
@@ -857,9 +901,9 @@ window.beltramiFirmaIphone={
   }
   return true;
  },
- importPacket:async packet=>{if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!packet.firma_lavoratore_png)throw new Error('Questo non è un file firma valido.');const d=collect(),corrente=workerSignatureIdentity(d);if(!corrente)throw new Error('Sul Mac deve essere aperta la cartella del lavoratore.');if(packet.identita!==corrente)throw new Error('La firma appartiene a '+[packet.cognome,packet.nome].filter(Boolean).join(' ')+', non al lavoratore aperto sul Mac.');setStatus('IMPORTAZIONE FIRMA IN CORSO…');await saveWorkerSignature(corrente,packet.firma_lavoratore_png);showSaveInfo('ok','✓ FIRMA RICEVUTA DALL’IPHONE',[packet.cognome,packet.nome].filter(Boolean).join(' ')+'\nOra: '+clock()+'\nLa firma è stata inserita nella cartella e nel certificato.');setStatus('FIRMA IPHONE RICEVUTA E INSERITA CORRETTAMENTE.')}
+ importPacket:async packet=>{setStatus('CONTROLLO E SALVATAGGIO FIRMA IN CORSO…');await archiveReceivedSignature(packet)}
 };
-window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');apply(packet.cartella||{});sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify({id:packet.id,identita:packet.identita}));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
+window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');const context=checkSignatureRequest(packet);apply(packet.cartella||{});sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify(context));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
 async function saveCartellaVerified(){const name=filename('CARTELLA','json');const json=JSON.stringify(collect(),null,2);const blob=new Blob([json],{type:'application/json'});lastVerifiedFile=null;lastVerifiedHandle=null;
  try{
   if('showSaveFilePicker' in window){
@@ -881,7 +925,7 @@ function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const 
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(){const data=collect(),id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history};await putCartellaRecord(rec);return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const data=archiveData||collect(),id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history};await putCartellaRecord(rec);return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -943,7 +987,7 @@ document.getElementById('archiveModal').addEventListener('click',e=>{if(e.target
 document.getElementById('btnSalva').onclick=saveCartellaVerified;
 document.getElementById('btnInviaCartellaCompletaIphone').onclick=inviaCartellaCompletaIphone;
 document.getElementById('fileImportaFirmaIphone').onchange=async e=>{const input=e.currentTarget,f=input.files&&input.files[0];if(!f)return;setStatus('LETTURA DEL FILE FIRMA: '+f.name+'…');try{const testo=await f.text();if(!testo.trim())throw new Error('Il file selezionato è vuoto.');await window.beltramiFirmaIphone.importPacket(JSON.parse(testo))}catch(err){setStatus('FIRMA NON IMPORTATA: '+(err.message||err));alert('FIRMA NON IMPORTATA\n\n'+(err.message||'File firma non valido.'))}finally{input.value=''}};
-document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';apply(isRequest?parsed.cartella:parsed);if(isRequest){sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify({id:parsed.id,identita:parsed.identita}));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
+document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';const context=isRequest?checkSignatureRequest(parsed):null;apply(isRequest?parsed.cartella:parsed);if(isRequest){sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify(context));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;apply({firma_lavoratore_png:''});document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaBmi();if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
 document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTELLA'))return;pendingPrint='PDF CARTELLA';titleBeforePrint=document.title;document.title=pdfBaseName('CARTELLA_SANITARIA');document.body.className='print-cartella';window.print()};
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
@@ -1493,7 +1537,10 @@ document.getElementById('workerSignConfirm').onclick=async()=>{
  if(window.lumenBatchCertApi)window.lumenBatchCertApi.useWorkerSignature(firma);
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');updateOutput();
  const status=document.getElementById('status');if(status)status.textContent='FIRMA DEL LAVORATORE ACQUISITA E INSERITA NELLA CARTELLA E NEL CERTIFICATO.';
- if(window.beltramiFirmaIphone)await window.beltramiFirmaIphone.finish(firma);
+ if(window.beltramiFirmaIphone){
+  const sent=await window.beltramiFirmaIphone.finish(firma);
+  if(!sent)try{await window.beltramiFirmaIphone.archiveLocal(firma)}catch(e){window.lumenBatchCertApi.showSaveInfo('error','FIRMA ACQUISITA — CARTELLA NON ARCHIVIATA',e.message||String(e));window.lumenBatchCertApi.setStatus('SALVATAGGIO NON COMPLETATO. RIPROVARE CON SALVA CARTELLA.')}
+ }
 };
 document.getElementById('btnAzzera').addEventListener('click',()=>setTimeout(updateOutput,0));
 ['btnCert','btnStampa'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('click',updateOutput,true)});

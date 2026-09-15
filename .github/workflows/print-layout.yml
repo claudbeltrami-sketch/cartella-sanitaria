@@ -2,8 +2,8 @@ name: Verifica stampa cartella A4
 
 on:
   push:
-    branches: [main, fix/stampa-cartella-a4-20260912]
-    paths: [index.html, tests/print-layout.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
+    branches: [main, fix/stampa-cartella-a4-20260912, fix/firme-20260915]
+    paths: [index.html, tests/signature-handoff.cjs, tests/print-layout.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,9 @@ jobs:
           node /tmp/lumen-print-check/node_modules/playwright/cli.js install --with-deps chromium webkit
           python -m pip install pymupdf==1.26.6
       - name: Controlla cartelle e firme salvate
-        run: node tests/collatina.cjs
+        run: |
+          node tests/collatina.cjs
+          node tests/signature-handoff.cjs
       - name: Genera PDF e verifica il ciclo di stampa
         env:
           NODE_PATH: /tmp/lumen-print-check/node_modules

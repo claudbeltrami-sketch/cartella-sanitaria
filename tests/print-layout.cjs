@@ -79,14 +79,24 @@ async function run(engine,name,viewport){
  await page.evaluate(d=>{
   const c=document.createElement('canvas');c.width=600;c.height=160;
   const ctx=c.getContext('2d');ctx.font='italic 44px sans-serif';ctx.fillText('FIRMA DI PROVA',25,100);
-  d.firma_lavoratore_png=c.toDataURL('image/png');
+  window.testSignature=c.toDataURL('image/png');
+  d.firma_lavoratore_png='';
   window.lumenBatchCertApi.apply(d);
   // Cancel only the optional file export after the real local-archive save.
   window.showSaveFilePicker=async()=>{throw new DOMException('Test export cancelled','AbortError');};
  },fixture);
  await page.locator('#btnSalva').click();
  await page.waitForFunction(async()=>!!(await window.lumenBatchCertApi.getCartellaRecord('CF_TSTPRV80A01H501X')));
- await page.evaluate(()=>window.lumenBatchCertApi.apply({}));
+ // Import after the initial unsigned archive save; no second SALVA click.
+ const packet=await page.evaluate(()=>{
+  const request={id:'PRINT_TEST',identita:'TSTPRV80A01H501X',visita:'2026-09-12'};
+  localStorage.setItem('beltrami_richiesta_firma_v2_PRINT_TEST',JSON.stringify(request));
+  return {tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,...request,cognome:'PROVA',nome:'COLLAUDO',firma_lavoratore_png:window.testSignature};
+ });
+ await page.locator('#fileImportaFirmaIphone').setInputFiles({name:'FIRMA_PER_MAC_TEST.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(packet))});
+ await page.waitForFunction(()=>document.getElementById('saveTitle').textContent.includes('FIRMA E CARTELLA SALVATE'));
+ await page.reload();await page.waitForFunction(()=>!!window.lumenBatchCertApi);
+
  await page.locator('#btnArchivioCartelle').click();
  await page.locator('[data-archive-id="CF_TSTPRV80A01H501X"]').click();
  await page.locator('#archiveModal').waitFor({state:'hidden'});
