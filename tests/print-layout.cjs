@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..'),out=path.join(root,'tmp/print-layout');
 fs.mkdirSync(out,{recursive:true});
 const server=http.createServer((req,res)=>{
   const file=new URL(req.url,'http://localhost').pathname;
-  if(!['/','/index.html','/cambia-lista.js'].includes(file)){res.writeHead(404);return res.end();}
+  if(!['/','/index.html','/cambia-lista.js','/thermal-print.js'].includes(file)){res.writeHead(404);return res.end();}
   res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':'text/html');
   res.end(fs.readFileSync(path.join(root,file==='/'?'index.html':file.slice(1))));
 });
