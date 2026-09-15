@@ -16,7 +16,7 @@ async function run(engine,name){
   for(const [type,generate,button] of [['cartella',null,'btnStampa'],['certificato','btnCert','btnPrintCert'],['consenso','btnConsenso','btnPrintConsenso']]){
    if(generate)await page.locator('#'+generate).click();
    await page.locator('#'+button).click();await page.locator('#thermalDialog').waitFor({state:'visible'});
-   await page.locator('#thermalPrepare').click();await page.waitForFunction(()=>document.getElementById('thermalStatus').textContent.startsWith('PDF PRONTO'),{},{timeout:45000});
+   await page.locator('#thermalPrepare').click();try{await page.waitForFunction(()=>/^PDF (PRONTO|NON CREATO)/.test(document.getElementById('thermalStatus').textContent),{},{timeout:45000});assert.match(await page.locator('#thermalStatus').textContent(),/^PDF PRONTO/)}catch(e){console.error('THERMAL STATUS:',await page.locator('#thermalStatus').textContent());console.error('PAGE ERRORS:',errors);await page.screenshot({path:path.join(out,`thermal-${name}-error.png`)});throw e}
    const download=page.waitForEvent('download');await page.locator('#thermalDownload').click();await(await download).saveAs(path.join(out,`thermal-${name}-${type}.pdf`));
    await page.locator('#thermalShare').click();assert.equal(await page.evaluate(()=>window.testShareFiles[0].type),'application/pdf');assert.match(await page.locator('#thermalStatus').textContent(),/Condivisione completata/);
    await page.evaluate(()=>window.testCancelShare=true);await page.locator('#thermalShare').click();assert.match(await page.locator('#thermalStatus').textContent(),/annullata/);await page.evaluate(()=>window.testCancelShare=false);

@@ -57,10 +57,12 @@ async function createPdf(type,source,token){
   const doc=frame.contentDocument;doc.open();doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');doc.close();
   const css=doc.createElement('style');css.textContent=styles+`\nhtml,html body[class]{width:186mm!important;height:auto!important;min-height:0!important;max-height:none!important;padding:0!important;margin:0!important;overflow:visible!important;background:#fff!important}#thermalExportRoot{display:block!important;position:static!important;width:186mm!important;height:auto!important;max-height:none!important;overflow:visible!important}#thermalExportRoot>.page{display:block!important;position:relative!important;box-sizing:border-box!important;width:186mm!important;height:auto!important;min-height:0!important;max-height:none!important;padding:0!important;margin:0!important;overflow:visible!important;box-shadow:none!important;background:white!important}.thermal-document .lumen-print-value{display:block!important;white-space:pre-wrap;overflow-wrap:anywhere}#thermalExportRoot.certificate .page>.signature-grid:last-child{position:static!important;top:auto!important;margin-top:12px!important}.thermal-document img{max-width:100%}`;doc.head.appendChild(css);
   doc.body.className='print-'+type;copy.classList.add('thermal-document');copy.id='thermalExportRoot';doc.body.appendChild(doc.importNode(copy,true));
+  if(token===job)el('thermalStatus').textContent='Caricamento di firme e immagini…';
   await doc.fonts.ready;await Promise.all([...doc.images].filter(i=>i.getAttribute('src')).map(i=>i.decode()));
   const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});let count=0;
   for(const section of doc.querySelectorAll('.thermal-document>.page')){
    if(token!==job)throw new Error('Preparazione annullata.');
+   if(token===job)el('thermalStatus').textContent='Preparazione pagina '+(count+1)+'…';
    const canvas=await window.html2canvas(section,{scale:1.5,backgroundColor:'#ffffff',logging:false,useCORS:true,windowWidth:820,windowHeight:Math.max(1200,section.scrollHeight)});
    if(!canvas.width||!canvas.height)throw new Error('Il documento non è stato renderizzato.');
    const max=Math.floor(canvas.width*277/186);
