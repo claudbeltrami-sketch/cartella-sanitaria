@@ -3,7 +3,7 @@ name: Verifica stampa cartella A4
 on:
   push:
     branches: [main, fix/stampa-cartella-a4-20260912, fix/firme-20260915, feature/stampante-termica-20260915]
-    paths: [index.html, thermal-print.js, tests/thermal-print.cjs, tests/signature-handoff.cjs, tests/print-layout.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
+    paths: [index.html, thermal-print.js, tests/thermal-print.cjs, tests/verify-thermal-pdfs.py, tests/signature-handoff.cjs, tests/print-layout.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
   workflow_dispatch:
 
 permissions:
@@ -26,7 +26,7 @@ jobs:
         run: |
           npm install --prefix /tmp/lumen-print-check --no-save playwright@1.62.1 html2canvas@1.4.1 jspdf@2.5.1
           node /tmp/lumen-print-check/node_modules/playwright/cli.js install --with-deps chromium webkit
-          python -m pip install pymupdf==1.26.6
+          python -m pip install pymupdf==1.26.6 pillow==11.3.0
       - name: Controlla cartelle e firme salvate
         run: |
           node tests/collatina.cjs
@@ -38,7 +38,9 @@ jobs:
       - name: Collauda PDF per stampante termica
         env:
           NODE_PATH: /tmp/lumen-print-check/node_modules
-        run: timeout 180s node tests/thermal-print.cjs
+        run: |
+          timeout 180s node tests/thermal-print.cjs
+          python tests/verify-thermal-pdfs.py
       - name: Controlla pagine, margini e contenuti PDF
         if: always()
         run: python tests/verify-print-pdfs.py
