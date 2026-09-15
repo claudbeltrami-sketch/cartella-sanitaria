@@ -9,9 +9,18 @@ const style=document.createElement('style');style.textContent=`
 document.head.appendChild(style);
 const label=document.createElement('label');label.className='thermal-choice';label.textContent='STAMPANTE';
 const choice=document.createElement('select');choice.id='printDestination';choice.setAttribute('aria-label','Destinazione di stampa');
-choice.innerHTML='<option value="standard">Standard</option><option value="thermal">Termica — PDF per app</option>';label.appendChild(choice);document.querySelector('.tool-group.visit .tool-buttons').appendChild(label);
+choice.innerHTML='<option value="standard">STAMPANTE LASER</option><option value="thermal">STAMPANTINA TERMICA A4</option>';label.appendChild(choice);document.querySelector('.tool-group.visit .tool-buttons').appendChild(label);
 try{if(localStorage.getItem(preference)==='thermal')choice.value='thermal'}catch(_){}
-choice.addEventListener('change',()=>{try{localStorage.setItem(preference,choice.value)}catch(_){}});
+const destinationChoices=[choice];
+for(const [buttonId,selectId] of [['btnPrintCert','printDestinationCertificato'],['btnPrintConsenso','printDestinationConsenso']]){
+ const button=document.getElementById(buttonId);if(!button)continue;
+ const copyLabel=document.createElement('label');copyLabel.className='thermal-choice';copyLabel.textContent='STAMPANTE';
+ const copy=choice.cloneNode(true);copy.id=selectId;copy.value=choice.value;copyLabel.appendChild(copy);button.before(copyLabel);destinationChoices.push(copy);
+}
+destinationChoices.forEach(select=>select.addEventListener('change',()=>{
+ const value=select.value==='thermal'?'thermal':'standard';destinationChoices.forEach(other=>other.value=value);
+ try{localStorage.setItem(preference,value)}catch(_){}
+}));
 const dialog=document.createElement('dialog');dialog.id='thermalDialog';dialog.setAttribute('aria-labelledby','thermalTitle');
 dialog.innerHTML='<h2 id="thermalTitle">STAMPANTE TERMICA</h2><p id="thermalDocument"></p><p>Prepara il PDF A4, poi aprilo nell’app della stampantina e scegli lì la stampante Bluetooth.</p><button id="thermalPrepare" type="button">PREPARA PDF</button><p id="thermalStatus" role="status" aria-live="polite"></p><div id="thermalReady" hidden><button id="thermalShare" type="button">CONDIVIDI PDF</button><a id="thermalOpen" target="_blank" rel="noopener">APRI PDF</a><a id="thermalDownload">SALVA PDF</a><p>Se l’app non compare in Condividi, salva il PDF e aprilo dall’app della stampantina.</p></div><button id="thermalClose" class="secondary" type="button">CHIUDI</button>';
 document.body.appendChild(dialog);
