@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260919-firma-separata-v8">
+<meta name="lumen-build" content="20260919-backup-iphone-v3">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -742,7 +742,6 @@ function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filt
 // A complete load always replaces the visible record, including absent fields.
 let workerSelectionVersion=0;
 let loadedWorkerSignature=null;
-let loadedWorkerSignaturePreview=null;
 function signatureVisit(d){return String(d.data_giudizio||d.data_cartella||'')}
 function currentWorkerSignature(d){
  const key=workerSignatureIdentity(d);
@@ -750,17 +749,14 @@ function currentWorkerSignature(d){
  if(loadedWorkerSignature&&loadedWorkerSignature.key===key&&loadedWorkerSignature.visit===signatureVisit(d))return loadedWorkerSignature.data;
  return loadedWorkerSignature?'':(workerSignatureStore()[key]||'');
 }
-function currentWorkerSignaturePreview(d){const key=workerSignatureIdentity(d),visit=signatureVisit(d);if(loadedWorkerSignaturePreview&&loadedWorkerSignaturePreview.key===key&&loadedWorkerSignaturePreview.visit===visit)return loadedWorkerSignaturePreview.data;return ''}
 function useWorkerSignature(data){
  const d={codice_fiscale:text('codice_fiscale'),cognome:text('cognome'),nome:text('nome'),data_nascita:text('data_nascita'),data_giudizio:text('data_giudizio'),data_cartella:text('data_cartella')};
  loadedWorkerSignature={key:workerSignatureIdentity(d),visit:signatureVisit(d),data:data||''};
- loadedWorkerSignaturePreview={key:loadedWorkerSignature.key,visit:loadedWorkerSignature.visit,data:data||''};
  window.dispatchEvent(new Event('beltrami-signature-updated'));
 }
-function applyWorkerSignatureSeparately(d,firma,selection){const key=workerSignatureIdentity(d),visit=signatureVisit(d),original=firma||'';loadedWorkerSignature={key,visit,data:original};if(!original||String(original).length<300000){loadedWorkerSignaturePreview={key,visit,data:original};window.dispatchEvent(new Event('beltrami-signature-updated'));return}loadedWorkerSignaturePreview={key,visit,data:''};window.dispatchEvent(new Event('beltrami-signature-updated'));const render=async()=>{const preview=await optimizeWorkerSignature(original);if(selection!==workerSelectionVersion)return;const now=collect();if(workerSignatureIdentity(now)!==key||signatureVisit(now)!==visit)return;loadedWorkerSignaturePreview={key,visit,data:preview||''};window.dispatchEvent(new Event('beltrami-signature-updated'))};if(window.requestIdleCallback)window.requestIdleCallback(()=>render(),{timeout:1800});else window.setTimeout(render,500)}
 function apply(source){
  const d={...(source||{})};
- const selection=++workerSelectionVersion;
+ workerSelectionVersion++;
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
  if(!d.cognome&&!d.nome){if(d.cf_cognome||d.cf_nome){d.cognome=d.cf_cognome||'';d.nome=d.cf_nome||''}else if(d.lavoratore){Object.assign(d,splitLegacyName(d.lavoratore))}}
  form.reset();
@@ -783,7 +779,7 @@ function apply(source){
  aggiornaInvalidita();syncLavoratore();syncCFBarcode();
  // An explicitly empty signature must not fall back to an older visit's signature.
  const firma=Object.prototype.hasOwnProperty.call(d,'firma_lavoratore_png')?d.firma_lavoratore_png:(workerSignatureStore()[workerSignatureIdentity(d)]||'');
- applyWorkerSignatureSeparately(d,firma,selection);
+ useWorkerSignature(firma);
 }
 
 function filename(prefix,ext){const cognome=(text('cognome')||'SENZA_COGNOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');const nome=(text('nome')||'SENZA_NOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');return prefix+'_'+cognome+'_'+nome+'_'+today()+'.'+ext}
@@ -936,20 +932,18 @@ function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
 function fmtArchiveDate(v){try{return new Date(v).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}catch(_){return v||''}}
-function archiveSourceObject(value){if(value&&typeof value==='object'&&!Array.isArray(value))return value;if(typeof value==='string'&&value.trim()){try{const parsed=JSON.parse(value);if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))return parsed}catch(_){}}return {}}
-function archiveDataScore(data){const identity=new Set(['cognome','nome','lavoratore','codice_fiscale','data_nascita']);return Object.entries(data||{}).reduce((n,[k,v])=>{if(identity.has(k))return n;if(typeof v==='string')return n+(v.trim()?1:0);if(typeof v==='boolean')return n+(v?1:0);if(Array.isArray(v))return n+(v.length?1:0);return n+(v&&typeof v==='object'?1:0)},0)}
-function prepareArchiveCandidate(r,value){let source=archiveSourceObject(value);if(source.data&&typeof source.data==='object'&&!source.cognome&&!source.nome)source=source.data;const legacy=splitLegacyName(source.lavoratore||''),data={...source};data.cognome=String((r&&r.cognome)||source.cognome||legacy.cognome||'').trim();data.nome=String((r&&r.nome)||source.nome||legacy.nome||'').trim();data.data_nascita=String((r&&r.dataNascita)||source.data_nascita||'').trim();data.codice_fiscale=String((r&&r.cf)||source.codice_fiscale||'').trim();data.lavoratore=[data.cognome,data.nome].filter(Boolean).join(' ');return data}
-function selectArchiveRecordData(r){const raw=[{value:r&&r.data,current:true,savedAt:r&&r.updatedAt},{value:r&&r.cartella,current:true,savedAt:r&&r.updatedAt},{value:r&&r.currentData,current:true,savedAt:r&&r.updatedAt}];(Array.isArray(r&&r.history)?r.history:[]).forEach(h=>raw.push({value:(h&&((h.data??h.cartella)??h)),current:false,savedAt:h&&h.savedAt}));const candidates=raw.map(x=>({...x,data:prepareArchiveCandidate(r,x.value)})).filter(x=>Object.keys(x.data).length);let best=candidates[0]||{data:prepareArchiveCandidate(r,{}),current:true,savedAt:r&&r.updatedAt};for(const x of candidates)if(archiveDataScore(x.data)>archiveDataScore(best.data))best=x;return {...best,recovered:!best.current,score:archiveDataScore(best.data)}}
-function archiveRecordData(r){return selectArchiveRecordData(r).data}
-function archiveRecordLoadedCorrectly(expected,loaded){const a=workerSignatureIdentity(expected),b=workerSignatureIdentity(loaded);return !!a&&a===b}
 async function openArchiveRecord(id){
  const r=await getCartellaRecord(id);
  if(!r)return alert('Cartella non trovata.');
- const selected=selectArchiveRecordData(r),data=selected.data,nome=((data.cognome||'')+' '+(data.nome||'')).trim();
+ const nome=((r.cognome||'')+' '+(r.nome||'')).trim();
  if(!confirm('Aprire la cartella di '+nome+'? I dati attualmente visibili verranno sostituiti.'))return;
  // Usa sempre l'identità della riga scelta. In questo modo un'identità rimasta
  // nella schermata (o in una vecchia copia interna) non può bloccare l'archivio
  // sull'ultimo lavoratore aperto.
+ const data={...(r.data||{}),cognome:r.cognome||'',nome:r.nome||'',data_nascita:r.dataNascita||'',codice_fiscale:r.cf||((r.data||{}).codice_fiscale||'')};
+ // Il vecchio campo unico poteva contenere il lavoratore aperto in precedenza.
+ // Lo rigeneriamo esclusivamente dall'identità della riga scelta.
+ data.lavoratore=[data.cognome,data.nome].filter(Boolean).join(' ');
  apply(data);
  // Scrittura finale esplicita: evita che Safari conservi i valori precedenti
  // dopo la chiusura della finestra di conferma.
@@ -959,15 +953,15 @@ async function openArchiveRecord(id){
  document.getElementById('codice_fiscale').value=data.codice_fiscale;
  syncLavoratore();
  syncCFBarcode();
- if(!archiveRecordLoadedCorrectly(data,collect())){
+ const loadedId=cartellaId(collect());
+ if(loadedId!==r.id){
   alert('APERTURA NON COMPLETATA: la cartella selezionata non corrisponde ai dati caricati. Riprovare.');
   return;
  }
  document.getElementById('archiveModal').classList.remove('show');
  window.scrollTo({top:0,behavior:'smooth'});
- const provenienza=selected.recovered?'VERSIONE COMPLETA GIÀ CONSERVATA — '+fmtArchiveDate(selected.savedAt):'ULTIMO AGGIORNAMENTO — '+fmtArchiveDate(r.updatedAt);
- setStatus('CARTELLA DI '+nome+' RIAPERTA DALL’ARCHIVIO LOCALE — '+provenienza+'.');
- showSaveInfo('ok',selected.recovered?'CARTELLA RIAPERTA DA UNA VERSIONE CONSERVATA':'CARTELLA RIAPERTA DALL’ARCHIVIO',nome+'\nCF: '+(data.codice_fiscale||'NON PRESENTE')+'\n'+provenienza+'\nVersioni conservate: '+((r.history?.length||0)+1)+'\nL’archivio non è stato modificato.');
+ setStatus('CARTELLA DI '+nome+' RIAPERTA DALL’ARCHIVIO LOCALE — ULTIMO AGGIORNAMENTO '+fmtArchiveDate(r.updatedAt)+'.');
+ showSaveInfo('ok','CARTELLA RIAPERTA DALL’ARCHIVIO',nome+'\nCF: '+(r.cf||'NON PRESENTE')+'\nUltimo aggiornamento: '+fmtArchiveDate(r.updatedAt)+'\nVersioni conservate: '+((r.history?.length||0)+1));
 }
 async function deleteArchiveRecord(id){
  const r=await getCartellaRecord(id);if(!r)return alert('Cartella non trovata.');
@@ -1340,7 +1334,7 @@ document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.st
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
-window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,currentWorkerSignaturePreview,verificaPrimaDelPdf,completaLuogoCertificato};
+window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
@@ -1511,7 +1505,7 @@ function identity(){
 }
 function readStore(){try{return JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}')}catch(_){return {}}}
 function updateOutput(){
- const id=identity(),api=window.lumenBatchCertApi,collected=api?api.collect():null,data=api?(api.currentWorkerSignaturePreview?api.currentWorkerSignaturePreview(collected):collected.firma_lavoratore_png):(id.key?(readStore()[id.key]||''):'');
+ const id=identity(),data=window.lumenBatchCertApi?window.lumenBatchCertApi.collect().firma_lavoratore_png:(id.key?(readStore()[id.key]||''):'');
  outputs.forEach(out=>{if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}});
 }
 function sizeCanvas(){
