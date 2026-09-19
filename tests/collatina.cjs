@@ -29,7 +29,7 @@ const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(t
 c.window={dispatchEvent(){outputUpdate()},scrollTo(){}};
 vm.createContext(c);
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
-for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);
+for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore','archiveRecordData','archiveRecordLoadedCorrectly'])vm.runInContext(line(name),c);
 vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);
@@ -43,6 +43,12 @@ vm.runInContext("const outputs=['cartellaAnamnesiWorkerSignature','cartellaFinal
 c.window.lumenBatchCertApi={collect:c.collect};outputUpdate=c.updateOutput;
 const A={cognome:'TESTUNO',nome:'ALFA',codice_fiscale:'TEST_WORKER_A',data_nascita:'1980-01-01',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',sesso:'M',farmaci:'FARMACO DI PROVA',anamnesi_patologica:'SOLO ALFA',altezza:'175',peso:'125',prescrizioni:'LIMITAZIONE ALFA',rischi:['ONE'],protocollo:['TWO'],giudizio:'ONE',fumatore:true,firma_lavoratore_png:'SIGNATURE_A'};
 const B={cognome:'TESTDUE',nome:'BETA',codice_fiscale:'TEST_WORKER_B',data_nascita:'1990-02-02',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',firma_lavoratore_png:''};
+// Older records may keep their identity in data (or in the old combined name)
+// while their IndexedDB key still uses an earlier convention. They must open
+// without rewriting or migrating the stored record.
+const legacyByData={id:'ANAG_CLEMENTONI|MARIO|1950-01-01',data:{cognome:'CLEMENTONI',nome:'MARIO',data_nascita:'1950-01-01',codice_fiscale:'CLMMRA50A01H501X',farmaci:'DATI STORICI'}};
+const legacyData=c.archiveRecordData(legacyByData);assert.equal(legacyData.cognome,'CLEMENTONI');assert.equal(legacyData.codice_fiscale,'CLMMRA50A01H501X');assert.equal(c.archiveRecordLoadedCorrectly(legacyData,{...legacyData}),true);
+const legacyCombined=c.archiveRecordData({id:'VECCHIA_CHIAVE',data:{lavoratore:'CLEMENTONI MARIO',data_nascita:'1950-01-01',farmaci:'DATI STORICI'}});assert.equal(legacyCombined.cognome,'CLEMENTONI');assert.equal(legacyCombined.nome,'MARIO');assert.equal(c.archiveRecordLoadedCorrectly(legacyCombined,{...legacyCombined}),true);
 function signatureIs(value){for(const id of ['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'])assert.equal(get(id).src||'',value)}
 async function run(){
  c.apply(A);assert.equal(c.collect().bmi_classificazione,'OBESITÀ CLASSE III');signatureIs('SIGNATURE_A');
