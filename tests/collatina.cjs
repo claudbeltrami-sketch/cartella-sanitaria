@@ -40,7 +40,7 @@ vm.runInContext(html.slice(html.indexOf('function luogoVisitaSessione('),html.in
 c.verificaPrimaDelPdf=()=>true;
 const signBlock=html.slice(html.indexOf('function updateOutput(){'),html.indexOf('\nfunction sizeCanvas(){'));
 vm.runInContext("const outputs=['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'].map(document.getElementById); function identity(){return {key:workerSignatureIdentity(collect())}} function readStore(){return workerSignatureStore()}"+signBlock,c);
-c.window.lumenBatchCertApi={collect:c.collect};outputUpdate=c.updateOutput;
+c.window.lumenBatchCertApi={collect:c.collect,currentWorkerSignaturePreview:c.currentWorkerSignaturePreview};outputUpdate=c.updateOutput;
 const A={cognome:'TESTUNO',nome:'ALFA',codice_fiscale:'TEST_WORKER_A',data_nascita:'1980-01-01',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',sesso:'M',farmaci:'FARMACO DI PROVA',anamnesi_patologica:'SOLO ALFA',altezza:'175',peso:'125',prescrizioni:'LIMITAZIONE ALFA',rischi:['ONE'],protocollo:['TWO'],giudizio:'ONE',fumatore:true,firma_lavoratore_png:'SIGNATURE_A'};
 const B={cognome:'TESTDUE',nome:'BETA',codice_fiscale:'TEST_WORKER_B',data_nascita:'1990-02-02',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',firma_lavoratore_png:''};
 // Older records may keep their identity in data (or in the old combined name)
@@ -54,6 +54,9 @@ const recovered=c.selectArchiveRecordData(blankCurrentWithHistory);assert.equal(
 const stringRecord=c.selectArchiveRecordData({cognome:'CLEMENTONI',nome:'MARIO',data:JSON.stringify({cognome:'CLEMENTONI',nome:'MARIO',farmaci:'DATI IN FORMATO PRECEDENTE'})});assert.equal(stringRecord.data.farmaci,'DATI IN FORMATO PRECEDENTE');
 function signatureIs(value){for(const id of ['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'])assert.equal(get(id).src||'',value)}
 async function run(){
+ c.window.setTimeout=fn=>{c.deferredSignatureRender=fn};
+ const hugeSignature='data:image/png;base64,'+'A'.repeat(300001);
+ c.apply({...A,firma_lavoratore_png:hugeSignature});assert.equal(c.collect().farmaci,'FARMACO DI PROVA','data load must finish before a large signature preview');assert.equal(c.collect().firma_lavoratore_png,hugeSignature,'original signature must remain unchanged in memory');signatureIs('');assert.equal(typeof c.deferredSignatureRender,'function');
  c.apply(A);assert.equal(c.collect().bmi_classificazione,'OBESITÀ CLASSE III');signatureIs('SIGNATURE_A');
  c.apply(B);for(const id of ['sesso','farmaci','anamnesi_patologica','altezza','peso','bmi','bmi_classificazione','prescrizioni'])assert.equal(get(id).value,'',id);
  assert.equal(get('fumatore').checked,false);assert.equal(c.collect().giudizio,'');assert.equal(c.collect().rischi.length,0);assert.equal(c.collect().protocollo.length,0);signatureIs('');

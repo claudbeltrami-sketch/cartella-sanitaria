@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260919-fix-clementoni-contenuto-v7">
+<meta name="lumen-build" content="20260919-firma-separata-v8">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -742,6 +742,7 @@ function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filt
 // A complete load always replaces the visible record, including absent fields.
 let workerSelectionVersion=0;
 let loadedWorkerSignature=null;
+let loadedWorkerSignaturePreview=null;
 function signatureVisit(d){return String(d.data_giudizio||d.data_cartella||'')}
 function currentWorkerSignature(d){
  const key=workerSignatureIdentity(d);
@@ -749,14 +750,17 @@ function currentWorkerSignature(d){
  if(loadedWorkerSignature&&loadedWorkerSignature.key===key&&loadedWorkerSignature.visit===signatureVisit(d))return loadedWorkerSignature.data;
  return loadedWorkerSignature?'':(workerSignatureStore()[key]||'');
 }
+function currentWorkerSignaturePreview(d){const key=workerSignatureIdentity(d),visit=signatureVisit(d);if(loadedWorkerSignaturePreview&&loadedWorkerSignaturePreview.key===key&&loadedWorkerSignaturePreview.visit===visit)return loadedWorkerSignaturePreview.data;return ''}
 function useWorkerSignature(data){
  const d={codice_fiscale:text('codice_fiscale'),cognome:text('cognome'),nome:text('nome'),data_nascita:text('data_nascita'),data_giudizio:text('data_giudizio'),data_cartella:text('data_cartella')};
  loadedWorkerSignature={key:workerSignatureIdentity(d),visit:signatureVisit(d),data:data||''};
+ loadedWorkerSignaturePreview={key:loadedWorkerSignature.key,visit:loadedWorkerSignature.visit,data:data||''};
  window.dispatchEvent(new Event('beltrami-signature-updated'));
 }
+function applyWorkerSignatureSeparately(d,firma,selection){const key=workerSignatureIdentity(d),visit=signatureVisit(d),original=firma||'';loadedWorkerSignature={key,visit,data:original};if(!original||String(original).length<300000){loadedWorkerSignaturePreview={key,visit,data:original};window.dispatchEvent(new Event('beltrami-signature-updated'));return}loadedWorkerSignaturePreview={key,visit,data:''};window.dispatchEvent(new Event('beltrami-signature-updated'));const render=async()=>{const preview=await optimizeWorkerSignature(original);if(selection!==workerSelectionVersion)return;const now=collect();if(workerSignatureIdentity(now)!==key||signatureVisit(now)!==visit)return;loadedWorkerSignaturePreview={key,visit,data:preview||''};window.dispatchEvent(new Event('beltrami-signature-updated'))};if(window.requestIdleCallback)window.requestIdleCallback(()=>render(),{timeout:1800});else window.setTimeout(render,500)}
 function apply(source){
  const d={...(source||{})};
- workerSelectionVersion++;
+ const selection=++workerSelectionVersion;
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
  if(!d.cognome&&!d.nome){if(d.cf_cognome||d.cf_nome){d.cognome=d.cf_cognome||'';d.nome=d.cf_nome||''}else if(d.lavoratore){Object.assign(d,splitLegacyName(d.lavoratore))}}
  form.reset();
@@ -779,7 +783,7 @@ function apply(source){
  aggiornaInvalidita();syncLavoratore();syncCFBarcode();
  // An explicitly empty signature must not fall back to an older visit's signature.
  const firma=Object.prototype.hasOwnProperty.call(d,'firma_lavoratore_png')?d.firma_lavoratore_png:(workerSignatureStore()[workerSignatureIdentity(d)]||'');
- useWorkerSignature(firma);
+ applyWorkerSignatureSeparately(d,firma,selection);
 }
 
 function filename(prefix,ext){const cognome=(text('cognome')||'SENZA_COGNOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');const nome=(text('nome')||'SENZA_NOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');return prefix+'_'+cognome+'_'+nome+'_'+today()+'.'+ext}
@@ -1336,7 +1340,7 @@ document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.st
 try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
-window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato};
+window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,currentWorkerSignaturePreview,verificaPrimaDelPdf,completaLuogoCertificato};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
@@ -1507,7 +1511,7 @@ function identity(){
 }
 function readStore(){try{return JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}')}catch(_){return {}}}
 function updateOutput(){
- const id=identity(),data=window.lumenBatchCertApi?window.lumenBatchCertApi.collect().firma_lavoratore_png:(id.key?(readStore()[id.key]||''):'');
+ const id=identity(),api=window.lumenBatchCertApi,collected=api?api.collect():null,data=api?(api.currentWorkerSignaturePreview?api.currentWorkerSignaturePreview(collected):collected.firma_lavoratore_png):(id.key?(readStore()[id.key]||''):'');
  outputs.forEach(out=>{if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}});
 }
 function sizeCanvas(){
