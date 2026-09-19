@@ -13,7 +13,7 @@ function install(){var a=document.getElementById('v9InvioCertificati');if(a){a.d
 document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#v9InvioCertificati'):null;if(!t)return;e.preventDefault();e.stopImmediatePropagation();prepara()},true);install();addEventListener('load',install);addEventListener('pageshow',install);setTimeout(install,300);
 })();
 
-/* LUMEN hotfix 19/09/2026 - prepara gli archivi IndexedDB prima del ripristino backup su dispositivi nuovi. */
+/* LUMEN hotfix 19/09/2026 - prepara gli archivi IndexedDB senza forzare una versione inferiore. */
 (function(){'use strict';
 function ensureStore(dbName,storeName,createStore){
  return new Promise(function(resolve,reject){
@@ -31,7 +31,10 @@ function ensureStore(dbName,storeName,createStore){
    up.onsuccess=function(){up.result.close();resolve()};
    up.onerror=function(){reject(up.error)};
   };
-  first.onupgradeneeded=function(){};
+  first.onupgradeneeded=function(){
+   var db=first.result;
+   if(!db.objectStoreNames.contains(storeName))createStore(db);
+  };
  });
 }
 async function prepareBackupStores(){
