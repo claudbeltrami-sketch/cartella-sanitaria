@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260919-fix-clementoni-v6">
+<meta name="lumen-build" content="20260919-fix-clementoni-contenuto-v7">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -932,12 +932,16 @@ function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
 function fmtArchiveDate(v){try{return new Date(v).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}catch(_){return v||''}}
-function archiveRecordData(r){const source=(r&&r.data&&typeof r.data==='object')?r.data:{},legacy=splitLegacyName(source.lavoratore||''),data={...source};data.cognome=String((r&&r.cognome)||source.cognome||legacy.cognome||'').trim();data.nome=String((r&&r.nome)||source.nome||legacy.nome||'').trim();data.data_nascita=String((r&&r.dataNascita)||source.data_nascita||'').trim();data.codice_fiscale=String((r&&r.cf)||source.codice_fiscale||'').trim();data.lavoratore=[data.cognome,data.nome].filter(Boolean).join(' ');return data}
+function archiveSourceObject(value){if(value&&typeof value==='object'&&!Array.isArray(value))return value;if(typeof value==='string'&&value.trim()){try{const parsed=JSON.parse(value);if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))return parsed}catch(_){}}return {}}
+function archiveDataScore(data){const identity=new Set(['cognome','nome','lavoratore','codice_fiscale','data_nascita']);return Object.entries(data||{}).reduce((n,[k,v])=>{if(identity.has(k))return n;if(typeof v==='string')return n+(v.trim()?1:0);if(typeof v==='boolean')return n+(v?1:0);if(Array.isArray(v))return n+(v.length?1:0);return n+(v&&typeof v==='object'?1:0)},0)}
+function prepareArchiveCandidate(r,value){let source=archiveSourceObject(value);if(source.data&&typeof source.data==='object'&&!source.cognome&&!source.nome)source=source.data;const legacy=splitLegacyName(source.lavoratore||''),data={...source};data.cognome=String((r&&r.cognome)||source.cognome||legacy.cognome||'').trim();data.nome=String((r&&r.nome)||source.nome||legacy.nome||'').trim();data.data_nascita=String((r&&r.dataNascita)||source.data_nascita||'').trim();data.codice_fiscale=String((r&&r.cf)||source.codice_fiscale||'').trim();data.lavoratore=[data.cognome,data.nome].filter(Boolean).join(' ');return data}
+function selectArchiveRecordData(r){const raw=[{value:r&&r.data,current:true,savedAt:r&&r.updatedAt},{value:r&&r.cartella,current:true,savedAt:r&&r.updatedAt},{value:r&&r.currentData,current:true,savedAt:r&&r.updatedAt}];(Array.isArray(r&&r.history)?r.history:[]).forEach(h=>raw.push({value:(h&&((h.data??h.cartella)??h)),current:false,savedAt:h&&h.savedAt}));const candidates=raw.map(x=>({...x,data:prepareArchiveCandidate(r,x.value)})).filter(x=>Object.keys(x.data).length);let best=candidates[0]||{data:prepareArchiveCandidate(r,{}),current:true,savedAt:r&&r.updatedAt};for(const x of candidates)if(archiveDataScore(x.data)>archiveDataScore(best.data))best=x;return {...best,recovered:!best.current,score:archiveDataScore(best.data)}}
+function archiveRecordData(r){return selectArchiveRecordData(r).data}
 function archiveRecordLoadedCorrectly(expected,loaded){const a=workerSignatureIdentity(expected),b=workerSignatureIdentity(loaded);return !!a&&a===b}
 async function openArchiveRecord(id){
  const r=await getCartellaRecord(id);
  if(!r)return alert('Cartella non trovata.');
- const data=archiveRecordData(r),nome=((data.cognome||'')+' '+(data.nome||'')).trim();
+ const selected=selectArchiveRecordData(r),data=selected.data,nome=((data.cognome||'')+' '+(data.nome||'')).trim();
  if(!confirm('Aprire la cartella di '+nome+'? I dati attualmente visibili verranno sostituiti.'))return;
  // Usa sempre l'identità della riga scelta. In questo modo un'identità rimasta
  // nella schermata (o in una vecchia copia interna) non può bloccare l'archivio
@@ -957,8 +961,9 @@ async function openArchiveRecord(id){
  }
  document.getElementById('archiveModal').classList.remove('show');
  window.scrollTo({top:0,behavior:'smooth'});
- setStatus('CARTELLA DI '+nome+' RIAPERTA DALL’ARCHIVIO LOCALE — ULTIMO AGGIORNAMENTO '+fmtArchiveDate(r.updatedAt)+'.');
- showSaveInfo('ok','CARTELLA RIAPERTA DALL’ARCHIVIO',nome+'\nCF: '+(r.cf||'NON PRESENTE')+'\nUltimo aggiornamento: '+fmtArchiveDate(r.updatedAt)+'\nVersioni conservate: '+((r.history?.length||0)+1));
+ const provenienza=selected.recovered?'VERSIONE COMPLETA GIÀ CONSERVATA — '+fmtArchiveDate(selected.savedAt):'ULTIMO AGGIORNAMENTO — '+fmtArchiveDate(r.updatedAt);
+ setStatus('CARTELLA DI '+nome+' RIAPERTA DALL’ARCHIVIO LOCALE — '+provenienza+'.');
+ showSaveInfo('ok',selected.recovered?'CARTELLA RIAPERTA DA UNA VERSIONE CONSERVATA':'CARTELLA RIAPERTA DALL’ARCHIVIO',nome+'\nCF: '+(data.codice_fiscale||'NON PRESENTE')+'\n'+provenienza+'\nVersioni conservate: '+((r.history?.length||0)+1)+'\nL’archivio non è stato modificato.');
 }
 async function deleteArchiveRecord(id){
  const r=await getCartellaRecord(id);if(!r)return alert('Cartella non trovata.');
