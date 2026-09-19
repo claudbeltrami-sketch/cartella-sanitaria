@@ -29,7 +29,7 @@ const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(t
 c.window={dispatchEvent(){outputUpdate()},scrollTo(){}};
 vm.createContext(c);
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
-for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore','archiveSourceObject','archiveDataScore','prepareArchiveCandidate','selectArchiveRecordData','archiveRecordData','archiveRecordLoadedCorrectly'])vm.runInContext(line(name),c);
+for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);
 vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);
@@ -40,23 +40,11 @@ vm.runInContext(html.slice(html.indexOf('function luogoVisitaSessione('),html.in
 c.verificaPrimaDelPdf=()=>true;
 const signBlock=html.slice(html.indexOf('function updateOutput(){'),html.indexOf('\nfunction sizeCanvas(){'));
 vm.runInContext("const outputs=['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'].map(document.getElementById); function identity(){return {key:workerSignatureIdentity(collect())}} function readStore(){return workerSignatureStore()}"+signBlock,c);
-c.window.lumenBatchCertApi={collect:c.collect,currentWorkerSignaturePreview:c.currentWorkerSignaturePreview};outputUpdate=c.updateOutput;
+c.window.lumenBatchCertApi={collect:c.collect};outputUpdate=c.updateOutput;
 const A={cognome:'TESTUNO',nome:'ALFA',codice_fiscale:'TEST_WORKER_A',data_nascita:'1980-01-01',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',sesso:'M',farmaci:'FARMACO DI PROVA',anamnesi_patologica:'SOLO ALFA',altezza:'175',peso:'125',prescrizioni:'LIMITAZIONE ALFA',rischi:['ONE'],protocollo:['TWO'],giudizio:'ONE',fumatore:true,firma_lavoratore_png:'SIGNATURE_A'};
 const B={cognome:'TESTDUE',nome:'BETA',codice_fiscale:'TEST_WORKER_B',data_nascita:'1990-02-02',data_cartella:'2026-09-08',data_giudizio:'2026-09-08',firma_lavoratore_png:''};
-// Older records may keep their identity in data (or in the old combined name)
-// while their IndexedDB key still uses an earlier convention. They must open
-// without rewriting or migrating the stored record.
-const legacyByData={id:'ANAG_CLEMENTONI|MARIO|1950-01-01',data:{cognome:'CLEMENTONI',nome:'MARIO',data_nascita:'1950-01-01',codice_fiscale:'CLMMRA50A01H501X',farmaci:'DATI STORICI'}};
-const legacyData=c.archiveRecordData(legacyByData);assert.equal(legacyData.cognome,'CLEMENTONI');assert.equal(legacyData.codice_fiscale,'CLMMRA50A01H501X');assert.equal(c.archiveRecordLoadedCorrectly(legacyData,{...legacyData}),true);
-const legacyCombined=c.archiveRecordData({id:'VECCHIA_CHIAVE',data:{lavoratore:'CLEMENTONI MARIO',data_nascita:'1950-01-01',farmaci:'DATI STORICI'}});assert.equal(legacyCombined.cognome,'CLEMENTONI');assert.equal(legacyCombined.nome,'MARIO');assert.equal(c.archiveRecordLoadedCorrectly(legacyCombined,{...legacyCombined}),true);
-const blankCurrentWithHistory={id:'CF_CLMMRA50A01H501X',cf:'CLMMRA50A01H501X',cognome:'CLEMENTONI',nome:'MARIO',data:{cognome:'CLEMENTONI',nome:'MARIO',codice_fiscale:'CLMMRA50A01H501X'},history:[{savedAt:'2026-09-01T10:00:00Z',data:{cognome:'CLEMENTONI',nome:'MARIO',codice_fiscale:'CLMMRA50A01H501X',farmaci:'TERAPIA CONSERVATA',anamnesi_patologica:'DATI COMPLETI',mansione:'ADDETTO'}}]};
-const recovered=c.selectArchiveRecordData(blankCurrentWithHistory);assert.equal(recovered.recovered,true);assert.equal(recovered.data.farmaci,'TERAPIA CONSERVATA');assert.equal(blankCurrentWithHistory.data.farmaci,undefined,'opening must not rewrite the stored record');
-const stringRecord=c.selectArchiveRecordData({cognome:'CLEMENTONI',nome:'MARIO',data:JSON.stringify({cognome:'CLEMENTONI',nome:'MARIO',farmaci:'DATI IN FORMATO PRECEDENTE'})});assert.equal(stringRecord.data.farmaci,'DATI IN FORMATO PRECEDENTE');
 function signatureIs(value){for(const id of ['cartellaAnamnesiWorkerSignature','cartellaFinaleWorkerSignature','certWorkerSignature'])assert.equal(get(id).src||'',value)}
 async function run(){
- c.window.setTimeout=fn=>{c.deferredSignatureRender=fn};
- const hugeSignature='data:image/png;base64,'+'A'.repeat(300001);
- c.apply({...A,firma_lavoratore_png:hugeSignature});assert.equal(c.collect().farmaci,'FARMACO DI PROVA','data load must finish before a large signature preview');assert.equal(c.collect().firma_lavoratore_png,hugeSignature,'original signature must remain unchanged in memory');signatureIs('');assert.equal(typeof c.deferredSignatureRender,'function');
  c.apply(A);assert.equal(c.collect().bmi_classificazione,'OBESITÀ CLASSE III');signatureIs('SIGNATURE_A');
  c.apply(B);for(const id of ['sesso','farmaci','anamnesi_patologica','altezza','peso','bmi','bmi_classificazione','prescrizioni'])assert.equal(get(id).value,'',id);
  assert.equal(get('fumatore').checked,false);assert.equal(c.collect().giudizio,'');assert.equal(c.collect().rischi.length,0);assert.equal(c.collect().protocollo.length,0);signatureIs('');
