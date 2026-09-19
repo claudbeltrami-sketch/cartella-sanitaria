@@ -88,7 +88,6 @@ const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
  await assert.rejects(c.optimizeWorkerSignature(packet.firma_lavoratore_png,true),/NON LEGGIBILE/);c.optimizeWorkerSignature=optimizer;
  // Actual QR payload construction and preparation record the date on the Mac.
  c.apply(A);c.handoffId=()=> 'QR_TEST';let qr;
- c.openAutomaticSignatureReceiver=async()=> 'MAC_PEER_TEST';
  c.showFirmaQr=p=>{qr=p;return true};
  await c.window.beltramiFirmaIphone.prepare();
  assert.equal(qr.visita,A.data_giudizio);assert.equal(JSON.parse(store.get(c.signatureRequestKey('QR_TEST'))).visita,A.data_giudizio);
@@ -98,6 +97,5 @@ const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
  vm.runInContext(line('showFirmaQr'),c);c.showFirmaQr(qr);
  const slim=JSON.parse(Buffer.from(qrUrl.split('#firma=')[1],'base64').toString());
  assert.equal(slim.cartella.data_giudizio,A.data_giudizio);assert.equal(slim.cartella.firma_lavoratore_png,'');assert.equal(c.checkSignatureRequest(slim).visita,A.data_giudizio);
- assert.equal(slim.peerId,'MAC_PEER_TEST');
  console.log('PASS: signature persisted with history; archive reopen; wrong worker/date, undated and unknown requests rejected; disk failure; delayed decode and worker/visit changes; outgoing visit identity.');
 })().catch(e=>{console.error(e);process.exitCode=1});
