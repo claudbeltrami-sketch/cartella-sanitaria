@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260919-backup-iphone-v3">
+<meta name="lumen-build" content="20260920-firma-automatica-v5">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260919-backup-iphone-v3';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260920-firma-automatica-v5';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -224,6 +224,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="vendor/peerjs-1.5.4.min.js"></script>
 <!-- OCR: il motore viene caricato da CDN, mentre l'immagine è elaborata nel browser -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style id="lumen-print-layout-20260912">
@@ -818,7 +819,7 @@ function handoffId(){return new Date().toISOString().replace(/\D/g,'').slice(0,1
 function handoffName(prefix,d){const c=String(d.cognome||'SENZA_COGNOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_'),n=String(d.nome||'SENZA_NOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_');return prefix+'_'+c+'_'+n+'_'+today()+'.json'}
 function handoffEncode(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function handoffDecode(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
-function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});overlay.querySelector('button').onclick=()=>overlay.remove();setStatus('INQUADRARE IL CODICE QR CON LA FOTOCAMERA DELL’IPHONE.');return true}
+function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,peerId:packet.peerId||'',cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.id='firmaQrOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p id="firmaQrMessage" style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice. Dopo la firma, il Mac la riceverà da solo.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});if(!packet.peerId)overlay.querySelector('#firmaQrMessage').textContent='Inquadra il QR e firma. Il collegamento automatico non è disponibile: invia il file al Mac e premi RICEVI DA IPHONE.';overlay.querySelector('button').onclick=()=>{overlay.remove();firmaPreparationVersion++;closeFirmaMacPeer()};setStatus('INQUADRARE IL CODICE QR. IL MAC RICEVERÀ AUTOMATICAMENTE LA FIRMA.');return true}
 async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
 async function inviaCartellaCompletaIphone(){
  const d=collect();
@@ -836,11 +837,65 @@ async function inviaCartellaCompletaIphone(){
  setStatus('FILE COMPLETO PRONTO PER AIRDROP.');
 }
 // Requests are stored only on this device, and survive reloads of the Mac page.
+// Only encrypted direct WebRTC data channels. No TURN relay for signature data.
+function firmaPeerOptions(){return {debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}}}
+let firmaMacPeer=null,firmaPreparationVersion=0;
+function closeFirmaMacPeer(){if(firmaMacPeer)firmaMacPeer.close();firmaMacPeer=null}
+function peerErrorText(err){return String(err&&err.message||'COLLEGAMENTO IPHONE–MAC NON RIUSCITO. RIPROVARE.')}
+function openAutomaticSignatureReceiver(request){return new Promise(resolve=>{
+ closeFirmaMacPeer();
+ if(!window.Peer){resolve('');return}
+ let peer;try{peer=new Peer(undefined,firmaPeerOptions())}catch(_){resolve('');return}
+ let settled=false,active=true,savedImage='',saving=null,expiry=null;
+ const selection=workerSelectionVersion;
+ const finishOpen=id=>{if(settled)return;settled=true;clearTimeout(timer);resolve(id)};
+ const session={close(){if(!active)return;active=false;clearTimeout(timer);clearTimeout(expiry);finishOpen('');try{peer.destroy()}catch(_){}}};
+ firmaMacPeer=session;
+ const timer=setTimeout(()=>session.close(),12000);
+ peer.on('open',id=>{
+  if(!active||settled)return;finishOpen(id);
+  expiry=setTimeout(()=>{session.close();if(firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='COLLEGAMENTO SCADUTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.';}},15*60*1000);
+ });
+ peer.on('connection',conn=>{conn.on('data',async packet=>{
+  const ack={tipo:'BELTRAMI_FIRMA_RICEVUTA_V1',id:packet&&packet.id};
+  try{
+   if(!active||firmaMacPeer!==session||selection!==workerSelectionVersion)throw Error('RICHIESTA CHIUSA O CARTELLA CAMBIATA. RIAPRI LA VISITA E GENERA UN NUOVO QR.');
+   if(!packet||packet.id!==request.id||packet.identita!==request.identita||packet.visita!==request.visita)throw Error('LA FIRMA NON CORRISPONDE A QUESTO QR.');
+   checkReturnedSignature(packet,collect());
+   if(savedImage&&savedImage!==packet.firma_lavoratore_png)throw Error('QUESTA RICHIESTA HA GIÀ RICEVUTO UNA FIRMA DIVERSA.');
+   if(!saving&&!savedImage){
+    saving=archiveReceivedSignature(packet).then(()=>{savedImage=packet.firma_lavoratore_png}).finally(()=>{saving=null});
+   }
+   if(saving)await saving;
+   if(savedImage!==packet.firma_lavoratore_png)throw Error('FIRMA DIVERSA DA QUELLA SALVATA.');
+   conn.send({...ack,ok:true});
+   if(active&&firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='✓ FIRMA RICEVUTA E SALVATA NELLA CARTELLA. PUOI CHIUDERE.';}
+  }catch(err){try{conn.send({...ack,ok:false,errore:err.message||String(err)})}catch(_){}if(active&&firmaMacPeer===session)showSaveInfo('error','FIRMA NON SALVATA',err.message||String(err))}
+ });conn.on('error',()=>{});});
+ const lost=()=>{session.close();if(firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='COLLEGAMENTO INTERROTTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.';}};
+ peer.on('error',lost);peer.on('disconnected',lost);peer.on('close',lost);
+})}
+function sendSignatureDirectly(packet,targetPeerId){return new Promise((resolve,reject)=>{
+ if(!window.Peer||!targetPeerId){reject(new Error('COLLEGAMENTO AUTOMATICO NON DISPONIBILE.'));return}
+ let peer;try{peer=new Peer(undefined,firmaPeerOptions())}catch(e){reject(e);return}
+ let done=false,conn=null;
+ const finish=(err,value)=>{if(done)return;done=true;clearTimeout(timer);try{if(conn)conn.close();peer.destroy()}catch(_){}err?reject(err):resolve(value)};
+ const timer=setTimeout(()=>finish(new Error('IL MAC NON HA CONFERMATO IL SALVATAGGIO. LASCIA APERTO IL QR E RIPROVA.')),30000);
+ const lost=()=>finish(new Error('COLLEGAMENTO INTERROTTO. LA FIRMA RESTA SU IPHONE. RIPROVA.'));
+ peer.on('open',()=>{
+  if(done)return;
+  try{conn=peer.connect(targetPeerId,{reliable:true,serialization:'json'});
+   conn.on('open',()=>{try{conn.send(packet)}catch(e){finish(e)}});
+   conn.on('data',ack=>{if(ack&&ack.tipo==='BELTRAMI_FIRMA_RICEVUTA_V1'&&ack.id===packet.id){if(ack.ok===true)finish(null,true);else finish(new Error(ack.errore||'IL MAC NON HA SALVATO LA FIRMA.'))}});
+   conn.on('error',lost);conn.on('close',lost);
+  }catch(e){finish(e)}
+ });peer.on('error',lost);peer.on('disconnected',lost);peer.on('close',lost);
+})}
 function signatureRequestKey(id){return 'beltrami_richiesta_firma_v2_'+id}
 function checkedSignatureVisit(d){const visit=signatureVisit(d);if(!/^\d{4}-\d{2}-\d{2}$/.test(visit))throw new Error('IMPOSTARE LA DATA DELLA VISITA PRIMA DELLA FIRMA.');return visit}
 function checkSignatureRequest(packet){
  if(!packet||packet.versione!==2||!packet.id||!packet.visita||packet.visita!==checkedSignatureVisit(packet.cartella||{})||packet.identita!==workerSignatureIdentity(packet.cartella||{}))throw new Error('RICHIESTA FIRMA PRIVA DI DATA O NON VALIDA. GENERARE UN NUOVO QR DAL MAC.');
- return {id:packet.id,identita:packet.identita,visita:packet.visita};
+ return {id:packet.id,identita:packet.identita,visita:packet.visita,...(packet.peerId?{peerId:packet.peerId}:{})};
 }
 function checkReturnedSignature(packet,d){
  if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(packet.firma_lavoratore_png||''))throw new Error('Questo non è un file firma PNG valido.');
@@ -870,14 +925,21 @@ async function archiveReceivedSignature(packet){const snapshot=collect();checkRe
 window.beltramiFirmaIphone={
  archiveLocal:async firma=>archiveVisitSignature(collect(),firma),
  prepare:async()=>{
+  const preparation=++firmaPreparationVersion;
+  document.getElementById('firmaQrOverlay')?.remove();
   try{
-   const d=collect(),identita=workerSignatureIdentity(d),visita=checkedSignatureVisit(d);
+   const d=collect(),identita=workerSignatureIdentity(d),visita=checkedSignatureVisit(d),selection=workerSelectionVersion;
    if(!identita||!d.cognome||!d.nome)throw new Error('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');
    const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:2,id:handoffId(),creato:new Date().toISOString(),identita,visita,cartella:d};
+   setStatus('PREPARAZIONE DEL COLLEGAMENTO AUTOMATICO IPHONE–MAC…');
+   const peerId=await openAutomaticSignatureReceiver(packet);
+   if(preparation!==firmaPreparationVersion)return;
+   if(selection!==workerSelectionVersion||JSON.stringify(collect())!==JSON.stringify(d)){closeFirmaMacPeer();throw new Error('LA CARTELLA È CAMBIATA. PREMI INVIA A IPHONE DALLA VISITA CORRETTA.');}
+   packet.peerId=peerId;
    localStorage.setItem(signatureRequestKey(packet.id),JSON.stringify({id:packet.id,identita,visita}));
-   if(!showFirmaQr(packet))return;
-   showSaveInfo('warn','IN ATTESA DELLA FIRMA DALL’IPHONE','Inquadra il QR, firma e trasferisci il file FIRMA_PER_MAC al Mac. Qui premi RICEVI DA IPHONE: la firma verrà salvata nella cartella della visita del '+visita+'.');
-  }catch(e){showSaveInfo('error','RICHIESTA FIRMA NON PREPARATA',e.message||String(e))}
+   if(!showFirmaQr(packet)){closeFirmaMacPeer();return;}
+   showSaveInfo('warn',peerId?'IN ATTESA DELLA FIRMA DALL’IPHONE':'COLLEGAMENTO AUTOMATICO NON DISPONIBILE',peerId?'Inquadra il QR e firma. La firma arriverà e sarà salvata automaticamente nella cartella della visita del '+visita+'. Lascia aperto il QR sul Mac.':'Puoi comunque inquadrare il QR, firmare e inviare il file al Mac con AirDrop. Poi premi RICEVI DA IPHONE.');
+  }catch(e){if(preparation!==firmaPreparationVersion)return;closeFirmaMacPeer();showSaveInfo('error','RICHIESTA FIRMA NON PREPARATA',e.message||String(e))}
  },
  finish:async firma=>{
   let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}
@@ -885,6 +947,10 @@ window.beltramiFirmaIphone={
   const d=collect();
   if(!h.visita||h.visita!==signatureVisit(d)||h.identita!==workerSignatureIdentity(d)){showSaveInfo('error','INVIO FIRMA SOSPESO','Il lavoratore o la visita non corrispondono alla richiesta. Generare un nuovo QR dal Mac.');return true}
   const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,visita:h.visita,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
+  if(h.peerId){
+   try{setStatus('INVIO AUTOMATICO DELLA FIRMA AL MAC…');await sendSignatureDirectly(packet,h.peerId);showSaveInfo('ok','✓ FIRMA RICEVUTA DAL MAC','La firma è stata salvata automaticamente nella cartella di '+[d.cognome,d.nome].filter(Boolean).join(' ')+' per la visita del '+h.visita+'.');setStatus('FIRMA TRASMESSA E SALVATA SUL MAC.');if(JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')?.id===h.id)sessionStorage.removeItem('beltrami_firma_handoff');return true}
+   catch(e){showSaveInfo('error','INVIO AUTOMATICO NON RIUSCITO',peerErrorText(e)+' La firma resta conservata su questo iPhone: lascia aperto il QR sul Mac e premi RIPROVA.',[{label:'RIPROVA',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'COPIA FIRMA',onclick:()=>window.lumenFirmaRecovery.copyPacket(packet)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),handoffName('FIRMA_PER_MAC',d))}]);setStatus('FIRMA CONSERVATA SU IPHONE. INVIO AUTOMATICO DA RIPROVARE.');return true}
+  }
   const name=handoffName('FIRMA_PER_MAC',d);
   const actions=[{label:'COPIA FIRMA',onclick:()=>window.lumenFirmaRecovery.copyPacket(packet)},{label:'RIPROVA INVIO AL MAC',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),name)}];
   try{
