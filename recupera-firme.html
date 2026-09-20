@@ -3,9 +3,11 @@
 <style>body{font:18px system-ui;margin:20px auto;padding:0 16px;max-width:720px;background:#eef1f4;color:#152536}h1{font-size:25px}article{background:white;border:1px solid #aab4bd;border-radius:12px;padding:16px;margin:16px 0;overflow-wrap:anywhere}img{display:block;width:100%;max-height:180px;object-fit:contain;border:1px solid #ddd;margin:12px 0}button,a{font:inherit}button{padding:14px;border:0;border-radius:8px;background:#1f5f99;color:white;margin:5px 8px 5px 0}p{line-height:1.4}#status{font-weight:bold}</style>
 <h1>RECUPERA FIRME LUMEN</h1>
 <p>Questa pagina legge le firme conservate da LUMEN nel browser di questo dispositivo. Non cancella né modifica le firme.</p>
-<p>Per le firme precedenti non è disponibile la data di acquisizione: controlla l'identità e l'anteprima prima di esportare.</p>
+<p>Per le firme precedenti non è disponibile la data di acquisizione. Sul Mac apri la cartella corretta: prima di inserire la firma dovrai confermare a quale visita appartiene.</p>
+<p>Con gli Appunti condivisi Apple puoi usare COPIA FIRMA sull’iPhone e INCOLLA FIRMA in LUMEN sul Mac. In alternativa puoi condividere o salvare il file.</p>
 <div id="status" role="status"></div><div id="list"></div>
 <p><a href="./">TORNA A LUMEN</a></p>
+<script src="firma-recupero.js?v=20260920-1"></script>
 <script>
 'use strict';
 const status=document.getElementById('status'),list=document.getElementById('list');
@@ -17,13 +19,13 @@ function packetFor(key,data){
 function fileFor(key,data){const name='FIRMA_PER_MAC_RECUPERATA_'+key.replace(/[^A-Z0-9_-]/gi,'_')+'.json';return new File([JSON.stringify(packetFor(key,data),null,2)],name,{type:'application/json'})}
 function download(file){
  const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
- status.textContent='Download avviato. Verifica il file in Download e sul Mac importalo con RICEVI DA IPHONE.';
+ status.textContent='Download richiesto: '+file.name+'. Sul Mac usa RICEVI DA IPHONE. Questa pagina non può verificare se il file è arrivato sul Mac.';
 }
 async function send(file){
  try{
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
    await navigator.share({files:[file],title:'Firma recuperata per il Mac'});
-   status.textContent='Condivisione completata. Sul Mac importa il file con RICEVI DA IPHONE.';
+   status.textContent='Condivisione terminata: '+file.name+'. L’importazione sul Mac non è ancora verificata. Sul Mac usa RICEVI DA IPHONE.';
   }else download(file);
  }catch(e){status.textContent=e&&e.name==='AbortError'?'Condivisione annullata. La firma resta disponibile qui.':'Condivisione non riuscita. Premi SALVA FILE. La firma resta disponibile qui.'}
 }
@@ -34,9 +36,10 @@ try{
  status.textContent=entries.length?entries.length+' firme trovate.':'Nessuna firma trovata in questo browser. Apri questo collegamento nello stesso browser usato dopo il QR code.';
  entries.forEach(([key,data])=>{
   const article=document.createElement('article'),title=document.createElement('strong'),img=document.createElement('img'),share=document.createElement('button'),save=document.createElement('button');
-  title.textContent=key;img.src=data;img.alt='Anteprima firma '+key;share.textContent='INVIA AL MAC';save.textContent='SALVA FILE';
+  title.textContent=key;img.src=data;img.alt='Anteprima firma '+key;share.textContent='CONDIVIDI FILE';save.textContent='SALVA FILE';
+  const copy=document.createElement('button');copy.textContent='COPIA FIRMA';copy.onclick=()=>window.lumenFirmaRecovery.copyPacket(packetFor(key,data));
   share.onclick=()=>send(fileFor(key,data));save.onclick=()=>{try{download(fileFor(key,data))}catch(e){status.textContent='Impossibile esportare il file. La firma non è stata modificata.'}};
-  article.append(title,img,share,save);list.append(article);
+  article.append(title,img,copy,share,save);list.append(article);
  });
 }catch(e){status.textContent='Non riesco a leggere le firme conservate in questo browser. Nessun dato è stato modificato.'}
 </script></html>

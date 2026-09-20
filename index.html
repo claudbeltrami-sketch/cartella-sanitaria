@@ -285,6 +285,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    <button type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
    <button type="button" id="btnInviaCartellaCompletaIphone">INVIA CARTELLA COMPLETA A IPHONE</button>
    <button type="button" onclick="location.href='recupera-firme.html'">RECUPERA FIRME</button>
+   <button type="button" id="btnIncollaFirma">INCOLLA FIRMA</button>
    <label class="file-label">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
   </div>
  </section>
@@ -885,7 +886,7 @@ window.beltramiFirmaIphone={
   if(!h.visita||h.visita!==signatureVisit(d)||h.identita!==workerSignatureIdentity(d)){showSaveInfo('error','INVIO FIRMA SOSPESO','Il lavoratore o la visita non corrispondono alla richiesta. Generare un nuovo QR dal Mac.');return true}
   const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,visita:h.visita,id:h.id,firmato:new Date().toISOString(),identita:h.identita||workerSignatureIdentity(d),cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
   const name=handoffName('FIRMA_PER_MAC',d);
-  const actions=[{label:'RIPROVA INVIO AL MAC',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),name)}];
+  const actions=[{label:'COPIA FIRMA',onclick:()=>window.lumenFirmaRecovery.copyPacket(packet)},{label:'RIPROVA INVIO AL MAC',onclick:()=>window.beltramiFirmaIphone.finish(firma)},{label:'SALVA FILE FIRMA',onclick:()=>fallbackDownload(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}),name)}];
   try{
    const file=new File([JSON.stringify(packet,null,2)],name,{type:'application/json'});
    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
@@ -1772,4 +1773,5 @@ input.addEventListener('change',async e=>{
 })();
 </script>
 <script src="thermal-print.js?v=20260915-termica-v1"></script>
+<script src="firma-recupero.js?v=20260920-1"></script>
 </body></html>
