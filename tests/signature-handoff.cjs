@@ -6,7 +6,7 @@ let scriptCount=0;
 for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))if(m[1].trim())new vm.Script(m[1],{filename:`inline-${++scriptCount}`});
 const fields=[],nodes=new Map(),store=new Map(),groups={rischi:[],protocollo:[],giudizio:[]};
 function classes(value=''){const s=new Set(value.split(/\s+/));return {contains:x=>s.has(x),add:x=>s.add(x),remove:x=>s.delete(x),toggle:(x,on)=>on?s.add(x):s.delete(x)}}
-function node(id,attrs={}){return {id,type:attrs.type||'text',value:'',checked:false,textContent:'',style:{},classList:classes(attrs.class),hasAttribute:k=>k in attrs,setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},scrollIntoView(){},focus(){}}}
+function node(id,attrs={}){return {id,type:attrs.type||'text',value:'',checked:false,textContent:'',style:{},classList:classes(attrs.class),hasAttribute:k=>k in attrs,setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},remove(){},scrollIntoView(){},focus(){}}}
 const formHTML=html.slice(html.indexOf('<form'),html.indexOf('</form>'));
 for(const m of formHTML.matchAll(/<(input|select|textarea)\b([^>]*)>/g)){
  const a={};for(const v of m[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g))a[v[1]]=v[2]??'';
@@ -88,6 +88,8 @@ const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
  await assert.rejects(c.optimizeWorkerSignature(packet.firma_lavoratore_png,true),/NON LEGGIBILE/);c.optimizeWorkerSignature=optimizer;
  // Actual QR payload construction and preparation record the date on the Mac.
  c.apply(A);c.handoffId=()=> 'QR_TEST';let qr;
+ const realReceiver=c.openAutomaticSignatureReceiver;
+ c.openAutomaticSignatureReceiver=async()=> 'MAC_PEER_TEST';
  c.showFirmaQr=p=>{qr=p;return true};
  await c.window.beltramiFirmaIphone.prepare();
  assert.equal(qr.visita,A.data_giudizio);assert.equal(JSON.parse(store.get(c.signatureRequestKey('QR_TEST'))).visita,A.data_giudizio);
@@ -97,5 +99,60 @@ const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
  vm.runInContext(line('showFirmaQr'),c);c.showFirmaQr(qr);
  const slim=JSON.parse(Buffer.from(qrUrl.split('#firma=')[1],'base64').toString());
  assert.equal(slim.cartella.data_giudizio,A.data_giudizio);assert.equal(slim.cartella.firma_lavoratore_png,'');assert.equal(c.checkSignatureRequest(slim).visita,A.data_giudizio);
+ assert.equal(slim.peerId,'MAC_PEER_TEST');
+ c.openAutomaticSignatureReceiver=realReceiver;
+ await automaticTests();
  console.log('PASS: signature persisted with history; archive reopen; wrong worker/date, undated and unknown requests rejected; disk failure; delayed decode and worker/visit changes; outgoing visit identity.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+async function automaticTests(){
+ const {EventEmitter}=require('node:events');
+ const peers=new Map(),timers=new Map();let sequence=0,timerId=0;
+ c.setTimeout=(fn,ms)=>{const id=++timerId;timers.set(id,{fn,ms});return id};c.clearTimeout=id=>timers.delete(id);
+ class Peer extends EventEmitter{
+  constructor(_,options){super();this.id='PEER_'+(++sequence);this.options=options;this.connections=[];peers.set(this.id,this);queueMicrotask(()=>this.emit('open',this.id));}
+  connect(id){const remote=peers.get(id),local=new EventEmitter(),incoming=new EventEmitter();
+   local.send=data=>queueMicrotask(()=>incoming.emit('data',JSON.parse(JSON.stringify(data))));
+   incoming.send=data=>queueMicrotask(()=>local.emit('data',JSON.parse(JSON.stringify(data))));
+   local.close=()=>local.emit('close');incoming.close=()=>incoming.emit('close');
+   this.connections.push(local);remote?.connections.push(incoming);
+   queueMicrotask(()=>{if(!remote){this.emit('error',new Error('unavailable'));return;}remote.emit('connection',incoming);local.emit('open');});return local;
+  }
+  destroy(){if(this.destroyed)return;this.destroyed=true;peers.delete(this.id);this.emit('close');}
+ }
+ c.Peer=c.window.Peer=Peer;
+ const request={id:packet.id,identita:packet.identita,visita:packet.visita};
+ c.apply(A);archive=null;await c.saveToLocalArchive();store.set(c.signatureRequestKey(packet.id),JSON.stringify(request));
+ let receiver=await c.openAutomaticSignatureReceiver(request);
+ const options=peers.get(receiver).options;
+ assert.equal(options.config.iceServers.length,1);assert.ok(options.config.iceServers.every(x=>String(x.urls).startsWith('stun:')),'no cloud relay');
+ const originalPut=c.putCartellaRecord;let release;let writes=0;
+ c.putCartellaRecord=async rec=>{writes++;await new Promise(r=>release=r);return originalPut(rec)};
+ let acknowledged=false;const pending=c.sendSignatureDirectly(packet,receiver).then(()=>acknowledged=true);
+ await new Promise(r=>setImmediate(r));assert.equal(acknowledged,false,'no success before archive save');assert.equal(c.collect().firma_lavoratore_png,'');
+ release();await pending;assert.equal(acknowledged,true);assert.equal(archive.data.firma_lavoratore_png,packet.firma_lavoratore_png);
+ c.putCartellaRecord=async rec=>{writes++;return originalPut(rec)};
+ // Re-sending after a lost acknowledgement is harmless and makes no new history.
+ await c.sendSignatureDirectly(packet,receiver);assert.equal(writes,1);
+ const saved=JSON.stringify(archive);
+ for(const bad of [{...packet,id:'OLD_REQUEST'},{...packet,identita:'OTHER'},{...packet,visita:'2026-09-29'},{...packet,firma_lavoratore_png:'data:image/png;base64,QUxUUk8='}])await assert.rejects(c.sendSignatureDirectly(bad,receiver));
+ assert.equal(JSON.stringify(archive),saved);
+ c.apply({...A,codice_fiscale:'OTHER'});await assert.rejects(c.sendSignatureDirectly(packet,receiver),/CAMBIATA/);assert.equal(JSON.stringify(archive),saved);
+ // A failed archive write must be acknowledged as a failure, never a received signature.
+ c.closeFirmaMacPeer();c.apply(A);receiver=await c.openAutomaticSignatureReceiver(request);writeFail=true;
+ await assert.rejects(c.sendSignatureDirectly(packet,receiver),/DISK FULL/);assert.equal(c.collect().firma_lavoratore_png,'');writeFail=false;
+ await c.sendSignatureDirectly(packet,receiver);assert.equal(archive.data.firma_lavoratore_png,packet.firma_lavoratore_png);
+ c.closeFirmaMacPeer();assert.equal(peers.size,0,'closed receivers and senders release connections');
+ // No network acknowledgement must time out without claiming completion.
+ receiver=await c.openAutomaticSignatureReceiver(request);
+ const stuckPeer=peers.get(receiver);stuckPeer.removeAllListeners('connection');stuckPeer.on('connection',()=>{});
+ const timeout=c.sendSignatureDirectly(packet,receiver);const rejected=assert.rejects(timeout,/NON HA CONFERMATO/);
+ await new Promise(r=>setImmediate(r));[...timers.values()].find(t=>t.ms===30000).fn();await rejected;c.closeFirmaMacPeer();
+ // Sender uses the automatic path and only clears its own completed request.
+ c.apply(A);receiver=await c.openAutomaticSignatureReceiver(request);
+ store.set('beltrami_firma_handoff',JSON.stringify({...request,peerId:receiver}));let shared=false;c.navigator.share=async()=>shared=true;
+ await c.window.beltramiFirmaIphone.finish(packet.firma_lavoratore_png);assert.equal(shared,false);assert.equal(store.has('beltrami_firma_handoff'),false);assert.equal(c.saveTitle,'✓ FIRMA RICEVUTA DAL MAC');
+ c.closeFirmaMacPeer();c.putCartellaRecord=originalPut;
+ c.apply(archive.data);assert.equal(c.collect().firma_lavoratore_png,packet.firma_lavoratore_png);
+ console.log('PASS: automatic return, save-before-ack, retry without duplicate history, wrong request/worker/date and switched record rejected, storage error, timeout, no TURN relay, automatic finish and archive reopen.');
+}
