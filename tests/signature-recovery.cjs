@@ -88,7 +88,7 @@ async function approve(){await settle();const d=activeDialog();assert.equal(d.id
  // Existing recovery exports retain V1 and absent dates; the application asks, never invents.
  const recoveryHtml=fs.readFileSync(require('node:path').join(__dirname,'../recupera-firme.html'),'utf8');
  vm.runInContext(recoveryHtml.slice(recoveryHtml.indexOf('function packetFor('),recoveryHtml.indexOf('function fileFor(')),c);
- const oldPacket=c.packetFor('PROVA|CLAUDIO|1951-07-01',packet.firma_lavoratore_png);assert.equal(oldPacket.versione,1);assert.equal(oldPacket.visita,undefined);assert.equal(oldPacket.recuperata,true);
+ const oldPacket=c.packetFor('PROVA|TEST|1980-01-01',packet.firma_lavoratore_png);assert.equal(oldPacket.versione,1);assert.equal(oldPacket.visita,undefined);assert.equal(oldPacket.recuperata,true);
  // Copy/paste round trip keeps all signature data and V2 request identifiers.
  await c.window.lumenFirmaRecovery.copyPacket(packet);assert.deepEqual(JSON.parse(JSON.stringify(c.window.lumenFirmaRecovery.parseClipboard(copied))),packet);
  assert.throws(()=>c.window.lumenFirmaRecovery.parseClipboard('other clipboard content'));
