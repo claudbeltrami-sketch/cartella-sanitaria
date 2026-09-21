@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260920-firma-automatica-v5">
+<meta name="lumen-build" content="20260921-firma-trasporto-v6">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260920-firma-automatica-v5';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260921-firma-trasporto-v6';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -884,7 +884,8 @@ function sendSignatureDirectly(packet,targetPeerId){return new Promise((resolve,
  const lost=()=>finish(new Error('COLLEGAMENTO INTERROTTO. LA FIRMA RESTA SU IPHONE. RIPROVA.'));
  peer.on('open',()=>{
   if(done)return;
-  try{conn=peer.connect(targetPeerId,{reliable:true,serialization:'json'});
+  // PeerJS JSON rejects messages >= 16,300 bytes; binary chunks PNG payloads safely.
+  try{conn=peer.connect(targetPeerId,{reliable:true,serialization:'binary'});
    conn.on('open',()=>{try{conn.send(packet)}catch(e){finish(e)}});
    conn.on('data',ack=>{if(ack&&ack.tipo==='BELTRAMI_FIRMA_RICEVUTA_V1'&&ack.id===packet.id){if(ack.ok===true)finish(null,true);else finish(new Error(ack.errore||'IL MAC NON HA SALVATO LA FIRMA.'))}});
    conn.on('error',lost);conn.on('close',lost);

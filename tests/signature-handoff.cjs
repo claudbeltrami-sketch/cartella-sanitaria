@@ -1,5 +1,6 @@
 // Regression checks for record replacement and signatures. Synthetic data only.
 // Run with: node tests/collatina.cjs
+require('./signature-transport.cjs');
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 let scriptCount=0;
