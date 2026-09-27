@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260921-firma-trasporto-v6">
+<meta name="lumen-build" content="20260927-email-lavoratore-v1">
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -30,7 +30,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260921-firma-trasporto-v6';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260927-email-lavoratore-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -41,6 +41,7 @@ button,.file-label{appearance:none;border:0;border-radius:8px;min-height:46px;pa
 .file-label input{display:none}.status{max-width:980px;margin:0 auto 9px;padding:8px;text-align:center;background:#fff;border-radius:7px;font-weight:700;color:#333}.save-info{max-width:980px;margin:0 auto 10px;padding:10px;background:#fff;border-radius:8px;border-left:6px solid var(--blu);display:none}.save-info.ok{border-left-color:var(--verde)}.save-info.warn{border-left-color:#c58218}.save-info.error{border-left-color:var(--rosso)}.save-info .save-title{font-weight:700;margin-bottom:5px}.save-info .save-detail{font-size:14px;line-height:1.4;white-space:pre-line}.save-info .mini-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.save-info .mini-actions button{min-height:38px;padding:8px 12px;font-size:13px}
 .page{width:210mm;min-height:297mm;margin:0 auto 12px;background:#fff;padding:13mm 14mm;box-shadow:0 0 8px #999;position:relative;page-break-after:always}.page:last-child{page-break-after:auto}
 h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:center;font-style:italic;margin:0 0 20px}.section-title{font-size:17px;font-weight:700;margin:14px 0 8px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px 12px}.full{grid-column:1/-1}.field{display:flex;align-items:end;gap:7px;min-height:34px}.field label{font-size:15px;font-weight:700;white-space:nowrap}.field input,.field select,.field textarea{width:100%;border:0;border-bottom:1px dotted #333;min-height:30px;padding:3px 5px;font-size:16px;text-transform:uppercase;background:#fff}.field textarea{border:1px solid #999;min-height:56px;resize:vertical}.lines textarea{min-height:105px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:7px 24px;margin:7px 0}.checks.three{grid-template-columns:1fr 1fr 1fr}.check{display:flex;align-items:center;gap:8px;font-size:15px}.check input{width:19px;height:19px;margin:0;flex:0 0 19px}.spacer{height:9px}.small{font-size:12px}.signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:26px;text-align:center}.signature-line{margin-top:42px;border-bottom:1px dotted #333;height:1px}.certificate{display:none}.consenso{display:none}.consenso .page{page-break-after:auto}.consenso p{font-size:15px;line-height:1.45;text-align:justify}.consenso .cons-title{text-align:center;margin-bottom:18px}.consenso .cons-data{margin:14px 0}.consenso .cons-checks{margin:16px 0}.consenso .cons-checks label{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:15px}.consenso .cons-checks input{width:19px;height:19px;flex:0 0 19px}.certificate .page{page-break-after:auto}.cert-title{text-align:center}.doctor{border:1px solid #555;padding:8px;margin:9px 0;font-size:13px}.box{border:1px solid #666;padding:9px;margin:8px 0}.box-title{font-weight:700;text-transform:uppercase;margin-bottom:7px}.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px}.cert-value{border-bottom:1px solid #555;min-height:23px;font-weight:700;padding:3px}.hidden{display:none!important}
+.worker-email{flex-direction:column;align-items:stretch;min-width:0}.worker-email input{min-width:0;text-transform:none}.print-cartella .worker-email .lumen-print-value{text-transform:none}
 .cf-helper{grid-column:1/-1;border:2px solid var(--verde);border-radius:9px;padding:10px;margin-top:4px;background:#f5fff8}.cf-helper-title{font-weight:700;color:var(--verde);margin-bottom:8px}.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.cf-note{font-size:12px;margin-top:7px;color:#444}.cf-action{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}.cf-action button{min-height:40px;padding:8px 13px}.cf-result{font-weight:700;color:var(--verde)}
 .compact-exams .section-title{margin:9px 0 5px;font-size:15px}.compact-exams .field{min-height:28px}.compact-exams .field input,.compact-exams .field select,.compact-exams .field textarea{min-height:25px;font-size:14px}.compact-exams .row,.compact-exams .row3{gap:5px 10px}.compact-exams .field label{font-size:13px}.firma-medico-cartella img{display:block;margin:0 auto;max-height:82px;object-fit:contain}
 
@@ -436,7 +437,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="cf-note">Il codice catastale viene trovato automaticamente per i Comuni italiani e per gli Stati esteri. Verificare sempre il risultato con un documento ufficiale: i casi di omocodia possono produrre un codice diverso.</div>
  </div>
  <div class="field full"><label>Domicilio</label><input id="domicilio" data-upper></div>
- <div class="field"><label>Telefono</label><input id="telefono"></div><div class="field"><label>Stato civile</label><select id="stato_civile"><option></option><option>CELIBE/NUBILE</option><option>CONIUGATO/A</option><option>CONVIVENTE</option><option>SEPARATO/A</option><option>DIVORZIATO/A</option><option>VEDOVO/A</option><option>ALTRO</option></select></div>
+ <div class="field"><label>Telefono</label><input id="telefono"></div>
+ <div class="field worker-email"><label for="email_lavoratore">E-mail del lavoratore</label><input id="email_lavoratore" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+ <div class="field"><label>Stato civile</label><select id="stato_civile"><option></option><option>CELIBE/NUBILE</option><option>CONIUGATO/A</option><option>CONVIVENTE</option><option>SEPARATO/A</option><option>DIVORZIATO/A</option><option>VEDOVO/A</option><option>ALTRO</option></select></div>
  <div class="field full"><label>Medico curante</label><input id="medico_curante" data-upper placeholder="NOME E COGNOME DEL MEDICO"></div><div class="field"><label>Via</label><input id="via_medico" data-upper></div>
  <div class="field"><label>Telefono medico</label><input id="telefono_medico"></div><div></div>
  <div class="field full"><label>Datore di lavoro</label><input id="datore_lavoro" data-upper></div>
@@ -756,8 +759,22 @@ function useWorkerSignature(data){
  loadedWorkerSignature={key:workerSignatureIdentity(d),visit:signatureVisit(d),data:data||''};
  window.dispatchEvent(new Event('beltrami-signature-updated'));
 }
-function apply(source){
+// Recover only the exact legacy import annotation, without changing stored
+// records on open or interpreting addresses belonging to other people.
+function normalizzaEmailLavoratore(source){
  const d={...(source||{})};
+ if(Object.prototype.hasOwnProperty.call(d,'email_lavoratore'))return d;
+ const note=typeof d.altre_notizie==='string'?d.altre_notizie:'';
+ const legacy=/(?:^|\s)RECAPITO EMAIL RIPORTATO SULL['’]ORIGINALE:\s*([A-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?)+)\.(?=\s|$)/gi;
+ const matches=[...note.matchAll(legacy)];
+ if(matches.length===1){
+  d.email_lavoratore=matches[0][1];
+  d.altre_notizie=note.replace(legacy,'').trim();
+ }
+ return d;
+}
+function apply(source){
+ const d=normalizzaEmailLavoratore(source);
  workerSelectionVersion++;
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
  if(!d.cognome&&!d.nome){if(d.cf_cognome||d.cf_nome){d.cognome=d.cf_cognome||'';d.nome=d.cf_nome||''}else if(d.lavoratore){Object.assign(d,splitLegacyName(d.lavoratore))}}
@@ -1785,9 +1802,20 @@ const clean=v=>String(v||'').replace(/\s+/g,' ').trim(), up=v=>clean(v).toLocale
 function date(v){let m=clean(v).match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(!m)return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';return (m[3].length===2?'20'+m[3]:m[3])+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
 function put(id,v,d){let e=q(id);v=d?date(v):clean(v);if(!e||!v)return 0;if(e.tagName==='SELECT'){let o=[...e.options].find(x=>up(x.value)===up(v)||up(x.textContent)===up(v));if(!o)return 0;e.value=o.value}else e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));return 1}
 const fields=[
-['cognome','COGNOME'],['nome','NOME'],['luogo_nascita','LUOGO DI NASCITA'],['data_nascita','DATA DI NASCITA',1],['sesso','SESSO'],['codice_fiscale','CODICE FISCALE'],['domicilio','DOMICILIO'],['telefono','TELEFONO'],['stato_civile','STATO CIVILE'],['medico_curante','MEDICO CURANTE'],['via_medico','VIA'],['telefono_medico','TELEFONO MEDICO'],['datore_lavoro','DATORE DI LAVORO'],['attivita_azienda','ATTIVITÀ AZIENDA'],['data_assunzione','DATA ASSUNZIONE',1],['sede_lavoro','SEDE/I DI LAVORO'],['altri_motivi','ALTRI MOTIVI'],['mansione','DESTINAZIONE LAVORATIVA - MANSIONE'],['altri_rischi','ALTRI RISCHI'],['tempo_esposizione','TEMPO ESPOSIZIONE'],['anamnesi_lavorativa','1. ANAMNESI LAVORATIVA'],['anamnesi_familiare','2. ANAMNESI FAMILIARE'],['sigarette_die','SIGARETTE/DIE'],['anni_fumo','ANNI DI FUMO'],['ex_fumatore_da','EX FUMATORE DA'],['alcol_frequenza','ALCOL'],['alcol_quantita','QUANTITÀ'],['farmaci','USO DI FARMACI'],['infortuni','INFORTUNI - TRAUMI'],['invalidita_stato','INVALIDITÀ'],['invalidita_ente','ENTE'],['invalidita_percentuale','PERCENTUALE (%)'],['invalidita_note','NOTE INVALIDITÀ'],['altre_notizie','ALTRE NOTIZIE UTILI'],['anamnesi_patologica','ANAMNESI PATOLOGICA'],['audiometria_esito','AUDIOMETRIA'],['audiometria_difetto','DIFETTO RISCONTRATO'],['visiotest_esito','VISIOTEST'],['visiotest_note','CORREZIONE / INDICAZIONI'],['altri_accertamenti','ALTRI ACCERTAMENTI'],['altezza','ALTEZZA (CM)'],['peso','PESO'],['pas','PAS'],['pad','PAD'],['polso','POLSO'],['cute','CUTE'],['torace','TORACE'],['cuore','CUORE'],['addome','ADDOME'],['organi_ipocondriaci','ORGANI IPOCONDRIACI'],['genito_urinario','APPARATO GENITO-URINARIO'],['rachide','RACHIDE'],['arti','ARTI'],['sistema_nervoso','SISTEMA NERVOSO'],['altri_rilievi','ALTRI RILIEVI CLINICI'],['prescrizioni','PRESCRIZIONI / LIMITAZIONI'],['periodicita','PERIODICITÀ VISITA MEDICA'],['data_trasmissione','EFFETTUATA IL',1],['mezzo_trasmissione','A MEZZO']];
+['cognome','COGNOME'],['nome','NOME'],['luogo_nascita','LUOGO DI NASCITA'],['data_nascita','DATA DI NASCITA',1],['sesso','SESSO'],['codice_fiscale','CODICE FISCALE'],['domicilio','DOMICILIO'],['telefono','TELEFONO'],['email_lavoratore','E-MAIL DEL LAVORATORE'],['stato_civile','STATO CIVILE'],['medico_curante','MEDICO CURANTE'],['via_medico','VIA'],['telefono_medico','TELEFONO MEDICO'],['datore_lavoro','DATORE DI LAVORO'],['attivita_azienda','ATTIVITÀ AZIENDA'],['data_assunzione','DATA ASSUNZIONE',1],['sede_lavoro','SEDE/I DI LAVORO'],['altri_motivi','ALTRI MOTIVI'],['mansione','DESTINAZIONE LAVORATIVA - MANSIONE'],['altri_rischi','ALTRI RISCHI'],['tempo_esposizione','TEMPO ESPOSIZIONE'],['anamnesi_lavorativa','1. ANAMNESI LAVORATIVA'],['anamnesi_familiare','2. ANAMNESI FAMILIARE'],['sigarette_die','SIGARETTE/DIE'],['anni_fumo','ANNI DI FUMO'],['ex_fumatore_da','EX FUMATORE DA'],['alcol_frequenza','ALCOL'],['alcol_quantita','QUANTITÀ'],['farmaci','USO DI FARMACI'],['infortuni','INFORTUNI - TRAUMI'],['invalidita_stato','INVALIDITÀ'],['invalidita_ente','ENTE'],['invalidita_percentuale','PERCENTUALE (%)'],['invalidita_note','NOTE INVALIDITÀ'],['altre_notizie','ALTRE NOTIZIE UTILI'],['anamnesi_patologica','ANAMNESI PATOLOGICA'],['audiometria_esito','AUDIOMETRIA'],['audiometria_difetto','DIFETTO RISCONTRATO'],['visiotest_esito','VISIOTEST'],['visiotest_note','CORREZIONE / INDICAZIONI'],['altri_accertamenti','ALTRI ACCERTAMENTI'],['altezza','ALTEZZA (CM)'],['peso','PESO'],['pas','PAS'],['pad','PAD'],['polso','POLSO'],['cute','CUTE'],['torace','TORACE'],['cuore','CUORE'],['addome','ADDOME'],['organi_ipocondriaci','ORGANI IPOCONDRIACI'],['genito_urinario','APPARATO GENITO-URINARIO'],['rachide','RACHIDE'],['arti','ARTI'],['sistema_nervoso','SISTEMA NERVOSO'],['altri_rilievi','ALTRI RILIEVI CLINICI'],['prescrizioni','PRESCRIZIONI / LIMITAZIONI'],['periodicita','PERIODICITÀ VISITA MEDICA'],['data_trasmissione','EFFETTUATA IL',1],['mezzo_trasmissione','A MEZZO']];
 function rows(items){let a=[];items.forEach(i=>{let s=clean(i.str);if(!s)return;let y=Math.round(i.transform[5]/3)*3,r=a.find(x=>Math.abs(x.y-y)<=3);if(!r){r={y:y,a:[]};a.push(r)}r.a.push({x:i.transform[4],s:s})});return a.sort((x,y)=>y.y-x.y).map(r=>clean(r.a.sort((x,y)=>x.x-y.x).map(x=>x.s).join(' ')))}
-function get(lines,label){label=up(label);for(let i=0;i<lines.length;i++){let u=up(lines[i]),p=u.indexOf(label);if(p<0)continue;let v=clean(lines[i].slice(p+label.length).replace(/^\s*[:\-–]?\s*/,''));if(v)return v;for(let k=i+1;k<i+3&&k<lines.length;k++)if(clean(lines[k]))return clean(lines[k])}return ''}
+function getWorkerEmail(lines){
+ const label=/(?:^|\s)E[- ]?MAIL(?: DEL LAVORATORE| LAVORATORE)?\s*:?\s*/i;
+ const address=/^[A-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?)+/i;
+ for(let i=0;i<lines.length;i++){
+  const m=label.exec(lines[i]);if(!m)continue;
+  const value=clean(lines[i].slice(m.index+m[0].length));
+  const found=value.match(address);if(found)return found[0];
+  if(!value&&i+1<lines.length){const next=clean(lines[i+1]),candidate=next.match(address);if(candidate&&candidate[0]===next)return candidate[0]}
+ }
+ return '';
+}
+function get(lines,label){if(label==='E-MAIL DEL LAVORATORE')return getWorkerEmail(lines);label=up(label);for(let i=0;i<lines.length;i++){let u=up(lines[i]),p=u.indexOf(label);if(p<0)continue;let v=clean(lines[i].slice(p+label.length).replace(/^\s*[:\-–]?\s*/,''));if(v)return v;for(let k=i+1;k<i+3&&k<lines.length;k++)if(clean(lines[k]))return clean(lines[k])}return ''}
 input.addEventListener('change',async e=>{
  let f=(e.target.files||[])[0];e.target.value='';if(!f)return;
  if(!confirm('IMPORTARE I DATI DA “'+f.name+'”?\\n\\nIL CONSENSO FIRMATO RESTA SEPARATO. CONTROLLARE I DATI PRIMA DI SALVARE.'))return;
@@ -1796,6 +1824,7 @@ input.addEventListener('change',async e=>{
   status.textContent='LETTURA DEL PDF IN CORSO…';pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   let pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise, lines=[];
   for(let n=1;n<=pdf.numPages;n++){let p=await pdf.getPage(n),t=await p.getTextContent();lines.push(...rows(t.items))}
+  q('email_lavoratore').value='';
   let count=0;fields.forEach(x=>count+=put(x[0],get(lines,x[1]),x[2]));
   let all=up(lines.join(' ')),gs=['NON IDONEO PERMANENTEMENTE','NON IDONEO TEMPORANEAMENTE','IDONEO CON PRESCRIZIONI','IDONEO CON LIMITAZIONI','IDONEO'],gv=gs.find(x=>all.includes(x));
   if(gv){let g=[...document.querySelectorAll('input[name="giudizio"]')].find(x=>x.value===gv);if(g){g.checked=true;g.dispatchEvent(new Event('change',{bubbles:true}));count++}}
