@@ -1,6 +1,7 @@
 /* Recupero esplicito di firme storiche. Nessuna migrazione o scrittura all'avvio. */
 (() => {
  'use strict';
+ const {collect,workerSignatureIdentity,checkedSignatureVisit,signatureVisit,cartellaId,getCartellaRecord,optimizeWorkerSignature,saveToLocalArchive,useWorkerSignature,showSaveInfo,setStatus,selectionVersion}=window.lumenBatchCertApi||{};
  const prefix='LUMEN-FIRMA:', maxLength=4000000;
  const validImage=v=>typeof v==='string'&&v.length<=maxLength&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(v);
  const upper=v=>String(v||'').trim().toLocaleUpperCase('it-IT');
@@ -57,21 +58,21 @@
   if(recovering)throw Error('È già aperta una verifica della firma. Completa o annulla quella verifica.');
   recovering=true;
   try{
-   const snapshot=collect(),selection=workerSelectionVersion,unchanged=JSON.stringify(snapshot);
+   const snapshot=collect(),selection=selectionVersion(),unchanged=JSON.stringify(snapshot);
    validateRecovered(packet,snapshot);
    const id=cartellaId(snapshot),old=await getCartellaRecord(id);
    if(old){validateRecovered(packet,old.data);if(signatureVisit(old.data)!==signatureVisit(snapshot))throw Error('La visita aperta non coincide con quella archiviata. Riapri la cartella corretta.');}
    if(!await askRecovery(packet,snapshot)){setStatus('RECUPERO ANNULLATO. Nessun dato modificato.');return;}
    const image=await optimizeWorkerSignature(packet.firma_lavoratore_png,true);
-   if(selection!==workerSelectionVersion||JSON.stringify(collect())!==unchanged)throw Error('La cartella è cambiata durante il recupero. Nessuna firma inserita.');
+   if(selection!==selectionVersion()||JSON.stringify(collect())!==unchanged)throw Error('La cartella è cambiata durante il recupero. Nessuna firma inserita.');
    const current=await getCartellaRecord(id);
    if(JSON.stringify(current)!==JSON.stringify(old))throw Error('La cartella archiviata è cambiata. Riaprila prima di recuperare la firma.');
-   if(selection!==workerSelectionVersion||JSON.stringify(collect())!==unchanged)throw Error('La cartella è cambiata durante il recupero. Nessuna firma inserita.');
+   if(selection!==selectionVersion()||JSON.stringify(collect())!==unchanged)throw Error('La cartella è cambiata durante il recupero. Nessuna firma inserita.');
    // Preserve every existing clinical field; only signature and provenance are added.
    const data={...(old?old.data:snapshot),firma_lavoratore_png:image,firma_lavoratore_recupero:{origine:'archivio_firme_senza_data',identita_originale:packet.identita,visita_confermata:checkedSignatureVisit(snapshot),confermato_il:new Date().toISOString()}};
    const saved=await saveToLocalArchive(data),verified=await getCartellaRecord(saved.rec.id);
    if(!verified||JSON.stringify(verified.data)!==JSON.stringify(data))throw Error('Salvataggio non verificato. Conserva la firma originale e controlla la cartella.');
-   if(selection===workerSelectionVersion&&JSON.stringify(collect())===unchanged)useWorkerSignature(image);
+   if(selection===selectionVersion()&&JSON.stringify(collect())===unchanged)useWorkerSignature(image);
    showSaveInfo('ok','FIRMA RECUPERATA E SALVATAGGIO VERIFICATO',[snapshot.cognome,snapshot.nome].join(' ')+' — visita del '+signatureVisit(snapshot)+'. La data della visita è stata confermata da te; la firma originale resta conservata sull’iPhone.');
    setStatus('FIRMA RECUPERATA E VERIFICATA NELL’ARCHIVIO.');
   }finally{recovering=false;}

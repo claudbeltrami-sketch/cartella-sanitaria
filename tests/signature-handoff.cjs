@@ -27,8 +27,9 @@ const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(t
  form:{querySelectorAll:()=>fields,reset(){for(const x of fields){x.value='';x.checked=false}Object.values(groups).flat().forEach(x=>x.checked=false)}},
  today:()=> '2026-09-08',rememberMansione(){},syncCFBarcode(){},convertiAltezzaInCm(){},aggiornaInvalidita(){},
  renderWorkers(){},setStatus(v){c.lastStatus=v},showSaveInfo(){},fmt:v=>v,getCartellaRecord:async()=>null,listCartelleArchive:async()=>[],workers:[],currentWorkerIndex:-1};
-c.window={dispatchEvent(){outputUpdate()},scrollTo(){}};
+c.window={dispatchEvent(){outputUpdate()},scrollTo(){},addEventListener(){}};c.setTimeout=setTimeout;c.clearTimeout=clearTimeout;
 vm.createContext(c);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../firma-offline.js'),'utf8'),c);
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
 for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);
 vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
@@ -42,9 +43,10 @@ c.getCartellaRecord=async()=>archive?JSON.parse(JSON.stringify(archive)):null;
 c.putCartellaRecord=async rec=>{if(writeFail)throw new Error('DISK FULL');archive=JSON.parse(JSON.stringify(rec));return rec};
 vm.runInContext(line('saveToLocalArchive'),c);
 vm.runInContext(html.slice(html.indexOf('// Requests are stored'),html.indexOf("window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=")),c);
-c.showSaveInfo=(kind,title)=>{c.saveTitle=title;c.saveKind=kind};
+c.showSaveInfo=(kind,title,detail,actions)=>{c.saveTitle=title;c.saveKind=kind;c.saveActions=actions};c.document.createElement=()=>({style:{}});get('saveDetail').append=()=>{};
 const A={cognome:'PROVA',nome:'FIRMA',codice_fiscale:'TEST_FIRMA',data_nascita:'1980-01-01',data_cartella:'2026-09-28',data_giudizio:'2026-09-28',firma_lavoratore_png:''};
 const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,id:'TEST',visita:'2026-09-28',identita:'TEST_FIRMA',cognome:'PROVA',nome:'FIRMA',firma_lavoratore_png:'data:image/png;base64,VEVTVA=='};
+c.window.lumenBatchCertApi={collect:c.collect,signatureVisit:c.signatureVisit,workerSignatureIdentity:c.workerSignatureIdentity,selectionVersion:()=>vm.runInContext('workerSelectionVersion',c),showSaveInfo:(...a)=>c.showSaveInfo(...a),setStatus:(...a)=>c.setStatus(...a),sendSignatureDirectly:(...a)=>c.sendSignatureDirectly(...a)};
 const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
 (async()=>{
  c.apply(A);await c.saveToLocalArchive();const unsigned=JSON.stringify(archive);
@@ -79,6 +81,8 @@ const receive=p=>c.window.beltramiFirmaIphone.importPacket(p);
  c.apply(A);store.set('beltrami_firma_handoff',JSON.stringify(request));let outgoing;
  c.File=class{constructor(parts){this.contents=parts.join('')}};c.navigator={canShare:()=>true,share:async ({files})=>{outgoing=JSON.parse(files[0].contents)}};c.handoffName=()=> 'FIRMA_TEST.json';
  await c.window.beltramiFirmaIphone.finish(packet.firma_lavoratore_png);
+ assert.equal(outgoing,undefined,'native sharing waits for a fresh tap');
+ await c.saveActions.find(a=>a.label==='CONDIVIDI / AIRDROP').onclick();
  assert.equal(outgoing.visita,packet.visita);assert.equal(outgoing.id,packet.id);assert.equal(outgoing.versione,2);
  outgoing=null;get('data_giudizio').value='2026-09-29';await c.window.beltramiFirmaIphone.finish(packet.firma_lavoratore_png);assert.equal(outgoing,null);
  // Native signatures also save without requiring a separate SALVA action.
@@ -151,6 +155,7 @@ async function automaticTests(){
  await new Promise(r=>setImmediate(r));[...timers.values()].find(t=>t.ms===30000).fn();await rejected;c.closeFirmaMacPeer();
  // Sender uses the automatic path and only clears its own completed request.
  c.apply(A);receiver=await c.openAutomaticSignatureReceiver(request);
+ await c.window.lumenFirmaOffline.persist({...((await c.window.lumenFirmaOffline.list())[0]),peerId:receiver});
  store.set('beltrami_firma_handoff',JSON.stringify({...request,peerId:receiver}));let shared=false;c.navigator.share=async()=>shared=true;
  await c.window.beltramiFirmaIphone.finish(packet.firma_lavoratore_png);assert.equal(shared,false);assert.equal(store.has('beltrami_firma_handoff'),false);assert.equal(c.saveTitle,'✓ FIRMA RICEVUTA DAL MAC');
  c.closeFirmaMacPeer();c.putCartellaRecord=originalPut;

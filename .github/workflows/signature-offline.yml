@@ -1,0 +1,38 @@
+name: Verifica firme offline
+on:
+  push:
+    branches: [main, fix/firma-offline-20260928]
+    paths: [index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
+  pull_request:
+    paths: [index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signatures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installa browser di collaudo
+        run: |
+          npm install --prefix /tmp/lumen-tests --no-save playwright@1.51.1
+          node /tmp/lumen-tests/node_modules/playwright/cli.js install --with-deps chromium webkit
+      - name: Verifica archivio, trasporto e recupero
+        run: |
+          node tests/collatina.cjs
+          node tests/signature-handoff.cjs
+          node tests/signature-recovery.cjs
+      - name: Simula rete assente e archivi pieni in Chromium e WebKit
+        env:
+          NODE_PATH: /tmp/lumen-tests/node_modules
+        run: node tests/signature-offline.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firme-offline-collaudo
+          path: tmp/signature-offline/
+          retention-days: 7

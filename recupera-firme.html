@@ -5,11 +5,13 @@
 <p>Questa pagina legge le firme conservate da LUMEN nel browser di questo dispositivo. Non cancella né modifica le firme.</p>
 <p>Per le firme precedenti non è disponibile la data di acquisizione. Sul Mac apri la cartella corretta: prima di inserire la firma dovrai confermare a quale visita appartiene.</p>
 <p>Con gli Appunti condivisi Apple puoi usare COPIA FIRMA sull’iPhone e INCOLLA FIRMA in LUMEN sul Mac. In alternativa puoi condividere o salvare il file.</p>
-<div id="status" role="status"></div><div id="list"></div>
+<h2>FIRME CON DATA DELLA VISITA</h2><div id="pendingStatus" role="status"></div><div id="pendingList"></div><h2>FIRME STORICHE SENZA DATA</h2><div id="status" role="status"></div><div id="list"></div>
 <p><a href="./">TORNA A LUMEN</a></p>
-<script src="firma-recupero.js?v=20260920-1"></script>
+<script src="firma-offline.js?v=20260928-1"></script>
+<script src="firma-recupero.js?v=20260928-1"></script>
 <script>
 'use strict';
+window.lumenFirmaOffline.list().then(rows=>{document.getElementById('pendingStatus').textContent=rows.length+' firme con data e richiesta.';window.lumenFirmaOffline.renderRows(document.getElementById('pendingList'),rows)}).catch(e=>{document.getElementById('pendingStatus').textContent=e.message});
 const status=document.getElementById('status'),list=document.getElementById('list');
 function valid(v){return typeof v==='string'&&/^data:image\/(png|jpeg|webp);base64,/i.test(v)}
 function packetFor(key,data){
