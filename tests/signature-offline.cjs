@@ -30,7 +30,7 @@ async function run(engine,name){
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url);await page.waitForFunction(()=>window.lumenFirmaOffline&&window.lumenBatchCertApi);
   // Reproduce the original full-localStorage failure; IDB must still save the signature.
-  await page.evaluate(()=>{localStorage.setItem('beltrami_firme_lavoratori_v1','{"STORICA":"originale"}');const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(this===localStorage)throw new DOMException('Full','QuotaExceededError');return set.call(this,k,v)}});
+  await page.evaluate(()=>{localStorage.setItem('beltrami_firme_lavoratori_v1','{"STORICA":"originale"}');const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k!=='beltrami_firma_handoff'){window.blockedLocalWrites=(window.blockedLocalWrites||0)+1;throw new DOMException('Full','QuotaExceededError')};return set.call(this,k,v)}});
   await prepare(page);
   assert.match(await page.locator('#saveTitle').innerText(),/SALVATA SU IPHONE/);
   let rows=await page.evaluate(()=>window.lumenFirmaOffline.list());assert.equal(rows.length,1);assert.equal(rows[0].packet.visita,A.data_giudizio);assert.equal(rows[0].status,'pending');
@@ -68,13 +68,14 @@ async function run(engine,name){
   },{A,recovered});
   assert.deepEqual(imported.bad,['rejected','rejected','rejected']);assert.equal(imported.data.firma_lavoratore_png,image);await mac.close();
   // IDB unavailable: verified per-request localStorage is a fallback and survives reload.
-  await page.goto(url);await page.evaluate(()=>{indexedDB.open=()=>{throw Error('IDB unavailable')}});
+  await page.goto(url);await page.evaluate(()=>{IDBFactory.prototype.open=()=>{window.blockedIDB=(window.blockedIDB||0)+1;throw Error('IDB unavailable')}});
   await prepare(page,'REQUEST_FALLBACK');assert.match(await page.locator('#saveTitle').innerText(),/SALVATA SU IPHONE/);
   await page.reload();assert.ok((await page.evaluate(()=>window.lumenFirmaOffline.list())).some(r=>r.id==='REQUEST_FALLBACK'));
   // Both stores fail: keep a usable exact packet in memory and clearly avoid a saved claim.
-  await page.evaluate(()=>{indexedDB.open=()=>{throw Error('IDB unavailable')};const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(this===localStorage)throw new DOMException('Full','QuotaExceededError');return set.call(this,k,v)}});
+  await page.evaluate(()=>{IDBFactory.prototype.open=()=>{window.blockedIDB=(window.blockedIDB||0)+1;throw Error('IDB unavailable')};const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k!=='beltrami_firma_handoff'){window.blockedLocalWrites=(window.blockedLocalWrites||0)+1;throw new DOMException('Full','QuotaExceededError')};return set.call(this,k,v)}});
   await prepare(page,'REQUEST_VOLATILE');assert.match(await page.locator('#saveTitle').innerText(),/NON SALVATA/);
   assert.ok(await page.evaluate(()=>window.lumenFirmaOffline.hasVolatile()));
+  assert.ok(await page.evaluate(()=>window.blockedIDB>0&&window.blockedLocalWrites>0),'both storage failures must actually be injected');
   // Fully offline in the loaded page: native share is still reachable by a fresh tap.
   await context.setOffline(true);
   await page.evaluate(()=>{navigator.canShare=()=>true;navigator.share=async({files})=>{window.emergencyPacket=JSON.parse(await files[0].text())}});
