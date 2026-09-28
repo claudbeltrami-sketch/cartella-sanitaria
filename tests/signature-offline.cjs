@@ -78,15 +78,16 @@ async function run(engine,name){
   assert.ok(await page.evaluate(()=>window.blockedIDB>0&&window.blockedLocalWrites>0),'both storage failures must actually be injected');
   // Fully offline in the loaded page: native share is still reachable by a fresh tap.
   await context.setOffline(true);
-  await page.evaluate(()=>{navigator.canShare=()=>true;navigator.share=async({files})=>{window.emergencyPacket=JSON.parse(await files[0].text())}});
+  await page.evaluate(()=>{navigator.canShare=()=>true;navigator.share=async({files})=>{window.emergencyFile=files[0]}});
   await page.getByRole('button',{name:'CONDIVIDI / AIRDROP',exact:true}).click();
-  await page.waitForFunction(()=>window.emergencyPacket);
-  assert.equal((await page.evaluate(()=>window.emergencyPacket)).id,'REQUEST_VOLATILE');
+  await page.waitForFunction(()=>window.emergencyFile);
+  assert.match(await page.evaluate(()=>window.emergencyFile.name),/REQUEST_VOLATILE/);
   assert.doesNotMatch(await page.locator('#saveTitle').innerText(),/RICEVUTA DAL MAC/);
   await page.getByRole('button',{name:'RECUPERA FIRME',exact:true}).click();await page.locator('#lumenPendingSignatures article').first().waitFor();
   assert.match(await page.locator('#lumenPendingSignatures').innerText(),/NON SALVATA/);
   fs.mkdirSync(path.join(root,'tmp/signature-offline'),{recursive:true});await page.screenshot({path:path.join(root,'tmp/signature-offline',name+'.png')});
   await context.setOffline(false);
+  assert.equal((await page.evaluate(async()=>JSON.parse(await window.emergencyFile.text()))).id,'REQUEST_VOLATILE');
   assert.deepEqual(errors,[]);await context.close();
   console.log('PASS '+name+': full localStorage; verified IDB; network failure; exact share/cancel; reload/recovery; separate visits; backup; independent Mac import; wrong worker/date/request blocked; IDB fallback; both stores failed; offline emergency controls.');
  }finally{await browser.close()}
