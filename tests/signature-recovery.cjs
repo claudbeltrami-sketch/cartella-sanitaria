@@ -54,6 +54,7 @@ function element(tag){
 c.document.createElement=element;c.document.createTextNode=text=>({textContent:text});c.document.body.appendChild=()=>{};c.document.body.append=()=>{};
 let copied='';c.navigator={clipboard:{writeText:async v=>{copied=v},readText:async()=>copied}};
 c.window.setStatus=c.setStatus;
+c.window.lumenBatchCertApi={};for(const k of ['collect','workerSignatureIdentity','checkedSignatureVisit','signatureVisit','cartellaId','getCartellaRecord','optimizeWorkerSignature','saveToLocalArchive','useWorkerSignature','showSaveInfo','setStatus'])c.window.lumenBatchCertApi[k]=(...a)=>c[k](...a);c.window.lumenBatchCertApi.selectionVersion=()=>vm.runInContext('workerSelectionVersion',c);
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../firma-recupero.js'),'utf8'),c);
 const recover=p=>c.window.beltramiFirmaIphone.importPacket(p);
 const recovered={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,recuperata:true,id:'RECUPERO_TEST',identita:'TEST_FIRMA',firma_lavoratore_png:packet.firma_lavoratore_png};
