@@ -20,10 +20,10 @@ jobs:
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script src="cambia-lista.js?v=20260908-pdf-cumulativo-v3"></script>'
+          tag='<script src="cambia-lista.js?v=20260929-1"></script>'
           pattern=r'<script src="cambia-lista\.js(?:\?v=[^"]*)?"></script>'
           if re.search(pattern,s):
-              s=re.sub(pattern,tag,s,count=1)
+              raise SystemExit(0)  # Conserva la versione scelta dal progetto.
           elif '</body>' in s:
               s=s.replace('</body>',tag+'\n</body>',1)
           else:
