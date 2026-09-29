@@ -21,7 +21,7 @@ async function run(engine,name){
   assert.match(ghost.url(),/prova=fantasma/);assert.equal(await ghost.locator('#v9Panel').isVisible(),false);
   assert.equal(await ghost.evaluate(()=>lumenStorage.local.getItem('beltrami_workers_v8')),null);
   assert.equal((await ghost.evaluate(()=>lumenFirmaOffline.list())).length,0);
-  await ghost.locator('#mansione').fill('COLLAUDO');await ghost.locator('#btnSalva').click();await ghost.waitForFunction(()=>document.getElementById('saveTitle').textContent.includes('INSERITA'));
+  await ghost.locator('#mansione').fill('COLLAUDO');await ghost.locator('#btnSalva').click();await ghost.waitForFunction(async()=>{const a=lumenBatchCertApi;return (await a.getCartellaRecord(a.cartellaId(a.collect())))?.data.mansione==='COLLAUDO'});
   await ghost.reload();await ghost.waitForFunction(()=>document.getElementById('mansione').value==='COLLAUDO');
   const qr=await ghost.evaluate(async()=>{
    window.QRCode=function(_,options){window.testQr=options.text};window.QRCode.CorrectLevel={M:1};openAutomaticSignatureReceiver=async()=>'';
