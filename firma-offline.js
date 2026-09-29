@@ -5,7 +5,7 @@
  const DB='beltrami_firme_trasferimento_v1', STORE='firme', PREFIX='beltrami_firma_pending_v1_';
  const memory=new Map(), volatile=new Set(), busy=new Set();
  const clone=x=>JSON.parse(JSON.stringify(x));
- const valid=r=>r&&r.id===r.packet?.id&&r.packet.tipo==='BELTRAMI_FIRMA_IPHONE_V1'&&r.packet.versione===2&&
+ const valid=r=>r&&Boolean(r.packet?.lumen_prova)===Boolean(window.lumenStorage?.isTest)&&r.id===r.packet?.id&&r.packet.tipo==='BELTRAMI_FIRMA_IPHONE_V1'&&r.packet.versione===2&&
   typeof r.id==='string'&&r.id.length>0&&r.id.length<200&&typeof r.packet.identita==='string'&&r.packet.identita.length>0&&
   /^\d{4}-\d{2}-\d{2}$/.test(r.packet.visita||'')&&typeof r.packet.firma_lavoratore_png==='string'&&
   r.packet.firma_lavoratore_png.length<4000000&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r.packet.firma_lavoratore_png);
@@ -20,7 +20,7 @@
   const finish=(e)=>{if(done)return;done=true;clearTimeout(timer);if(e&&tx)try{tx.abort()}catch(_){}if(db)db.close();e?reject(e):resolve(result)};
   const timer=setTimeout(()=>finish(Error('Archivio firme non disponibile in tempo utile.')),4000);
   try{
-   const request=indexedDB.open(DB,1);
+   const request=lumenStorage.indexedDB.open(DB,1);
    request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(STORE))request.result.createObjectStore(STORE,{keyPath:'id'})};
    request.onerror=()=>finish(request.error||Error('Archivio firme non disponibile.'));
    request.onblocked=()=>finish(Error('Archivio firme bloccato da un’altra scheda.'));
@@ -46,9 +46,9 @@
   }catch(e){if(e.conflict)conflict(e);}
   // Separate, verified records avoid rewriting the old, potentially full cache.
   try{
-   const key=PREFIX+r.id,old=JSON.parse(localStorage.getItem(key)||'null');checkConflict(old,r);
-   const json=JSON.stringify(r);localStorage.setItem(key,json);
-   if(localStorage.getItem(key)!==json)throw Error('Rilettura non confermata.');
+   const key=PREFIX+r.id,old=JSON.parse(lumenStorage.local.getItem(key)||'null');checkConflict(old,r);
+   const json=JSON.stringify(r);lumenStorage.local.setItem(key,json);
+   if(lumenStorage.local.getItem(key)!==json)throw Error('Rilettura non confermata.');
    volatile.delete(r.id);return true;
   }catch(e){if(e.conflict)conflict(e);return false;}
  }
@@ -56,7 +56,7 @@
   const rows=new Map();let readable=false;
   const add=r=>{if(valid(r)){const old=rows.get(r.id);if(!old||String(r.confirmedAt||r.savedAt)>String(old.confirmedAt||old.savedAt))rows.set(r.id,clone(r))}};
   try{(await database('readonly',(s,done)=>{s.getAll().onsuccess=e=>done(e.target.result||[])})).forEach(add);readable=true}catch(e){if(strict)throw Error('Non posso includere tutte le firme nel backup: archivio firme non leggibile. Riprova.');}
-  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(PREFIX)){try{add(JSON.parse(localStorage.getItem(k)))}catch(_){}}}readable=true}catch(_){}
+  try{for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith(PREFIX)){try{add(JSON.parse(lumenStorage.local.getItem(k)))}catch(_){}}}readable=true}catch(_){}
   memory.forEach(r=>rows.set(r.id,clone(r)));
   if(!readable&&!rows.size)throw Error('Non riesco a leggere le firme in questo browser. Non cancellare i dati del sito.');
   return [...rows.values()].sort((a,b)=>String(b.packet.firmato||'').localeCompare(String(a.packet.firmato||'')));
@@ -94,13 +94,13 @@
    await window.lumenBatchCertApi.sendSignatureDirectly(r.packet,r.peerId);
    r.status='confirmed';r.confirmedAt=new Date().toISOString();await persist(r);
    // Clear only the exact acknowledged request, never a subsequent worker's QR.
-   try{if(JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')?.id===r.id)sessionStorage.removeItem('beltrami_firma_handoff')}catch(_){}
+   try{if(JSON.parse(lumenStorage.session.getItem('beltrami_firma_handoff')||'null')?.id===r.id)lumenStorage.session.removeItem('beltrami_firma_handoff')}catch(_){}
    report('✓ FIRMA RICEVUTA E SALVATA DAL MAC. '+label(r)+'.');
   }catch(e){report(state(r)+'. '+(e.message||e)+' Usa CONDIVIDI / AIRDROP o SALVA FILE FIRMA; sul Mac premi RICEVI DA IPHONE.');}
   finally{busy.delete(r.id)}
  }
  async function finish(firma,h,d){
-  const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,visita:h.visita,id:h.id,firmato:new Date().toISOString(),identita:h.identita,cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
+  const packet={...(window.lumenStorage?.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,visita:h.visita,id:h.id,firmato:new Date().toISOString(),identita:h.identita,cognome:d.cognome||'',nome:d.nome||'',firma_lavoratore_png:firma};
   let r={id:packet.id,packet,peerId:h.peerId||'',status:'pending',savedAt:new Date().toISOString()};
   const previous=memory.get(r.id);checkConflict(previous,r);if(previous)r=previous;
   const api=window.lumenBatchCertApi,selection=api.selectionVersion();
@@ -131,7 +131,7 @@
   const title=document.createElement('h2');title.textContent='FIRME DA TRASFERIRE';
   const close=document.createElement('button');close.type='button';close.textContent='CHIUDI';close.onclick=()=>{dialog.close();dialog.remove()};dialog.addEventListener('cancel',()=>dialog.remove(),{once:true});
   const status=document.createElement('p');status.textContent='Lettura delle firme locali…';const body=document.createElement('div');
-  const legacy=document.createElement('a');legacy.href='recupera-firme.html';legacy.textContent='Apri anche le firme storiche senza data';
+  const legacy=document.createElement('a');legacy.href='recupera-firme.html'+(window.lumenStorage?.isTest?'?prova=fantasma':'');legacy.textContent='Apri anche le firme storiche senza data';
   dialog.append(title,close,status,body,legacy);document.body.append(dialog);dialog.showModal();
   try{const rows=await list();status.textContent=rows.length?rows.length+' firme con data e richiesta. Le copie restano conservate anche dopo la conferma del Mac.':'Nessuna firma con data trovata in questo browser.';renderRows(body,rows)}catch(e){status.textContent=e.message}
  }

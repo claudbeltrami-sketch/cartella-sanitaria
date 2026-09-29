@@ -1,10 +1,10 @@
 name: Verifica firme offline
 on:
   push:
-    branches: [main, fix/firma-offline-20260928]
-    paths: [index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
+    branches: [main, fix/firma-offline-20260928, feature/prova-fantasma-20260929]
+    paths: [prova-storage.js, prova-fantasma.js, tests/prova-fantasma.cjs, index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
   pull_request:
-    paths: [index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
+    paths: [prova-storage.js, prova-fantasma.js, tests/prova-fantasma.cjs, index.html, firma-offline.js, firma-recupero.js, recupera-firme.html, 'tests/signature-*.cjs', .github/workflows/signature-offline.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,7 +29,9 @@ jobs:
       - name: Simula rete assente e archivi pieni in Chromium e WebKit
         env:
           NODE_PATH: /tmp/lumen-tests/node_modules
-        run: node tests/signature-offline.cjs
+        run: |
+          node tests/signature-offline.cjs
+          node tests/prova-fantasma.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

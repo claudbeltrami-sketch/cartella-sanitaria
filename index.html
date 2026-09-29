@@ -6,7 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20260928-firma-offline-v1">
+<meta name="lumen-build" content="20260929-prova-fantasma-v1">
+<script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
    collegamento principale viene aperto direttamente in Safari. */
@@ -17,20 +18,20 @@
   var bytes=Uint8Array.from(raw,function(c){return c.charCodeAt(0)});
   var packet=JSON.parse(new TextDecoder().decode(bytes));
   if(!packet||packet.tipo!=='LUMEN_LISTA_LOCALE_V1'||!Array.isArray(packet.workers)||!packet.workers.length)throw new Error('Lista non valida');
-  var lists=[];try{lists=JSON.parse(localStorage.getItem('beltrami_worker_lists_v1')||'[]');if(!Array.isArray(lists))lists=[]}catch(_){lists=[]}
+  var lists=[];try{lists=JSON.parse(lumenStorage.local.getItem('beltrami_worker_lists_v1')||'[]');if(!Array.isArray(lists))lists=[]}catch(_){lists=[]}
   var id='LISTA_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   var source=packet.attachedSourceName||'LISTA';
   lists.push({id:id,label:String(source).replace(/\.(xlsx?|csv|tsv|txt)$/i,''),workers:packet.workers,currentWorkerIndex:-1,attachedSourceName:source,session:null,esiti:{},updated:new Date().toISOString()});
-  localStorage.setItem('beltrami_worker_lists_v1',JSON.stringify(lists));
-  localStorage.setItem('beltrami_worker_list_active_v1',id);
-  localStorage.setItem('beltrami_workers_v8',JSON.stringify({workers:packet.workers,currentWorkerIndex:-1,attachedSourceName:source}));
-  localStorage.removeItem('beltrami_v9_sessione_attiva');
-  localStorage.setItem('beltrami_v9_esiti','{}');
+  lumenStorage.local.setItem('beltrami_worker_lists_v1',JSON.stringify(lists));
+  lumenStorage.local.setItem('beltrami_worker_list_active_v1',id);
+  lumenStorage.local.setItem('beltrami_workers_v8',JSON.stringify({workers:packet.workers,currentWorkerIndex:-1,attachedSourceName:source}));
+  lumenStorage.local.removeItem('beltrami_v9_sessione_attiva');
+  lumenStorage.local.setItem('beltrami_v9_esiti','{}');
   history.replaceState(null,'',location.pathname+'?lista-trasferita='+Date.now());
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20260928-firma-offline-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;document.open();document.write(html);document.close();return}if(location.search)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20260929-prova-fantasma-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -228,7 +229,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="vendor/peerjs-1.5.4.min.js"></script>
-<script src="firma-offline.js?v=20260928-1"></script>
+<script src="firma-offline.js?v=20260929-1"></script>
 <!-- OCR: il motore viene caricato da CDN, mentre l'immagine è elaborata nel browser -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style id="lumen-print-layout-20260912">
@@ -309,6 +310,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="tool-buttons">
    <button type="button" id="btnConsenso">GENERA CONSENSO</button>
    <button type="button" id="btnSopralluogo" onclick="window.open('sopralluogo.html','_blank','noopener')">RELAZIONE DI SOPRALLUOGO</button>
+   <button type="button" id="btnModalitaProva">MODALITÀ PROVA</button>
    <button type="button" id="btnAzzera" class="danger">AZZERA TUTTO</button>
   </div>
  </section>
@@ -720,9 +722,9 @@ function syncLavoratore(){const completo=[text('cognome'),text('nome')].filter(B
 document.getElementById('cognome').addEventListener('input',syncLavoratore);
 document.getElementById('nome').addEventListener('input',syncLavoratore);
 const MANSIONI_KEY='beltrami_mansioni_v1';
-function getMansioni(){try{return JSON.parse(localStorage.getItem(MANSIONI_KEY)||'[]')}catch(_){return[]}}
+function getMansioni(){try{return JSON.parse(lumenStorage.local.getItem(MANSIONI_KEY)||'[]')}catch(_){return[]}}
 function renderMansioni(){const dl=document.getElementById('lista_mansioni');if(!dl)return;dl.innerHTML='';getMansioni().sort((a,b)=>a.localeCompare(b,'it')).forEach(m=>{const o=document.createElement('option');o.value=m;dl.appendChild(o)})}
-function rememberMansione(){const el=document.getElementById('mansione');if(!el)return;const m=(el.value||'').trim().toUpperCase();if(!m)return;const list=getMansioni();if(!list.includes(m)){list.push(m);try{localStorage.setItem(MANSIONI_KEY,JSON.stringify(list))}catch(_){}renderMansioni()}}
+function rememberMansione(){const el=document.getElementById('mansione');if(!el)return;const m=(el.value||'').trim().toUpperCase();if(!m)return;const list=getMansioni();if(!list.includes(m)){list.push(m);try{lumenStorage.local.setItem(MANSIONI_KEY,JSON.stringify(list))}catch(_){}renderMansioni()}}
 document.getElementById('mansione').addEventListener('change',rememberMansione);
 document.getElementById('mansione').addEventListener('blur',rememberMansione);
 renderMansioni();syncCFBarcode();
@@ -743,11 +745,11 @@ document.getElementById('invalidita_stato').addEventListener('change',aggiornaIn
 function allFields(){return [...form.querySelectorAll('input,select,textarea')].filter(e=>e.id&&!e.hasAttribute('data-temporary'))}
 const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';
 function workerSignatureIdentity(d){const up=v=>String(v||'').trim().toLocaleUpperCase('it-IT'),cf=up(d.codice_fiscale),parts=[up(d.cognome),up(d.nome),up(d.data_nascita)].filter(Boolean);return cf||parts.join('|')}
-function workerSignatureStore(){try{return JSON.parse(localStorage.getItem(WORKER_SIGNATURE_KEY)||'{}')}catch(_){return {}}}
+function workerSignatureStore(){try{return JSON.parse(lumenStorage.local.getItem(WORKER_SIGNATURE_KEY)||'{}')}catch(_){return {}}}
 function optimizeWorkerSignature(data,strict=false){return new Promise((resolve,reject)=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const maxW=700,maxH=240,scale=Math.min(1,maxW/im.naturalWidth,maxH/im.naturalHeight),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale));if(scale===1&&String(data).startsWith('data:image/png;base64,'))return resolve(data);const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);resolve(cv.toDataURL('image/png'))};im.onerror=()=>strict?reject(new Error('IMMAGINE FIRMA NON LEGGIBILE. RIPETERE L’INVIO.')):resolve(data);im.src=data})}
-async function saveWorkerSignature(key,data){const optimized=await optimizeWorkerSignature(data),store=workerSignatureStore();store[key]=optimized;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(e){throw new Error('MEMORIA FIRME PIENA. CREARE UN BACKUP PRIMA DI PROSEGUIRE.')}if(key===workerSignatureIdentity(collect()))useWorkerSignature(optimized);else window.dispatchEvent(new Event('beltrami-signature-updated'));return optimized}
-function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=workerSignatureIdentity(d);if(!key)return;const store=workerSignatureStore();store[key]=d.firma_lavoratore_png;try{localStorage.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'))}catch(_){}}
-function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();return d}
+async function saveWorkerSignature(key,data){const optimized=await optimizeWorkerSignature(data),store=workerSignatureStore();store[key]=optimized;try{lumenStorage.local.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(e){throw new Error('MEMORIA FIRME PIENA. CREARE UN BACKUP PRIMA DI PROSEGUIRE.')}if(key===workerSignatureIdentity(collect()))useWorkerSignature(optimized);else window.dispatchEvent(new Event('beltrami-signature-updated'));return optimized}
+function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=workerSignatureIdentity(d);if(!key)return;const store=workerSignatureStore();store[key]=d.firma_lavoratore_png;try{lumenStorage.local.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'))}catch(_){}}
+function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();if(lumenStorage.isTest){Object.assign(d,lumenStorage.identity);d.lumen_prova=true}return d}
 function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return {cognome:value||'',nome:''};return {cognome:parts.shift(),nome:parts.join(' ')}}
 // A complete load always replaces the visible record, including absent fields.
 let workerSelectionVersion=0;
@@ -779,6 +781,7 @@ function normalizzaEmailLavoratore(source){
  return d;
 }
 function apply(source){
+ lumenStorage.checkData(source);
  const d=normalizzaEmailLavoratore(source);
  workerSelectionVersion++;
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
@@ -795,7 +798,7 @@ function apply(source){
  document.querySelectorAll('input[name="giudizio"]').forEach(x=>x.checked=!!d.giudizio&&x.value===d.giudizio);
  document.getElementById('altezza_feet').value='';document.getElementById('altezza_inches').value='';
  document.getElementById('cfResult').textContent='';
- sessionStorage.removeItem('beltrami_firma_handoff');
+ lumenStorage.session.removeItem('beltrami_firma_handoff');
  const modal=document.getElementById('workerSignModal');modal.classList.remove('show');modal.setAttribute('aria-hidden','true');
  convertiAltezzaInCm();aggiornaBmi();
  if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();
@@ -841,7 +844,7 @@ function handoffId(){return new Date().toISOString().replace(/\D/g,'').slice(0,1
 function handoffName(prefix,d){const c=String(d.cognome||'SENZA_COGNOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_'),n=String(d.nome||'SENZA_NOME').replace(/[^A-Z0-9À-ÿ]+/gi,'_');return prefix+'_'+c+'_'+n+'_'+today()+'.json'}
 function handoffEncode(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function handoffDecode(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
-function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,peerId:packet.peerId||'',cartella:{cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.id='firmaQrOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p id="firmaQrMessage" style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice. Dopo la firma, il Mac la riceverà da solo.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});if(!packet.peerId)overlay.querySelector('#firmaQrMessage').textContent='Inquadra il QR e firma. Il collegamento automatico non è disponibile: invia il file al Mac e premi RICEVI DA IPHONE.';overlay.querySelector('button').onclick=()=>{overlay.remove();firmaPreparationVersion++;closeFirmaMacPeer()};setStatus('INQUADRARE IL CODICE QR. IL MAC RICEVERÀ AUTOMATICAMENTE LA FIRMA.');return true}
+function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,peerId:packet.peerId||'',cartella:{...(lumenStorage.isTest?{lumen_prova:true}:{}),cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+(lumenStorage.isTest?'?prova=fantasma':'')+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.id='firmaQrOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p id="firmaQrMessage" style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice. Dopo la firma, il Mac la riceverà da solo.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});if(!packet.peerId)overlay.querySelector('#firmaQrMessage').textContent='Inquadra il QR e firma. Il collegamento automatico non è disponibile: invia il file al Mac e premi RICEVI DA IPHONE.';overlay.querySelector('button').onclick=()=>{overlay.remove();firmaPreparationVersion++;closeFirmaMacPeer()};setStatus('INQUADRARE IL CODICE QR. IL MAC RICEVERÀ AUTOMATICAMENTE LA FIRMA.');return true}
 async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
 async function inviaCartellaCompletaIphone(){
  const d=collect();
@@ -917,16 +920,18 @@ function sendSignatureDirectly(packet,targetPeerId){return new Promise((resolve,
 function signatureRequestKey(id){return 'beltrami_richiesta_firma_v2_'+id}
 function checkedSignatureVisit(d){const visit=signatureVisit(d);if(!/^\d{4}-\d{2}-\d{2}$/.test(visit))throw new Error('IMPOSTARE LA DATA DELLA VISITA PRIMA DELLA FIRMA.');return visit}
 function checkSignatureRequest(packet){
+ lumenStorage.checkPacket(packet);
  if(!packet||packet.versione!==2||!packet.id||!packet.visita||packet.visita!==checkedSignatureVisit(packet.cartella||{})||packet.identita!==workerSignatureIdentity(packet.cartella||{}))throw new Error('RICHIESTA FIRMA PRIVA DI DATA O NON VALIDA. GENERARE UN NUOVO QR DAL MAC.');
- return {id:packet.id,identita:packet.identita,visita:packet.visita,...(packet.peerId?{peerId:packet.peerId}:{})};
+ return {...(lumenStorage.isTest?{lumen_prova:true}:{}),id:packet.id,identita:packet.identita,visita:packet.visita,...(packet.peerId?{peerId:packet.peerId}:{})};
 }
 function checkReturnedSignature(packet,d){
+ lumenStorage.checkPacket(packet);
  if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(packet.firma_lavoratore_png||''))throw new Error('Questo non è un file firma PNG valido.');
  const identity=workerSignatureIdentity(d),visit=checkedSignatureVisit(d);
  if(!identity||packet.identita!==identity)throw new Error('La firma non appartiene al lavoratore aperto.');
  if(packet.versione!==2||!packet.visita)throw new Error('QUESTA FIRMA NON IDENTIFICA LA VISITA. CONSERVARE IL FILE STORICO; PER LA VISITA CORRENTE GENERARE UN NUOVO QR E ACQUISIRE LA FIRMA.');
  if(packet.visita!==visit)throw new Error('La firma è per la visita del '+packet.visita+', non per quella del '+visit+'.');
- let request=null;try{request=JSON.parse(localStorage.getItem(signatureRequestKey(packet.id))||'null')}catch(_){}
+ let request=null;try{request=JSON.parse(lumenStorage.local.getItem(signatureRequestKey(packet.id))||'null')}catch(_){}
  if(!request||request.identita!==identity||request.visita!==visit)throw new Error('RICHIESTA FIRMA NON RICONOSCIUTA SU QUESTO DISPOSITIVO. APRIRE LA VISITA SUL MAC CHE HA GENERATO IL QR.');
 }
 async function archiveVisitSignature(snapshot,image){
@@ -953,19 +958,19 @@ window.beltramiFirmaIphone={
   try{
    const d=collect(),identita=workerSignatureIdentity(d),visita=checkedSignatureVisit(d),selection=workerSelectionVersion;
    if(!identita||!d.cognome||!d.nome)throw new Error('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');
-   const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:2,id:handoffId(),creato:new Date().toISOString(),identita,visita,cartella:d};
+   const packet={tipo:'BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1',versione:2,id:handoffId(),creato:new Date().toISOString(),identita,visita,cartella:d,...(lumenStorage.isTest?{lumen_prova:true}:{})};
    setStatus('PREPARAZIONE DEL COLLEGAMENTO AUTOMATICO IPHONE–MAC…');
    const peerId=await openAutomaticSignatureReceiver(packet);
    if(preparation!==firmaPreparationVersion)return;
    if(selection!==workerSelectionVersion||JSON.stringify(collect())!==JSON.stringify(d)){closeFirmaMacPeer();throw new Error('LA CARTELLA È CAMBIATA. PREMI INVIA A IPHONE DALLA VISITA CORRETTA.');}
    packet.peerId=peerId;
-   localStorage.setItem(signatureRequestKey(packet.id),JSON.stringify({id:packet.id,identita,visita}));
+   lumenStorage.local.setItem(signatureRequestKey(packet.id),JSON.stringify({id:packet.id,identita,visita}));
    if(!showFirmaQr(packet)){closeFirmaMacPeer();return;}
    showSaveInfo('warn',peerId?'IN ATTESA DELLA FIRMA DALL’IPHONE':'COLLEGAMENTO AUTOMATICO NON DISPONIBILE',peerId?'Inquadra il QR e firma. La firma arriverà e sarà salvata automaticamente nella cartella della visita del '+visita+'. Lascia aperto il QR sul Mac.':'Puoi comunque inquadrare il QR, firmare e inviare il file al Mac con AirDrop. Poi premi RICEVI DA IPHONE.');
   }catch(e){if(preparation!==firmaPreparationVersion)return;closeFirmaMacPeer();showSaveInfo('error','RICHIESTA FIRMA NON PREPARATA',e.message||String(e))}
  },
  finish:async firma=>{
-  let h=null;try{h=JSON.parse(sessionStorage.getItem('beltrami_firma_handoff')||'null')}catch(_){}
+  let h=null;try{h=JSON.parse(lumenStorage.session.getItem('beltrami_firma_handoff')||'null')}catch(_){}
   if(!h||!h.id)return false;
   const d=collect();
   if(!h.visita||h.visita!==signatureVisit(d)||h.identita!==workerSignatureIdentity(d)){showSaveInfo('error','INVIO FIRMA SOSPESO','Il lavoratore o la visita non corrispondono alla richiesta. Generare un nuovo QR dal Mac.');return true}
@@ -973,7 +978,7 @@ window.beltramiFirmaIphone={
  },
  importPacket:async packet=>{setStatus('CONTROLLO E SALVATAGGIO FIRMA IN CORSO…');await archiveReceivedSignature(packet)}
 };
-window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');const context=checkSignatureRequest(packet);apply(packet.cartella||{});sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify(context));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
+window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');const context=checkSignatureRequest(packet);apply(packet.cartella||{});lumenStorage.session.setItem('beltrami_firma_handoff',JSON.stringify(context));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
 async function saveCartellaVerified(){const name=filename('CARTELLA','json');const json=JSON.stringify(collect(),null,2);const blob=new Blob([json],{type:'application/json'});lastVerifiedFile=null;lastVerifiedHandle=null;
  try{
   if('showSaveFilePicker' in window){
@@ -989,14 +994,14 @@ async function saveCartellaVerified(){const name=filename('CARTELLA','json');con
  }catch(e){if(e&&e.name==='AbortError'){showSaveInfo('warn','SALVATAGGIO ANNULLATO','Nessun file è stato scritto. Ora: '+clock());setStatus('SALVATAGGIO ANNULLATO.');return}showSaveInfo('error','ERRORE DI SALVATAGGIO',(e&&e.message)||String(e));setStatus('ERRORE: IL FILE NON È STATO SALVATO.')}
 }
 const CARTELLE_DB='beltrami_cartelle_db_v1',CARTELLE_STORE='cartelle';
-function openLumenDbWithStore(dbName,storeName,createStore){return new Promise((resolve,reject)=>{const open=currentVersion=>{const req=currentVersion==null?indexedDB.open(dbName):indexedDB.open(dbName,currentVersion);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(storeName))createStore(db)};req.onsuccess=()=>{const db=req.result;if(db.objectStoreNames.contains(storeName)){db.onversionchange=()=>db.close();resolve(db);return}const next=db.version+1;db.close();open(next)};req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('ARCHIVIO LOCALE TEMPORANEAMENTE BLOCCATO. CHIUDERE LE ALTRE SCHEDE DI LUMEN E RIPROVARE.'))};open()})}
+function openLumenDbWithStore(dbName,storeName,createStore){return new Promise((resolve,reject)=>{const open=currentVersion=>{const req=currentVersion==null?lumenStorage.indexedDB.open(dbName):lumenStorage.indexedDB.open(dbName,currentVersion);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(storeName))createStore(db)};req.onsuccess=()=>{const db=req.result;if(db.objectStoreNames.contains(storeName)){db.onversionchange=()=>db.close();resolve(db);return}const next=db.version+1;db.close();open(next)};req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('ARCHIVIO LOCALE TEMPORANEAMENTE BLOCCATO. CHIUDERE LE ALTRE SCHEDE DI LUMEN E RIPROVARE.'))};open()})}
 function openCartelleDb(){return openLumenDbWithStore(CARTELLE_DB,CARTELLE_STORE,db=>{const st=db.createObjectStore(CARTELLE_STORE,{keyPath:'id'});st.createIndex('cf','cf',{unique:false});st.createIndex('nomeKey','nomeKey',{unique:false});st.createIndex('updatedAt','updatedAt',{unique:false})})}
 function normArchive(v){return String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'')}
 function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const cognome=normArchive(data.cognome),nome=normArchive(data.nome),dn=String(data.data_nascita||'');return {cf,cognome,nome,dn,nomeKey:[cognome,nome,dn].join('|')}}
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(archiveData){const data=archiveData||collect(),id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history};await putCartellaRecord(rec);return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history};await putCartellaRecord(rec);return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -1058,7 +1063,7 @@ document.getElementById('archiveModal').addEventListener('click',e=>{if(e.target
 document.getElementById('btnSalva').onclick=saveCartellaVerified;
 document.getElementById('btnInviaCartellaCompletaIphone').onclick=inviaCartellaCompletaIphone;
 document.getElementById('fileImportaFirmaIphone').onchange=async e=>{const input=e.currentTarget,f=input.files&&input.files[0];if(!f)return;setStatus('LETTURA DEL FILE FIRMA: '+f.name+'…');try{const testo=await f.text();if(!testo.trim())throw new Error('Il file selezionato è vuoto.');await window.beltramiFirmaIphone.importPacket(JSON.parse(testo))}catch(err){setStatus('FIRMA NON IMPORTATA: '+(err.message||err));alert('FIRMA NON IMPORTATA\n\n'+(err.message||'File firma non valido.'))}finally{input.value=''}};
-document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';const context=isRequest?checkSignatureRequest(parsed):null;apply(isRequest?parsed.cartella:parsed);if(isRequest){sessionStorage.setItem('beltrami_firma_handoff',JSON.stringify(context));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
+document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),isRequest=parsed&&parsed.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1';const context=isRequest?checkSignatureRequest(parsed):null;apply(isRequest?parsed.cartella:parsed);if(isRequest){lumenStorage.session.setItem('beltrami_firma_handoff',JSON.stringify(context));setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),250)}else setStatus('DATI CARICATI CORRETTAMENTE.')}catch(_){alert('File non valido.')}finally{e.target.value=''}};r.readAsText(f)};
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;apply({firma_lavoratore_png:''});document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaBmi();if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
 document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTELLA'))return;pendingPrint='PDF CARTELLA';titleBeforePrint=document.title;document.title=pdfBaseName('CARTELLA_SANITARIA');document.body.className='print-cartella';window.print()};
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
@@ -1068,7 +1073,7 @@ function luogoVisitaSessione(dataVisita){
  const campo=text('v9Sede').trim(),dataSessione=text('v9Data');
  if(campo&&dataVisita&&dataSessione===dataVisita)return campo.toUpperCase();
  try{
-  const sessione=JSON.parse(localStorage.getItem('beltrami_v9_sessione_attiva')||'null');
+  const sessione=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessione_attiva')||'null');
   if(dataVisita&&sessione?.data===dataVisita)return String(sessione.sede||'').trim().toUpperCase();
  }catch(_){}
  return '';
@@ -1154,10 +1159,10 @@ document.getElementById('btnPrintConsenso').onclick=()=>{
 let workers=[],pendingImportedWorkers=[],pendingImportName='',pendingOriginalFile=null;let currentWorkerIndex=-1;let attachedSourceName='';
 const ORIGINAL_DB='beltrami_lumen_files_v1', ORIGINAL_STORE='originali', ORIGINAL_META_KEY='beltrami_lista_originale_attiva_v1';
 function openOriginalDb(){return openLumenDbWithStore(ORIGINAL_DB,ORIGINAL_STORE,db=>db.createObjectStore(ORIGINAL_STORE,{keyPath:'id'}))}
-async function storeOriginalFile(fileInfo){if(!fileInfo||!fileInfo.bytes)return null;const db=await openOriginalDb();const id='SRC_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);const rec={id,name:fileInfo.name,type:fileInfo.type||'application/octet-stream',size:fileInfo.size||fileInfo.bytes.byteLength,lastModified:fileInfo.lastModified||0,savedAt:new Date().toISOString(),blob:new Blob([fileInfo.bytes],{type:fileInfo.type||'application/octet-stream'})};await new Promise((resolve,reject)=>{const tx=db.transaction(ORIGINAL_STORE,'readwrite');tx.objectStore(ORIGINAL_STORE).put(rec);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();const meta={id:rec.id,name:rec.name,type:rec.type,size:rec.size,lastModified:rec.lastModified,savedAt:rec.savedAt};localStorage.setItem(ORIGINAL_META_KEY,JSON.stringify(meta));return meta}
-function getOriginalMeta(){try{return JSON.parse(localStorage.getItem(ORIGINAL_META_KEY)||'null')}catch(_){return null}}
+async function storeOriginalFile(fileInfo){if(!fileInfo||!fileInfo.bytes)return null;const db=await openOriginalDb();const id='SRC_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);const rec={id,name:fileInfo.name,type:fileInfo.type||'application/octet-stream',size:fileInfo.size||fileInfo.bytes.byteLength,lastModified:fileInfo.lastModified||0,savedAt:new Date().toISOString(),blob:new Blob([fileInfo.bytes],{type:fileInfo.type||'application/octet-stream'})};await new Promise((resolve,reject)=>{const tx=db.transaction(ORIGINAL_STORE,'readwrite');tx.objectStore(ORIGINAL_STORE).put(rec);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();const meta={id:rec.id,name:rec.name,type:rec.type,size:rec.size,lastModified:rec.lastModified,savedAt:rec.savedAt};lumenStorage.local.setItem(ORIGINAL_META_KEY,JSON.stringify(meta));return meta}
+function getOriginalMeta(){try{return JSON.parse(lumenStorage.local.getItem(ORIGINAL_META_KEY)||'null')}catch(_){return null}}
 async function downloadOriginal(meta=getOriginalMeta()){if(!meta||!meta.id)return alert('Nessun file originale associato alla sessione.');try{const db=await openOriginalDb();const rec=await new Promise((resolve,reject)=>{const tx=db.transaction(ORIGINAL_STORE,'readonly');const r=tx.objectStore(ORIGINAL_STORE).get(meta.id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});db.close();if(!rec||!rec.blob)return alert('Il file originale non è più disponibile su questo dispositivo.');const u=URL.createObjectURL(rec.blob),a=document.createElement('a');a.href=u;a.download=rec.name||'lista_originale';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch(err){alert('Impossibile aprire il file originale: '+(err.message||err))}}
-function clearOriginalMeta(){localStorage.removeItem(ORIGINAL_META_KEY)}
+function clearOriginalMeta(){lumenStorage.local.removeItem(ORIGINAL_META_KEY)}
 window.beltramiOriginalFiles={getOriginalMeta,downloadOriginal,clearOriginalMeta,metaKey:ORIGINAL_META_KEY};
 
 /* Backup locale guidato: cartelle, firme, liste, sessioni, impostazioni e file originali. */
@@ -1169,11 +1174,11 @@ async function replaceAllInDb(openDb,store,rows){const db=await openDb();await n
 async function creaBackupCompleto(){
  const btn=document.getElementById('btnBackupCompleto');btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
  try{
-  const local={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('beltrami_'))local[k]=localStorage.getItem(k)}
+  const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
   for(const r of originali){originaliSerializzati.push({...r,blob:r.blob?await blobToBackupData(r.blob):null})}
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
-  const packet={tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,cartella_visibile:collect()}};
+  const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,cartella_visibile:collect()}};
   const name='BACKUP_LUMEN_'+backupStamp()+'.json',ok=await shareOrDownloadPacket(packet,name,'Copia di sicurezza LUMEN');
   if(!ok){setStatus('CREAZIONE DELLA COPIA ANNULLATA.');return}
   showSaveInfo('ok','✓ COPIA DI SICUREZZA PREPARATA','Nome: '+name+'\nOra: '+clock()+'\nCartelle archiviate: '+cartelle.length+'\nFile originali inclusi: '+originali.length+'\n\nSu iPhone scegli “Salva su File” e conserva il file nella cartella privata CARTELLA SANITARIA.',[{label:'RIPRISTINA UNA COPIA',className:'secondary',onclick:()=>document.getElementById('fileRipristinaBackup').click()}]);setStatus('COPIA DI SICUREZZA COMPLETA PREPARATA. VERIFICARE CHE IL FILE SIA STATO SALVATO.');
@@ -1181,10 +1186,12 @@ async function creaBackupCompleto(){
 }
 async function ripristinaBackupCompleto(file){
  const raw=await file.text(),packet=JSON.parse(raw);if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
+ lumenStorage.checkPacket(packet);
  const c=packet.contenuto,cartelle=Array.isArray(c.cartelle)?c.cartelle:[],originali=Array.isArray(c.originali)?c.originali:[];
+ cartelle.forEach(r=>lumenStorage.checkData(r.data));if(c.cartella_visibile)lumenStorage.checkData(c.cartella_visibile);
  if(c.firme_da_trasferire!==undefined&&(!Array.isArray(c.firme_da_trasferire)||c.firme_da_trasferire.some(r=>!window.lumenFirmaOffline.valid(r))))throw Error('Firme del backup non valide.');
  if(!confirm('RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
- const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_'))keys.push(k)}keys.forEach(k=>localStorage.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_')&&typeof v==='string')localStorage.setItem(k,v)});
+ const keys=[];for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_'))keys.push(k)}keys.forEach(k=>lumenStorage.local.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_')&&typeof v==='string')lumenStorage.local.setItem(k,v)});
  await replaceAllInDb(openCartelleDb,CARTELLE_STORE,cartelle);
  const originaliRipristinati=originali.map(r=>({...r,blob:r.blob?backupDataToBlob(r.blob,r.type):null}));await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
  if(c.firme_da_trasferire)await window.lumenFirmaOffline.restore(c.firme_da_trasferire);
@@ -1224,7 +1231,7 @@ async function parseXlsx(buf){
  }
  let z=await unzipEntries(buf),td=new TextDecoder();let shared=[];if(z['xl/sharedStrings.xml']){let doc=new DOMParser().parseFromString(td.decode(z['xl/sharedStrings.xml']),'application/xml');shared=[...doc.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}let sheetName=Object.keys(z).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));if(!sheetName)throw new Error('Nessun foglio trovato nel file Excel.');let doc=new DOMParser().parseFromString(td.decode(z[sheetName]),'application/xml'),rows=[];for(const r of doc.getElementsByTagName('row')){let arr=[];for(const c of r.getElementsByTagName('c')){let ref=c.getAttribute('r')||'A1',letters=(ref.match(/[A-Z]+/)||['A'])[0],col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;col--;let t=c.getAttribute('t'),v=(c.getElementsByTagName('v')[0]||{}).textContent||'';if(t==='s')v=shared[Number(v)]??'';else if(t==='inlineStr')v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');arr[col]=v}rows.push(arr)}return rows
 }
-function saveWorkersLocal(){try{localStorage.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
+function saveWorkersLocal(){try{lumenStorage.local.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
 function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
 const workerDrafts=new Map();
 let emptyWorkerScreen=null;
@@ -1339,8 +1346,8 @@ function cfFormalmenteValido(cf){cf=norm(cf).replace(/\s+/g,'');if(!/^[A-Z]{6}[0
 const WORKER_ARCHIVE_KEY='beltrami_worker_archive_v13';
 function workerArchiveRecords(){
  let out=[];
- try{let a=JSON.parse(localStorage.getItem(WORKER_ARCHIVE_KEY)||'[]');if(Array.isArray(a))out.push(...a)}catch(_){}
- try{let h=JSON.parse(localStorage.getItem('beltrami_v9_sessioni')||'[]');if(Array.isArray(h))h.forEach(sess=>{if(Array.isArray(sess.workers))out.push(...sess.workers)})}catch(_){}
+ try{let a=JSON.parse(lumenStorage.local.getItem(WORKER_ARCHIVE_KEY)||'[]');if(Array.isArray(a))out.push(...a)}catch(_){}
+ try{let h=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessioni')||'[]');if(Array.isArray(h))h.forEach(sess=>{if(Array.isArray(sess.workers))out.push(...sess.workers)})}catch(_){}
  const seen=new Set(),clean=[];
  for(const w of out){let cf=norm(w.codice_fiscale).replace(/\s+/g,''),key=cf?('CF:'+cf):('ID:'+norm(w.cognome)+'|'+norm(w.nome)+'|'+(w.data_nascita||''));if(!key||seen.has(key))continue;seen.add(key);clean.push({...w,codice_fiscale:cf})}
  return clean;
@@ -1360,11 +1367,11 @@ function compareWithWorkerArchive(list){
 }
 function rememberWorkersInArchive(list){
  try{
-  let a=JSON.parse(localStorage.getItem(WORKER_ARCHIVE_KEY)||'[]');if(!Array.isArray(a))a=[];
+  let a=JSON.parse(lumenStorage.local.getItem(WORKER_ARCHIVE_KEY)||'[]');if(!Array.isArray(a))a=[];
   const merged=[...a,...list.map(w=>({cognome:w.cognome||'',nome:w.nome||'',data_nascita:w.data_nascita||'',luogo_nascita:w.luogo_nascita||'',codice_fiscale:w.codice_fiscale||'',datore_lavoro:w.datore_lavoro||'',mansione:w.mansione||'',ultimo_aggiornamento:new Date().toISOString()}))];
   const seen=new Set(),ded=[];
   for(let i=merged.length-1;i>=0;i--){let w=merged[i],cf=norm(w.codice_fiscale).replace(/\s+/g,''),key=cf?('CF:'+cf):('ID:'+norm(w.cognome)+'|'+norm(w.nome)+'|'+(w.data_nascita||''));if(seen.has(key))continue;seen.add(key);ded.push(w)}
-  localStorage.setItem(WORKER_ARCHIVE_KEY,JSON.stringify(ded.reverse()));
+  lumenStorage.local.setItem(WORKER_ARCHIVE_KEY,JSON.stringify(ded.reverse()));
  }catch(_){}
 }
 
@@ -1390,7 +1397,7 @@ function renderImportPreview(){
  body.querySelectorAll('button[data-pdel]').forEach(b=>b.onclick=()=>{pendingImportedWorkers.splice(+b.dataset.pdel,1);pendingImportedWorkers=validateImportedWorkers(pendingImportedWorkers);renderImportPreview()});
  let check=pendingImportedWorkers.filter(w=>w.da_verificare).length,known=pendingImportedWorkers.filter(w=>w.archivio_stato==='GIA CONOSCIUTO').length,possible=pendingImportedWorkers.filter(w=>w.archivio_stato==='POSSIBILE CORRISPONDENZA').length,fresh=pendingImportedWorkers.filter(w=>w.archivio_stato==='NUOVO LAVORATORE').length;meta.textContent=(pendingImportName?'FILE: '+pendingImportName+' — ':'')+'RIGHE: '+pendingImportedWorkers.length+' — GIÀ CONOSCIUTI: '+known+' — NUOVI: '+fresh+(possible?' — POSSIBILI CORRISPONDENZE: '+possible:'')+(check?' — DA VERIFICARE: '+check:' — NESSUNA ANOMALIA EVIDENTE');box.classList.add('show');box.scrollIntoView({behavior:'smooth',block:'nearest'})
 }
-document.getElementById('btnConfermaImport').onclick=async()=>{if(!pendingImportedWorkers.length)return;if(window.lumenCambiaLista)window.lumenCambiaLista.saveCurrentIntoActive();let sourceMeta=null;try{sourceMeta=await storeOriginalFile(pendingOriginalFile)}catch(err){if(!confirm('Non è stato possibile conservare una copia del file originale su questo dispositivo. Vuoi confermare comunque l’importazione?'))return}workers=pendingImportedWorkers.map(w=>({...w}));rememberWorkersInArchive(workers);if(sourceMeta){try{const activeRaw=localStorage.getItem('beltrami_v9_sessione_attiva');if(activeRaw){const activeObj=JSON.parse(activeRaw);activeObj.listaOriginale=sourceMeta;activeObj.aggiornata=new Date().toISOString();localStorage.setItem('beltrami_v9_sessione_attiva',JSON.stringify(activeObj))}}catch(_){}}currentWorkerIndex=-1;attachedSourceName=pendingImportName;pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();renderWorkers();if(window.lumenCambiaLista)window.lumenCambiaLista.registerCurrentAsNewList(attachedSourceName);let check=workers.filter(w=>w.da_verificare).length,known=workers.filter(w=>w.archivio_stato==='GIA CONOSCIUTO').length,fresh=workers.filter(w=>w.archivio_stato==='NUOVO LAVORATORE').length,possible=workers.filter(w=>w.archivio_stato==='POSSIBILE CORRISPONDENZA').length;showSaveInfo(check?'warn':'ok','IMPORTAZIONE CONFERMATA','Lavoratori importati: '+workers.length+'\nGià conosciuti: '+known+'\nNuovi: '+fresh+(possible?'\nPossibili corrispondenze: '+possible:'')+(check?'\nDa verificare: '+check:'\nDati principali senza anomalie evidenti.'));setStatus('LISTA IMPORTATA: '+workers.length+' — GIÀ CONOSCIUTI '+known+' — NUOVI '+fresh+(possible?' — POSSIBILI CORRISPONDENZE '+possible:'')+(check?' — DA VERIFICARE '+check:'')+'.')};
+document.getElementById('btnConfermaImport').onclick=async()=>{if(!pendingImportedWorkers.length)return;if(window.lumenCambiaLista)window.lumenCambiaLista.saveCurrentIntoActive();let sourceMeta=null;try{sourceMeta=await storeOriginalFile(pendingOriginalFile)}catch(err){if(!confirm('Non è stato possibile conservare una copia del file originale su questo dispositivo. Vuoi confermare comunque l’importazione?'))return}workers=pendingImportedWorkers.map(w=>({...w}));rememberWorkersInArchive(workers);if(sourceMeta){try{const activeRaw=lumenStorage.local.getItem('beltrami_v9_sessione_attiva');if(activeRaw){const activeObj=JSON.parse(activeRaw);activeObj.listaOriginale=sourceMeta;activeObj.aggiornata=new Date().toISOString();lumenStorage.local.setItem('beltrami_v9_sessione_attiva',JSON.stringify(activeObj))}}catch(_){}}currentWorkerIndex=-1;attachedSourceName=pendingImportName;pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();renderWorkers();if(window.lumenCambiaLista)window.lumenCambiaLista.registerCurrentAsNewList(attachedSourceName);let check=workers.filter(w=>w.da_verificare).length,known=workers.filter(w=>w.archivio_stato==='GIA CONOSCIUTO').length,fresh=workers.filter(w=>w.archivio_stato==='NUOVO LAVORATORE').length,possible=workers.filter(w=>w.archivio_stato==='POSSIBILE CORRISPONDENZA').length;showSaveInfo(check?'warn':'ok','IMPORTAZIONE CONFERMATA','Lavoratori importati: '+workers.length+'\nGià conosciuti: '+known+'\nNuovi: '+fresh+(possible?'\nPossibili corrispondenze: '+possible:'')+(check?'\nDa verificare: '+check:'\nDati principali senza anomalie evidenti.'));setStatus('LISTA IMPORTATA: '+workers.length+' — GIÀ CONOSCIUTI '+known+' — NUOVI '+fresh+(possible?' — POSSIBILI CORRISPONDENZE '+possible:'')+(check?' — DA VERIFICARE '+check:'')+'.')};
 document.getElementById('btnAnnullaImport').onclick=()=>{pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();setStatus('IMPORTAZIONE ANNULLATA. LA LISTA PRECEDENTE NON È STATA MODIFICATA.')};
 document.getElementById('fileLista').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{setStatus('LETTURA LISTA IN CORSO...');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};let rows,name=f.name.toLowerCase();if(/\.xlsx$/i.test(name))rows=await parseXlsx(bytes);else if(/\.docx$/i.test(name))rows=await parseDocx(bytes);else if(/\.pdf$/i.test(name))rows=await parsePdf(bytes);else rows=parseDelimited(new TextDecoder('utf-8').decode(bytes));let imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('Non sono stati riconosciuti nominativi. Controllare le intestazioni o la struttura della lista.');pendingImportedWorkers=imported;pendingImportName=f.name;renderImportPreview();let check=imported.filter(w=>w.da_verificare).length;showSaveInfo(check?'warn':'ok','ANTEPRIMA PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'\nNessuna anomalia evidente.')+'\nControlla i dati e premi CONFERMA IMPORTAZIONE.');setStatus('ANTEPRIMA IMPORTAZIONE PRONTA: CONTROLLARE E CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','IMPORTAZIONE LISTA NON RIUSCITA',err.message||String(err));setStatus('ERRORE NELLA LETTURA DELLA LISTA.')}finally{e.target.value=''}};
 function ocrRowsFromResult(data){
@@ -1403,7 +1410,7 @@ function ocrRowsFromResult(data){
 document.getElementById('fileListaImmagine').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(!window.Tesseract)throw new Error('Motore OCR non disponibile. Controllare la connessione e riprovare.');const bytes=await f.arrayBuffer();pendingOriginalFile={name:f.name,type:f.type,size:f.size,lastModified:f.lastModified,bytes};pendingImportName=f.name;showSaveInfo('warn','LETTURA OCR IN CORSO','File: '+f.name+'\nL’operazione può richiedere alcuni minuti, soprattutto sull’iPhone. Non chiudere questa pagina.');setStatus('OCR 0% — PREPARAZIONE DELLA FOTO...');const result=await Tesseract.recognize(f,'ita+eng',{logger:m=>{if(m.status==='recognizing text'){const p=Math.max(0,Math.min(100,Math.round((m.progress||0)*100)));setStatus('OCR '+p+'% — LETTURA DELLA FOTO IN CORSO...')}}}),rows=ocrRowsFromResult(result.data),imported=validateImportedWorkers(rowsToWorkers(rows));if(!imported.length)throw new Error('Non sono stati riconosciuti nominativi. Prova una foto più diritta, luminosa e ravvicinata.');pendingImportedWorkers=imported;renderImportPreview();const check=imported.filter(w=>w.da_verificare).length;showSaveInfo(check?'warn':'ok','ANTEPRIMA OCR PRONTA','File: '+f.name+'\nLavoratori riconosciuti: '+imported.length+(check?'\nDa verificare: '+check:'\nNessuna anomalia evidente.')+'\nCorreggi gli eventuali errori e premi CONFERMA IMPORTAZIONE.');setStatus('OCR COMPLETATO: CONTROLLARE SEMPRE L’ANTEPRIMA PRIMA DI CONFERMARE.')}catch(err){pendingImportedWorkers=[];pendingImportName='';pendingOriginalFile=null;renderImportPreview();showSaveInfo('error','LETTURA OCR NON RIUSCITA',err.message||String(err));setStatus('OCR NON RIUSCITO. RIPROVARE CON UNA FOTO PIÙ NITIDA.')}finally{e.target.value=''}};
 function apriInserimentoLavoratore(){const g=document.getElementById('manualGrid');g.classList.add('show');const az=document.getElementById('mAzienda'),sessionAz=document.getElementById('v9Azienda');if(az&&!az.value&&sessionAz)az.value=sessionAz.value;document.getElementById('listPanel').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.getElementById('mCognome').focus(),350)}document.getElementById('btnManuale').onclick=apriInserimentoLavoratore;document.getElementById('v9AggiungiLavoratore').onclick=apriInserimentoLavoratore;document.getElementById('btnConfermaManuale').onclick=()=>{let w={id:Date.now()+'',cognome:norm(document.getElementById('mCognome').value),nome:norm(document.getElementById('mNome').value),luogo_nascita:norm(document.getElementById('mLuogo').value),data_nascita:document.getElementById('mData').value,codice_fiscale:norm(document.getElementById('mCF').value),datore_lavoro:norm(document.getElementById('mAzienda').value),mansione:norm(document.getElementById('mMansione').value),orario:document.getElementById('mOrario').value.trim(),visited:false};if(!w.cognome&&!w.nome){alert('Inserire almeno cognome o nome.');return}workers.push(w);document.querySelectorAll('#manualGrid input').forEach(x=>x.value='');renderWorkers();selectWorker(workers.length-1)};
 document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.stringify({workers,currentWorkerIndex,attachedSourceName},null,2)],{type:'application/json'});fallbackDownload(blob,'LISTA_LAVORATORI_'+today()+'.json')};document.getElementById('fileApriLista').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);workers=Array.isArray(d)?d:(d.workers||[]);currentWorkerIndex=Number.isInteger(d.currentWorkerIndex)?d.currentWorkerIndex:-1;attachedSourceName=d.attachedSourceName||f.name;renderWorkers();setStatus('STATO DELLA LISTA RIAPERTO CORRETTAMENTE.')}catch(_){alert('File lista non valido.')}};r.readAsText(f);e.target.value=''};
-try{let d=JSON.parse(localStorage.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
+try{let d=JSON.parse(lumenStorage.local.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
 window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
@@ -1418,8 +1425,8 @@ window.addEventListener('afterprint',()=>{document.body.className='';if(titleBef
 const $=id=>document.getElementById(id), norm=v=>(v||'').trim().toLocaleUpperCase('it-IT');
 const K_ARCH='beltrami_v9_archivi',K_SESS='beltrami_v9_sessione_attiva',K_HIST='beltrami_v9_sessioni',K_ESITI='beltrami_v9_esiti';
 const blankArch=()=>({committenti:[],sedi:[],aziende:[]});
-function read(k,def){try{return JSON.parse(localStorage.getItem(k)||'null')||def}catch(_){return def}}
-function write(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function read(k,def){try{return JSON.parse(lumenStorage.local.getItem(k)||'null')||def}catch(_){return def}}
+function write(k,v){lumenStorage.local.setItem(k,JSON.stringify(v))}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fmt(v){if(/^\d{4}-\d{2}-\d{2}$/.test(v||'')){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v||''}
 function safe(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -1440,7 +1447,7 @@ $('v9Archivi').onclick=()=>$('v9ArchivesBox').classList.toggle('show');
 $('v9Committente').addEventListener('change',()=>{const x=getArch().committenti.find(x=>norm(x.nome)===norm($('v9Committente').value));if(x){$('v9Email').value=x.email||'';$('v9Referente').value=x.referente||''}});
 $('v9Sede').addEventListener('change',()=>{const x=getArch().sedi.find(x=>norm(x.nome)===norm($('v9Sede').value));if(x)$('v9IndirizzoSede').value=x.indirizzo||''});
 function collectSession(){return{id:$('v9Panel').dataset.sid||uid(),data:$('v9Data').value||today(),fascia:norm($('v9Fascia').value),stato:$('v9Stato').value,committente:norm($('v9Committente').value),email:$('v9Email').value.trim(),referente:norm($('v9Referente').value),sede:norm($('v9Sede').value),indirizzoSede:norm($('v9IndirizzoSede').value),azienda:norm($('v9Azienda').value),note:norm($('v9Note').value),listaOriginale:window.beltramiOriginalFiles.getOriginalMeta(),aggiornata:new Date().toISOString()}}
-function applySession(s){if(!s)return;if(s.listaOriginale)localStorage.setItem(window.beltramiOriginalFiles.metaKey,JSON.stringify(s.listaOriginale));else window.beltramiOriginalFiles.clearOriginalMeta();$('v9Panel').dataset.sid=s.id||uid();$('v9Data').value=s.data||today();$('v9Fascia').value=s.fascia||'';$('v9Stato').value=s.stato||'PREPARAZIONE';$('v9Committente').value=s.committente||'';$('v9Email').value=s.email||'';$('v9Referente').value=s.referente||'';$('v9Sede').value=s.sede||'';$('v9IndirizzoSede').value=s.indirizzoSede||'';$('v9Azienda').value=s.azienda||'';$('v9Note').value=s.note||'';renderCard(s)}
+function applySession(s){if(!s)return;if(s.listaOriginale)lumenStorage.local.setItem(window.beltramiOriginalFiles.metaKey,JSON.stringify(s.listaOriginale));else window.beltramiOriginalFiles.clearOriginalMeta();$('v9Panel').dataset.sid=s.id||uid();$('v9Data').value=s.data||today();$('v9Fascia').value=s.fascia||'';$('v9Stato').value=s.stato||'PREPARAZIONE';$('v9Committente').value=s.committente||'';$('v9Email').value=s.email||'';$('v9Referente').value=s.referente||'';$('v9Sede').value=s.sede||'';$('v9IndirizzoSede').value=s.indirizzoSede||'';$('v9Azienda').value=s.azienda||'';$('v9Note').value=s.note||'';renderCard(s)}
 function workersData(){const d=read('beltrami_workers_v8',{workers:[]});return Array.isArray(d)?d:(d.workers||[])}
 function esiti(){return read(K_ESITI,{})}
 function keyOf(w,i){return w.id||[w.cognome,w.nome,w.data_nascita,i].join('|')}
@@ -1448,7 +1455,7 @@ function stats(){const ws=workersData(),e=esiti();let visitati=0,assenti=0;ws.fo
 function renderCard(s=read(K_SESS,null)){const st=stats();$('v9Card').innerHTML=s?'<strong>SESSIONE ATTIVA</strong> <span class="v9-badge">'+safe(s.stato)+'</span><br><b>Data:</b> '+safe(fmt(s.data))+(s.fascia?' — '+safe(s.fascia):'')+'<br><b>Committente:</b> '+safe(s.committente||'—')+' &nbsp; <b>Sede:</b> '+safe(s.sede||'—')+' &nbsp; <b>Azienda:</b> '+safe(s.azienda||'—')+'<br><b>Lista:</b> totale '+st.totale+' — visitati '+st.visitati+' — assenti '+st.assenti+' — senza esito '+st.daGestire+(s.listaOriginale?'<br><b>File originale:</b> '+safe(s.listaOriginale.name)+' <button type="button" id="v14Originale" class="secondary" style="min-height:30px;padding:4px 8px;font-size:11px">APRI / SALVA ORIGINALE</button>':''):'NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.';const ob=$('v14Originale');if(ob)ob.onclick=()=>window.beltramiOriginalFiles.downloadOriginal(s.listaOriginale)}
 function saveSession(){const s=collectSession();if(!s.committente)return alert('Inserire il committente.');if(!s.sede)return alert('Inserire la sede di visita.');if(!s.azienda)return alert('Inserire l’azienda dei lavoratori.');if(s.stato==='PREPARAZIONE')s.stato='IN CORSO';$('v9Stato').value=s.stato;write(K_SESS,s);upsert('committenti',{nome:s.committente,email:s.email,referente:s.referente});upsert('sedi',{nome:s.sede,indirizzo:s.indirizzoSede});upsert('aziende',{nome:s.azienda});renderCard(s);const dl=$('datore_lavoro');if(dl&&!dl.value)dl.value=s.azienda;alert('SESSIONE SALVATA. I DATI RESTANO SU QUESTO DISPOSITIVO.')}
 $('v9Avvia').onclick=saveSession;
-$('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';localStorage.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});renderCard(null)};
+$('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';lumenStorage.local.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});renderCard(null)};
 function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);decorateRows();renderCard()}
 function decorateRows(){const ws=workersData(),e=esiti();document.querySelectorAll('#workersBody tr').forEach(tr=>{const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0||!ws[n])return;const td=tr.lastElementChild;if(!td||td.querySelector('.v9-assente-btn'))return;const k=keyOf(ws[n],n),abs=e[k]==='ASSENTE';if(abs){tr.classList.add('v9-absent');tr.children[1].textContent='ASSENTE'}const b=document.createElement('button');b.type='button';b.className='v9-assente-btn '+(abs?'secondary':'v9-orange');b.style.marginLeft='5px';b.textContent=abs?'ANNULLA ASSENTE':'SEGNA ASSENTE';b.onclick=()=>setAbsent(n,!abs);td.appendChild(b)})}
 new MutationObserver(()=>{decorateRows();renderCard()}).observe($('workersBody'),{childList:true,subtree:true});
@@ -1576,7 +1583,7 @@ function identity(){
  const cf=value('codice_fiscale'),parts=[value('cognome'),value('nome'),value('data_nascita')].filter(Boolean);
  return {key:cf||parts.join('|'),label:([value('cognome'),value('nome')].filter(Boolean).join(' ')||'LAVORATORE NON INDICATO')};
 }
-function readStore(){try{return JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}')}catch(_){return {}}}
+function readStore(){try{return JSON.parse(lumenStorage.local.getItem('beltrami_firme_lavoratori_v1')||'{}')}catch(_){return {}}}
 function updateOutput(){
  const id=identity(),data=window.lumenBatchCertApi?window.lumenBatchCertApi.collect().firma_lavoratore_png:(id.key?(readStore()[id.key]||''):'');
  outputs.forEach(out=>{if(data){out.src=data;out.classList.add('has-signature')}else{out.removeAttribute('src');out.classList.remove('has-signature')}});
@@ -1745,7 +1752,7 @@ function identity(){
 }
 function openDB(){
  return new Promise(function(resolve,reject){
-  var q=indexedDB.open(DB_NAME,DB_VERSION);
+  var q=lumenStorage.indexedDB.open(DB_NAME,DB_VERSION);
   q.onupgradeneeded=function(){var db=q.result;if(!db.objectStoreNames.contains(STORE)){var s=db.createObjectStore(STORE,{keyPath:'id'});s.createIndex('workerKey','workerKey',{unique:false});s.createIndex('acquiredAt','acquiredAt',{unique:false})}};
   q.onsuccess=function(){resolve(q.result)};q.onerror=function(){reject(q.error)};
  });
@@ -1826,7 +1833,7 @@ input.addEventListener('change',async e=>{
 });
 })();
 </script>
-<script src="cambia-lista.js?v=20260908-pdf-cumulativo-v3"></script>
+<script src="cambia-lista.js?v=20260929-1"></script>
 <script id="lumen-print-values-20260912">
 /* Temporary print text uses current form values; it never saves or edits a record. */
 (function(){
@@ -1861,5 +1868,6 @@ input.addEventListener('change',async e=>{
 })();
 </script>
 <script src="thermal-print.js?v=20260915-termica-v1"></script>
-<script src="firma-recupero.js?v=20260928-1"></script>
+<script src="firma-recupero.js?v=20260929-1"></script>
+<script src="prova-fantasma.js?v=20260929-1"></script>
 </body></html>

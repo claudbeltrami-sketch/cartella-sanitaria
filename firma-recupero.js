@@ -28,6 +28,7 @@
   }
  }
  function validateRecovered(packet,snapshot){
+  window.lumenStorage?.checkPacket(packet);
   if(!packet||packet.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||packet.versione!==1||packet.recuperata!==true||packet.visita||!validImage(packet.firma_lavoratore_png))throw Error('Il file non è una firma recuperata valida.');
   const identity=upper(packet.identita), exact=workerSignatureIdentity(snapshot);
   const nameDate=[upper(snapshot.cognome),upper(snapshot.nome),upper(snapshot.data_nascita)].join('|');

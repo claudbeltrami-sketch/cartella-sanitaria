@@ -28,7 +28,11 @@ const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(t
  today:()=> '2026-09-08',rememberMansione(){},syncCFBarcode(){},convertiAltezzaInCm(){},aggiornaInvalidita(){},
  renderWorkers(){},setStatus(v){c.lastStatus=v},showSaveInfo(){},fmt:v=>v,getCartellaRecord:async()=>null,listCartelleArchive:async()=>[],workers:[],currentWorkerIndex:-1};
 c.window={dispatchEvent(){outputUpdate()},scrollTo(){},addEventListener(){}};c.setTimeout=setTimeout;c.clearTimeout=clearTimeout;
+c.location={search:''};c.URLSearchParams=URLSearchParams;
+c.window.localStorage=c.localStorage;c.window.sessionStorage=c.sessionStorage;
 vm.createContext(c);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../prova-storage.js'),'utf8'),c);
+c.lumenStorage=c.window.lumenStorage;
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../firma-offline.js'),'utf8'),c);
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
 for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);

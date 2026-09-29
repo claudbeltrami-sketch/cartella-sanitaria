@@ -1,7 +1,7 @@
 /* LUMEN hotfix 08/09/2026 - PDF cumulativo V4 */
 (function(){'use strict';
 var S='beltrami_v9_sessione_attiva',W='beltrami_workers_v8',E='beltrami_v9_esiti';
-function read(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(_){return d}}
+function read(k,d){try{var v=JSON.parse(lumenStorage.local.getItem(k)||'null');return v==null?d:v}catch(_){return d}}
 function norm(v){return String(v||'').trim().toUpperCase()}
 function key(w,i){return String((w&&w.id)||(w&&w.codice_fiscale)||i)}
 function sessione(){var s=read(S,null),d=read(W,{workers:[]});if(!s)return null;if(!Array.isArray(s.workers))s=Object.assign({},s,{workers:d.workers||[]});if(!s.esiti)s.esiti=read(E,{});return s}
@@ -17,13 +17,13 @@ document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e
 (function(){'use strict';
 function ensureStore(dbName,storeName,createStore){
  return new Promise(function(resolve,reject){
-  var first=indexedDB.open(dbName);
+  var first=lumenStorage.indexedDB.open(dbName);
   first.onerror=function(){reject(first.error)};
   first.onsuccess=function(){
    var db=first.result;
    if(db.objectStoreNames.contains(storeName)){db.close();resolve();return}
    var next=db.version+1;db.close();
-   var up=indexedDB.open(dbName,next);
+   var up=lumenStorage.indexedDB.open(dbName,next);
    up.onupgradeneeded=function(){
     var d=up.result;
     if(!d.objectStoreNames.contains(storeName))createStore(d);

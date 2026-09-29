@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recupera firme LUMEN</title>
+<html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="prova-storage.js?v=20260929-1"></script><title>Recupera firme LUMEN</title>
 <style>body{font:18px system-ui;margin:20px auto;padding:0 16px;max-width:720px;background:#eef1f4;color:#152536}h1{font-size:25px}article{background:white;border:1px solid #aab4bd;border-radius:12px;padding:16px;margin:16px 0;overflow-wrap:anywhere}img{display:block;width:100%;max-height:180px;object-fit:contain;border:1px solid #ddd;margin:12px 0}button,a{font:inherit}button{padding:14px;border:0;border-radius:8px;background:#1f5f99;color:white;margin:5px 8px 5px 0}p{line-height:1.4}#status{font-weight:bold}</style>
 <h1>RECUPERA FIRME LUMEN</h1>
 <p>Questa pagina legge le firme conservate da LUMEN nel browser di questo dispositivo. Non cancella né modifica le firme.</p>
@@ -7,16 +7,17 @@
 <p>Con gli Appunti condivisi Apple puoi usare COPIA FIRMA sull’iPhone e INCOLLA FIRMA in LUMEN sul Mac. In alternativa puoi condividere o salvare il file.</p>
 <h2>FIRME CON DATA DELLA VISITA</h2><div id="pendingStatus" role="status"></div><div id="pendingList"></div><h2>FIRME STORICHE SENZA DATA</h2><div id="status" role="status"></div><div id="list"></div>
 <p><a href="./">TORNA A LUMEN</a></p>
-<script src="firma-offline.js?v=20260928-1"></script>
-<script src="firma-recupero.js?v=20260928-1"></script>
+<script src="firma-offline.js?v=20260929-1"></script>
+<script src="firma-recupero.js?v=20260929-1"></script>
 <script>
 'use strict';
+if(lumenStorage.isTest){document.querySelector('h1').textContent='RECUPERA FIRME — PROVA FANTASMA';document.querySelector('a[href="./"]').href='./?prova=fantasma'}
 window.lumenFirmaOffline.list().then(rows=>{document.getElementById('pendingStatus').textContent=rows.length+' firme con data e richiesta.';window.lumenFirmaOffline.renderRows(document.getElementById('pendingList'),rows)}).catch(e=>{document.getElementById('pendingStatus').textContent=e.message});
 const status=document.getElementById('status'),list=document.getElementById('list');
 function valid(v){return typeof v==='string'&&/^data:image\/(png|jpeg|webp);base64,/i.test(v)}
 function packetFor(key,data){
  const parts=key.split('|');
- return {tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:'RECUPERO_'+Date.now(),identita:key,cognome:parts.length>1?parts[0]:'',nome:parts.length>1?parts[1]:'',firma_lavoratore_png:data,recuperata:true,esportato:new Date().toISOString()};
+ return {...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:1,id:'RECUPERO_'+Date.now(),identita:key,cognome:parts.length>1?parts[0]:'',nome:parts.length>1?parts[1]:'',firma_lavoratore_png:data,recuperata:true,esportato:new Date().toISOString()};
 }
 function fileFor(key,data){const name='FIRMA_PER_MAC_RECUPERATA_'+key.replace(/[^A-Z0-9_-]/gi,'_')+'.json';return new File([JSON.stringify(packetFor(key,data),null,2)],name,{type:'application/json'})}
 function download(file){
@@ -32,7 +33,7 @@ async function send(file){
  }catch(e){status.textContent=e&&e.name==='AbortError'?'Condivisione annullata. La firma resta disponibile qui.':'Condivisione non riuscita. Premi SALVA FILE. La firma resta disponibile qui.'}
 }
 try{
- const store=JSON.parse(localStorage.getItem('beltrami_firme_lavoratori_v1')||'{}');
+ const store=JSON.parse(lumenStorage.local.getItem('beltrami_firme_lavoratori_v1')||'{}');
  if(!store||typeof store!=='object'||Array.isArray(store))throw Error('Archivio non valido');
  const entries=Object.entries(store).filter(([key,data])=>key&&valid(data));
  status.textContent=entries.length?entries.length+' firme trovate.':'Nessuna firma trovata in questo browser. Apri questo collegamento nello stesso browser usato dopo il QR code.';
