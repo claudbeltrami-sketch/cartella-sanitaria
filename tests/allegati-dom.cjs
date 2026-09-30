@@ -4,7 +4,7 @@ const {JSDOM,VirtualConsole}=require('jsdom');
 const idb=require('fake-indexeddb');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
 const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-async function app(factory=new idb.IDBFactory(),query=''){
+async function app(factory=new idb.IDBFactory(),query='',seed={}){
  const errors=[],downloads=[],urls=new Map(),vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const dom=new JSDOM(html,{url:'https://lumen.test/'+query,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});
  const w=dom.window;for(const [k,v]of Object.entries(idb))if(k.startsWith('IDB'))w[k]=v;
@@ -21,6 +21,8 @@ async function app(factory=new idb.IDBFactory(),query=''){
  const sources=[...w.document.scripts].map(s=>s.src?(s.getAttribute('src').startsWith('http')||s.getAttribute('src').startsWith('vendor/')?'':fs.readFileSync(path.join(root,s.getAttribute('src').split('?')[0]),'utf8')):s.textContent);
  const main=sources.findIndex(s=>s.includes('window.lumenBatchCertApi='));
  sources[main]=sources[main].replace('window.lumenBatchCertApi=','window.testApi={rows:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),cartelle:()=>readAllFromDb(openCartelleDb,CARTELLE_STORE),backup:creaBackupCompleto,restore:ripristinaBackupCompleto,storeOriginalFile};window.lumenBatchCertApi=');
+ for(const [k,v]of Object.entries(seed.session||{}))w.sessionStorage.setItem(k,JSON.stringify(v));
+ for(const [k,v]of Object.entries(seed.local||{}))w.localStorage.setItem(k,JSON.stringify(v));
  w.eval(sources.join('\n;\n'));await new Promise(r=>setTimeout(r,60));
  return {w,dom,errors,downloads,$:id=>w.document.getElementById(id),api:w.lumenBatchCertApi,t:w.testApi};
 }
