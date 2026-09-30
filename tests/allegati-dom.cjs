@@ -29,7 +29,8 @@ const b={...a,nome:'BETA',codice_fiscale:'SNTBTA80A01H501X'};
 const pdf=new File(['%PDF-1.4 DOCUMENTO FITTIZIO'],'referto.pdf',{type:'application/pdf'}),png=new File([new Uint8Array([137,80,78,71,13,10,26,10])],'foto.png',{type:'image/png'});
 async function select(p,files){Object.defineProperty(p.$('allegatiFiles'),'files',{value:files,configurable:true});p.$('allegatiFiles').onchange();await p.$('allegatiSave').onclick()}
 const serial=async rows=>Promise.all(rows.map(async r=>({...r,blob:Buffer.from(await r.blob.arrayBuffer()).toString('base64')})));
-(async()=>{
+module.exports={app};
+if(require.main===module)(async()=>{
  const factory=new idb.IDBFactory(),p=await app(factory);
  try{
   assert.deepEqual(p.errors,[]);

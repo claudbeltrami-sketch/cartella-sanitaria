@@ -322,6 +322,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="archive-head"><h3 style="margin:0">ARCHIVIO LOCALE CARTELLE SANITARIE</h3><button type="button" id="btnChiudiArchivio" class="secondary">CHIUDI</button></div>
  <div class="archive-search"><input id="archiveQuery" placeholder="COGNOME, NOME, CF, AZIENDA, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
+ <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
  <div id="archiveSummary" class="archive-note"></div><div id="archiveResults"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
@@ -1415,6 +1416,7 @@ try{let d=JSON.parse(lumenStorage.local.getItem('beltrami_workers_v8')||'null');
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
 window.lumenAllegatiStorage={open:openOriginalDb,store:ORIGINAL_STORE,list:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),identity:cartellaIdentity};
+window.lumenArchiveVisitsApi={list:()=>listCartelleArchive('')};
 window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
@@ -1535,13 +1537,14 @@ function emailCertificati(s,fileName,count){
  const body='Buongiorno'+referente+',\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+count+' lavoratori visitati il '+fmt(s.data)+' presso '+(s.sede||'la sede indicata')+'.\n\nIl file da allegare è: '+fileName+'\n\nCordiali saluti\nDott. Claudio Beltrami';
  location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
-async function preparaInvioCertificati(){
- const s=scegliSessioneConclusa();if(!s)return;const api=window.lumenBatchCertApi;
+async function preparaInvioCertificati(archiveBatch){
+ const fromArchive=archiveBatch?.tipo==='LUMEN_ARCHIVE_CERTIFICATES_V1';
+ const s=fromArchive?archiveBatch.session:scegliSessioneConclusa();if(!s)return;const api=window.lumenBatchCertApi;
  if(!api||!window.html2canvas||!window.jspdf?.jsPDF){alert('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE LUMEN.');return}
  const ws=Array.isArray(s.workers)?s.workers:[],e=s.esiti||{},visitati=ws.filter((w,i)=>w.visited&&e[keyOf(w,i)]!=='ASSENTE');
  if(!visitati.length){alert('IN QUESTA SESSIONE NON RISULTANO LAVORATORI VISITATI.');return}
  const trovati=[],mancanti=[];api.setStatus('CONTROLLO DELLE CARTELLE DEI '+visitati.length+' LAVORATORI VISITATI...');
- for(const w of visitati){const rec=await api.getCartellaRecord(api.cartellaId(w));if(rec&&rec.data)trovati.push({w,rec});else mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim())}
+ for(const w of visitati){const rec=fromArchive?archiveBatch.records.find(r=>api.cartellaId(r.data)===api.cartellaId(w)):await api.getCartellaRecord(api.cartellaId(w));if(rec&&rec.data&&(!fromArchive||(rec.data.data_giudizio||rec.data.data_cartella)===s.data))trovati.push({w,rec});else mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim())}
  if(mancanti.length){alert('PREPARAZIONE SOSPESA.\n\nNon trovo nell’ARCHIVIO CARTELLE:\n\n• '+mancanti.join('\n• ')+'\n\nApri o importa queste cartelle e premi SALVA CARTELLA, poi riprova.');api.setStatus('INVIO SOSPESO: MANCANO '+mancanti.length+' CARTELLE NELL’ARCHIVIO.');return}
  if(!norm(s.sede||'')&&trovati.some(x=>!norm(x.rec.data.luogo_visita||''))){
   const luogo=prompt('LUOGO DELLA VISITA PER I CERTIFICATI DEL '+fmt(s.data)+' (COMUNE / SEDE):','');
@@ -1562,11 +1565,13 @@ async function preparaInvioCertificati(){
   a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
   api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nControllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);
   api.setStatus('PDF MULTIPAGINA CREATO: '+trovati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
+  return {fileName,count:trovati.length};
  }catch(err){alert('NON È STATO POSSIBILE CREARE IL PDF.\n'+(err.message||String(err)));api.setStatus('ERRORE NELLA CREAZIONE DEL PDF DEI CERTIFICATI.')}finally{
   api.apply(original);if(certEraVisibile)api.popolaCertificato(undefined,true);else{cert.style.display='none';cart.classList.remove('hidden')}btn.disabled=false;btn.textContent=oldText;
  }
 }
 $('v9InvioCertificati').onclick=preparaInvioCertificati;
+window.lumenArchiveVisitsApi.prepareCertificates=preparaInvioCertificati;
 $('v9EmailBtn').onclick=()=>{const s=read(K_SESS,collectSession());if(!s.email)return alert('Inserire l’indirizzo email del committente.');const sub='Lista lavoratori elaborata - '+(s.azienda||'')+' - '+fmt(s.data);const body='Buongiorno,%0D%0A%0D%0Atrasmetto la lista dei lavoratori elaborata relativa alla sessione del '+fmt(s.data)+' presso '+(s.sede||'')+'.%0D%0A%0D%0ACordiali saluti%0D%0ADott. Claudio Beltrami%0D%0A%0D%0ANOTA: allegare il PDF appena esportato.';location.href='mailto:'+encodeURIComponent(s.email)+'?subject='+encodeURIComponent(sub)+'&body='+body};
 window.addEventListener('afterprint',()=>{if(document.body.className==='print-v9-lista')document.body.className=''});
 $('v9Data').value=today();renderArchives();const active=read(K_SESS,null);if(active)applySession(active);decorateRows();renderCard(active);
@@ -1873,4 +1878,5 @@ input.addEventListener('change',async e=>{
 <script src="firma-recupero.js?v=20260929-1"></script>
 <script src="prova-fantasma.js?v=20260929-1"></script>
 <script src="allegati-cartella.js?v=20260930-1"></script>
+<script src="visite-archivio.js?v=20260930-1"></script>
 </body></html>
