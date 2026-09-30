@@ -299,6 +299,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="tool-group-title">3 · ARCHIVIO E SICUREZZA</div>
   <div class="tool-buttons">
    <button type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
+   <button type="button" id="btnAllegatiCartella">ALLEGATI CARTELLA</button>
    <label class="file-label">ACQUISISCI CONSENSO CARTACEO<input type="file" id="fileConsensoCartaceo" accept="image/*,application/pdf,.pdf" capture="environment" multiple></label>
    <button type="button" id="btnArchivioConsensi">ARCHIVIO CONSENSI</button>
    <button type="button" id="btnBackupCompleto">CREA BACKUP</button>
@@ -1413,6 +1414,7 @@ document.getElementById('btnSalvaLista').onclick=()=>{let blob=new Blob([JSON.st
 try{let d=JSON.parse(lumenStorage.local.getItem('beltrami_workers_v8')||'null');if(d&&Array.isArray(d.workers)){workers=d.workers;currentWorkerIndex=d.currentWorkerIndex??-1;attachedSourceName=d.attachedSourceName||'';renderWorkers()}}catch(_){}
 
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
+window.lumenAllegatiStorage={open:openOriginalDb,store:ORIGINAL_STORE,list:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),identity:cartellaIdentity};
 window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
@@ -1870,4 +1872,5 @@ input.addEventListener('change',async e=>{
 <script src="thermal-print.js?v=20260915-termica-v1"></script>
 <script src="firma-recupero.js?v=20260929-1"></script>
 <script src="prova-fantasma.js?v=20260929-1"></script>
+<script src="allegati-cartella.js?v=20260930-1"></script>
 </body></html>
