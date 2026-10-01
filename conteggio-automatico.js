@@ -4,7 +4,7 @@
 const api=window.lumenConteggioStorage,storage=window.lumenStorage;if(!api)return;
 const SITE='https://conteggio-visite.mh2f6rcb4p.chatgpt.site',CONFIG='beltrami_conteggio_config_v1',LINK='lumen_conteggio_link_v1';
 const local=storage?.local||localStorage,PAIR='lumen_conteggio_pair_pending_v1';
-let busy=false,rerun=false,last='';
+let busy=false,rerun=false,last='',initializing=true,returnToConteggio=false;
 const SELECTED_DATE='lumen_conteggio_selected_date_v1';
 function rememberDate(){try{sessionStorage.setItem(SELECTED_DATE,$('conteggioAutoDate').value)}catch{}}
 function read(key,fallback){try{return JSON.parse(local.getItem(key)||'null')||fallback}catch{return fallback}}
@@ -47,6 +47,17 @@ async function recoverConfigured(date){
  return recovered;
 }
 function validLink(link){return link?.version===1&&['token','salt'].every(k=>typeof link[k]==='string'&&/^[a-f0-9]{64}$/.test(link[k]))&&typeof link.account==='string'&&Number.isFinite(link.expires)&&link.expires>Date.now()}
+// An explicit reconnection must include visits sent using an earlier link.
+// Keep the replay flag until all rows are queued, so an interrupted recovery can resume.
+async function replaySent(){
+ const link=connection();if(storage?.isTest||!link?.replay)return;
+ for(const record of await api.list())await api.change(record.id,current=>{
+   for(const entry of Object.values(current.conteggioVisits||{}))if(entry.client&&entry.status==='sent'){
+     entry.status='pending';entry.version=crypto.randomUUID();
+   }
+ });
+ if(connection()?.token===link.token)local.setItem(LINK,JSON.stringify({...link,replay:false}));
+}
 function receiveConnection(){
  const match=location.hash.match(/^#lumen-connected=(.+)$/);if(!match)return false;
  // Scrub the credential from the address bar even when the response is rejected.
@@ -57,8 +68,8 @@ function receiveConnection(){
    if(pending?.state===reply.state&&pending.draft)window.lumenBatchCertApi?.apply(pending.draft);
    if(!pending||pending.state!==reply.state||!Number.isFinite(pending.createdAt)||Date.now()-pending.createdAt>900000||!validLink(reply.link))throw Error('COLLEGAMENTO SCADUTO O NON RICHIESTO: PREMI COLLEGA CONTEGGIO VISITE');
    const old=read(LINK,null);
-   if(old&&old.account!==reply.link.account&&!confirm('Il collegamento appartiene a un altro account. Inviare qui le visite in attesa?')){sessionStorage.removeItem(PAIR);return false}
-   local.setItem(LINK,JSON.stringify(reply.link));sessionStorage.removeItem(PAIR);
+   if(old&&old.account!==reply.link.account&&!confirm('Il nuovo collegamento appartiene a un altro account. Recuperare qui anche le visite già inviate? Le cartelle cliniche restano su questo dispositivo.')){sessionStorage.removeItem(PAIR);return false}
+   local.setItem(LINK,JSON.stringify({...reply.link,replay:true}));returnToConteggio=pending.returnToConteggio===true;sessionStorage.removeItem(PAIR);
    last='COLLEGAMENTO COMPLETATO: INVIO AUTOMATICO ATTIVO';return true;
  }catch(e){last=e.message||'COLLEGAMENTO NON COMPLETATO';return false}
 }
@@ -75,6 +86,7 @@ async function status(){
 }
 async function drain(){
  if(storage?.isTest)return;
+ if(initializing){rerun=true;return}
  if(busy){rerun=true;return}busy=true;
  try{
  const link=connection();if(!link){await status();return}
@@ -87,11 +99,12 @@ async function drain(){
      const response=await fetch(SITE+'/api/lumen/visits',{method:'POST',mode:'cors',credentials:'omit',headers:{'Content-Type':'application/json','Authorization':'Bearer '+link.token},body:JSON.stringify(outgoing),signal:controller.signal});
      if(!response.ok){if(response.status===401)local.setItem(LINK,JSON.stringify({...link,expires:0}));last=response.status===401?'RICOLLEGA CONTEGGIO VISITE':'INVIO NON RIUSCITO: RIPROVERÒ';break}
      const receipt=await response.json();if(receipt.ok!==true||receipt.visitId!==outgoing.visitId)throw Error('Ricevuta non valida');
-     await api.change(id,current=>{const row=current.conteggioVisits?.[entry.key];if(row?.version===entry.version)row.status='sent'});
+     await api.change(id,current=>{const row=current.conteggioVisits?.[entry.key];if(row?.version===entry.version){row.status='sent';row.sentAccount=link.account}});
      last='ULTIMO INVIO CONFERMATO';
    }catch{last='OFFLINE O INVIO NON CONFERMATO: VISITE CONSERVATE';break}finally{clearTimeout(timeout)}
  }
  await status();
+ if(returnToConteggio&&connection()&&!(await pending()).some(x=>x.entry.client)){returnToConteggio=false;window.location.assign(SITE)}
  }catch{last='CONTEGGIO IN ATTESA: RIAPRI IL PANNELLO PER RIPROVARE';document.getElementById('conteggioAutoStatus').textContent=last}
  finally{busy=false;if(rerun){rerun=false;void drain()}}
 }
@@ -132,21 +145,33 @@ $('conteggioAutoConfigure').onclick=async()=>{
  const recovered=await recoverConfigured(date);
  const entries=(await api.list()).flatMap(r=>r.conteggioVisits?.[date]?[r.conteggioVisits[date]]:[]);
  $('conteggioAutoResult').textContent=date.split('-').reverse().join('/')+' · '+(entries.length?entries.length+' VISITE NEL CONTEGGIO ('+entries.filter(e=>e.status==='sent').length+' GIÀ INVIATE).':'NESSUNA VISITA COMPLETA TROVATA NELL’ARCHIVIO DI QUESTO DISPOSITIVO.');
- last='COMMITTENTE SALVATO: '+client+(recovered?' · '+recovered+' VISITE RECUPERATE DALL’ARCHIVIO':'');await status();void drain();
+ last='COMMITTENTE SALVATO: '+client+(recovered?' · '+recovered+' VISITE RECUPERATE DALL’ARCHIVIO':'');await status();if(recoveryRequested&&initializing)startConnection(true);else void drain();
  }catch(e){$('conteggioAutoDetails').textContent=e.message||'CONFIGURAZIONE NON SALVATA'}
 };
-$('conteggioAutoConnect').onclick=()=>{
+function startConnection(returnToConteggio=false){
  try{
    if(storage?.isTest)throw Error('COLLEGAMENTO DISATTIVATO IN MODALITÀ PROVA');
    const state=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
-   sessionStorage.setItem(PAIR,JSON.stringify({state,createdAt:Date.now(),draft:window.lumenBatchCertApi?.collect()}));
+   sessionStorage.setItem(PAIR,JSON.stringify({state,createdAt:Date.now(),draft:window.lumenBatchCertApi?.collect(),returnToConteggio}));
    window.location.assign(SITE+'/collega-lumen?state='+state);
  }catch(e){$('conteggioAutoDetails').textContent=e.message||'COLLEGAMENTO NON AVVIATO: LA CARTELLA RESTA APERTA'}
 };
+$('conteggioAutoConnect').onclick=()=>startConnection();
 $('conteggioAutoRetry').onclick=()=>drain();$('conteggioAutoDisconnect').onclick=async()=>{local.removeItem(LINK);last='DISPOSITIVO SCOLLEGATO';await status()};
 window.addEventListener('online',()=>void drain());window.addEventListener('focus',()=>void drain());
 setInterval(()=>{if(document.visibilityState!=='hidden')void drain()},30000);
-const connected=receiveConnection();if(connected)void $('btnConteggioAuto').onclick();
-void recoverConfigured().then(()=>drain()).catch(()=>{last='RECUPERO CONTEGGI NON COMPLETATO: RIPROVA DAL PANNELLO';void status().catch(()=>{})});
+const recoveryRequested=location.hash==='#lumen-recover-conteggio';
+if(recoveryRequested){
+ history.replaceState(null,'',location.pathname+location.search);
+ // Do not send to the previous account while establishing the requested link.
+ void recoverConfigured().then(async()=>{
+   const count=(await api.list()).reduce((n,r)=>n+Object.values(r.conteggioVisits||{}).filter(e=>e.client).length,0);
+   if(count){startConnection(true);return}
+   last='NESSUNA VISITA ASSEGNATA AL CONTEGGIO IN QUESTO ARCHIVIO';await $('btnConteggioAuto').onclick();
+   $('conteggioAutoResult').textContent='Se le cartelle sono in un altro browser, apri LUMEN da quel browser. Altrimenti scegli la data e il committente delle visite da recuperare.';
+ }).catch(()=>{last='ARCHIVIO NON LETTO: RIAPRI LUMEN PER RIPROVARE';void status().catch(()=>{})});
+}else{
+ const connected=receiveConnection();if(connected)void $('btnConteggioAuto').onclick();
+ void recoverConfigured().then(()=>replaySent()).then(()=>{initializing=false;rerun=false;return drain()}).catch(()=>{last='RECUPERO CONTEGGI NON COMPLETATO: RIAPRI LUMEN PER RIPROVARE';void status().catch(()=>{})});
+}
 })();
-

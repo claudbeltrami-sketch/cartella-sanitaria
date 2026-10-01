@@ -25,7 +25,7 @@ const KEY='lumen_conteggio_link_v1',PAIR='lumen_conteggio_pair_pending_v1';
  const state='c'.repeat(64),callback='#lumen-connected='+encodeURIComponent(JSON.stringify({state,link}));
  const seed={session:{[PAIR]:{state,createdAt:Date.now(),draft:base}}};
  const valid=await app(new idb.IDBFactory(),callback,seed);try{
-  assert.deepEqual(JSON.parse(valid.w.localStorage.getItem(KEY)),link);assert.equal(valid.w.location.hash,'');assert.equal(valid.w.sessionStorage.getItem(PAIR),null);
+  assert.deepEqual(JSON.parse(valid.w.localStorage.getItem(KEY)),{...link,replay:false});assert.equal(valid.w.location.hash,'');assert.equal(valid.w.sessionStorage.getItem(PAIR),null);
   assert.equal(valid.api.collect().cognome,base.cognome);assert.equal(valid.api.collect().anamnesi_patologica,base.anamnesi_patologica);
   assert.equal((await valid.t.cartelle()).length,0);assert.deepEqual(valid.errors,[]);
  }finally{valid.dom.window.close()}
