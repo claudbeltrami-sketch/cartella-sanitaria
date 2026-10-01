@@ -5,6 +5,8 @@ const api=window.lumenConteggioStorage,storage=window.lumenStorage;if(!api)retur
 const SITE='https://conteggio-visite.mh2f6rcb4p.chatgpt.site',CONFIG='beltrami_conteggio_config_v1',LINK='lumen_conteggio_link_v1';
 const local=storage?.local||localStorage,PAIR='lumen_conteggio_pair_pending_v1';
 let busy=false,rerun=false,last='';
+const SELECTED_DATE='lumen_conteggio_selected_date_v1';
+function rememberDate(){try{sessionStorage.setItem(SELECTED_DATE,$('conteggioAutoDate').value)}catch{}}
 function read(key,fallback){try{return JSON.parse(local.getItem(key)||'null')||fallback}catch{return fallback}}
 function text(v){return String(v||'').trim().toLocaleUpperCase('it-IT').replace(/\s+/g,' ')}
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v}
@@ -62,7 +64,7 @@ function receiveConnection(){
 }
 async function status(){
  const items=await pending(),waiting=items.filter(x=>!x.entry.client).length;
- const date=document.getElementById('data_giudizio')?.value||document.getElementById('data_cartella')?.value||'',assignment=read(CONFIG,{})[date];
+ const date=document.getElementById('conteggioAutoDate')?.value||document.getElementById('data_giudizio')?.value||document.getElementById('data_cartella')?.value||'',assignment=read(CONFIG,{})[date];
  const msg=storage?.isTest?'MODALITÀ PROVA: NESSUN INVIO ONLINE.':(connection()?'COLLEGATO':'DA COLLEGARE')+' · '+items.length+' VISITE IN ATTESA'+(waiting?' ('+waiting+' SENZA COMMITTENTE)':'')+(assignment?' · '+date+' → '+assignment.client:'')+(last?' · '+last:'');
  document.getElementById('conteggioAutoStatus').textContent=msg;
  const connectButton=document.getElementById('conteggioAutoConnect');if(connectButton)connectButton.hidden=!!connection();
@@ -93,18 +95,43 @@ async function drain(){
  }catch{last='CONTEGGIO IN ATTESA: RIAPRI IL PANNELLO PER RIPROVARE';document.getElementById('conteggioAutoStatus').textContent=last}
  finally{busy=false;if(rerun){rerun=false;void drain()}}
 }
-const style=document.createElement('style');style.textContent='#conteggioAutoPanel{margin:10px 0;padding:12px;border:2px solid #277347;border-radius:8px;background:#f1faf3}#conteggioAutoPanel button{background:#176537;color:white;padding:12px;font-weight:bold}#conteggioAutoDialog{max-width:650px;width:calc(100% - 30px);max-height:90vh;overflow:auto;border:2px solid #277347;border-radius:10px;padding:20px}#conteggioAutoDialog label{display:block;margin:10px 0}#conteggioAutoDialog input,#conteggioAutoDialog textarea{display:block;width:100%;box-sizing:border-box;padding:10px}#conteggioAutoDialog button{padding:12px;margin:6px 6px 6px 0}#conteggioAutoDialog a{color:#064c94}@media print{#conteggioAutoPanel,#conteggioAutoDialog{display:none!important}}';document.head.appendChild(style);
+const style=document.createElement('style');style.textContent='#conteggioAutoPanel{margin:10px 0;padding:12px;border:2px solid #277347;border-radius:8px;background:#f1faf3}#conteggioAutoPanel button{background:#176537;color:white;padding:12px;font-weight:bold}#conteggioAutoDialog{max-width:650px;width:calc(100% - 30px);max-height:90vh;overflow:auto;border:2px solid #277347;border-radius:10px;padding:20px}#conteggioAutoDialog label{display:block;margin:10px 0}#conteggioAutoDialog input,#conteggioAutoDialog textarea,#conteggioAutoDialog select{display:block;width:100%;box-sizing:border-box;padding:10px}#conteggioAutoDialog button{padding:12px;margin:6px 6px 6px 0}#conteggioAutoDialog a{color:#064c94}@media print{#conteggioAutoPanel,#conteggioAutoDialog{display:none!important}}';document.head.appendChild(style);
 const panel=document.createElement('section');panel.id='conteggioAutoPanel';panel.innerHTML='<button type="button" id="btnConteggioAuto">CONTEGGIO AUTOMATICO</button><p id="conteggioAutoStatus" role="status">PREPARAZIONE CONTEGGIO…</p>';
 const anchor=document.getElementById('btnSalva');const toolbar=anchor?.closest('.toolbar')||anchor?.parentElement; if(toolbar)toolbar.insertAdjacentElement('afterend',panel);else document.body.prepend(panel);
-const dialog=document.createElement('dialog');dialog.id='conteggioAutoDialog';dialog.innerHTML='<h2>CONTEGGIO AUTOMATICO</h2><p>Salvi la visita in LUMEN e il conteggio si aggiorna. Si inviano solo nome, azienda, data, committente e sede.</p><p id="conteggioAutoDetails" role="status"></p><div id="conteggioAutoPending"></div><label>DATA DELLE VISITE<input type="date" id="conteggioAutoDate"></label><label>COMMITTENTE<input id="conteggioAutoClient" list="conteggioAutoClients" placeholder="ES. SERMOLAB" maxlength="200"></label><datalist id="conteggioAutoClients"><option>SERMOLAB</option><option>ADÒC HEALTHCARE</option><option>COMPANY CONSULTING</option><option>BUSINESS GROUP</option><option>HEALTHMED</option><option>ALMA CONTROL</option><option>GRUPPO ORIZZONTE</option><option>CARITAS</option></datalist><label>SEDE<input id="conteggioAutoPlace" maxlength="200"></label><button type="button" id="conteggioAutoConfigure">SALVA COMMITTENTE E AGGIORNA CONTEGGIO</button><p>Include anche le visite già archiviate per questa data. Le visite già assegnate mantengono il loro committente.</p><hr><button type="button" id="conteggioAutoConnect">COLLEGA CONTEGGIO VISITE</button><p>Solo la prima volta: se richiesto, accedi al tuo account. Torni automaticamente qui, senza copiare codici. Puoi fare tutto da questo dispositivo.</p><p><a id="conteggioAutoLink" target="_self">APRI CONTEGGIO VISITE</a></p><details><summary>Stato e gestione collegamento</summary><button type="button" id="conteggioAutoRetry">AGGIORNA ORA</button><button type="button" id="conteggioAutoDisconnect">SCOLLEGA QUESTO DISPOSITIVO</button></details><button type="button" id="conteggioAutoClose">CHIUDI</button>';document.body.appendChild(dialog);
+const dialog=document.createElement('dialog');dialog.id='conteggioAutoDialog';dialog.innerHTML='<h2>CONTEGGIO AUTOMATICO</h2><p>Salvi la visita in LUMEN e il conteggio si aggiorna. Si inviano solo nome, azienda, data, committente e sede.</p><p id="conteggioAutoDetails" role="status"></p><div id="conteggioAutoPending"></div><label>VISITE PRESENTI SU QUESTO DISPOSITIVO<select id="conteggioAutoArchiveDates"><option value="">SCEGLI UNA DATA DALL’ARCHIVIO</option></select></label><p id="conteggioAutoResult" role="status"></p><label>DATA DELLE VISITE<input type="date" id="conteggioAutoDate"></label><label>COMMITTENTE<input id="conteggioAutoClient" list="conteggioAutoClients" placeholder="ES. SERMOLAB" maxlength="200"></label><datalist id="conteggioAutoClients"><option>SERMOLAB</option><option>ADÒC HEALTHCARE</option><option>COMPANY CONSULTING</option><option>BUSINESS GROUP</option><option>HEALTHMED</option><option>ALMA CONTROL</option><option>GRUPPO ORIZZONTE</option><option>CARITAS</option></datalist><label>SEDE<input id="conteggioAutoPlace" maxlength="200"></label><button type="button" id="conteggioAutoConfigure">SALVA COMMITTENTE E AGGIORNA CONTEGGIO</button><p>Include anche le visite già archiviate per questa data. Le visite già assegnate mantengono il loro committente.</p><hr><button type="button" id="conteggioAutoConnect">COLLEGA CONTEGGIO VISITE</button><p>Solo la prima volta: se richiesto, accedi al tuo account. Torni automaticamente qui, senza copiare codici. Puoi fare tutto da questo dispositivo.</p><p><a id="conteggioAutoLink" target="_self">APRI CONTEGGIO VISITE</a></p><details><summary>Stato e gestione collegamento</summary><button type="button" id="conteggioAutoRetry">AGGIORNA ORA</button><button type="button" id="conteggioAutoDisconnect">SCOLLEGA QUESTO DISPOSITIVO</button></details><button type="button" id="conteggioAutoClose">CHIUDI</button>';document.body.appendChild(dialog);
 const $=id=>document.getElementById(id);$('conteggioAutoLink').href=SITE;
-function loadDate(){const c=read(CONFIG,{})[$('conteggioAutoDate').value]||{};$('conteggioAutoClient').value=c.client||'';$('conteggioAutoPlace').value=c.place||''}
-$('btnConteggioAuto').onclick=async()=>{const d=window.lumenBatchCertApi?.collect()||{};$('conteggioAutoDate').value=d.data_giudizio||d.data_cartella||(new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'));loadDate();dialog.showModal();await status()};
-$('conteggioAutoDate').onchange=loadDate;$('conteggioAutoClose').onclick=()=>dialog.close();
+function loadDate(){const c=read(CONFIG,{})[$('conteggioAutoDate').value]||{};$('conteggioAutoClient').value=c.client||'';$('conteggioAutoPlace').value=c.place||'';rememberDate();$('conteggioAutoResult').textContent=''}
+async function loadArchiveDates(){
+ const counts=new Map();
+ for(const record of await api.list()){
+   const days=new Set();
+   for(const {data:d} of [{data:record.data},...(record.history||[]).slice().reverse()]){
+     const day=String(d?.data_giudizio||d?.data_cartella||'');
+     if(!d||d.lumen_prova||!validDate(day)||days.has(day))continue;
+     days.add(day);
+     if(d.giudizio&&text(d.cognome)&&text(d.nome))counts.set(day,(counts.get(day)||0)+1);
+   }
+ }
+ const select=$('conteggioAutoArchiveDates');select.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent=counts.size?'SCEGLI UNA DATA DALL’ARCHIVIO':'NESSUNA VISITA COMPLETA IN QUESTO ARCHIVIO';select.appendChild(empty);
+ for(const [day,count]of [...counts].sort((a,b)=>b[0].localeCompare(a[0]))){const option=document.createElement('option');option.value=day;option.textContent=day.split('-').reverse().join('/')+' · '+count+' VISITE';select.appendChild(option)}
+ select.value=counts.has($('conteggioAutoDate').value)?$('conteggioAutoDate').value:'';
+}
+$('btnConteggioAuto').onclick=async()=>{
+ if(!$('conteggioAutoDate').value){const d=window.lumenBatchCertApi?.collect()||{};let selected='';try{selected=sessionStorage.getItem(SELECTED_DATE)||''}catch{}
+ $('conteggioAutoDate').value=validDate(selected)?selected:(d.data_giudizio||d.data_cartella||(new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0')));loadDate()}
+ if(!dialog.open)dialog.showModal();await status();try{await loadArchiveDates()}catch{$('conteggioAutoResult').textContent='ARCHIVIO NON LETTO: CHIUDI E RIAPRI IL PANNELLO'}
+};
+$('conteggioAutoDate').onchange=()=>{loadDate();$('conteggioAutoArchiveDates').value=$('conteggioAutoDate').value;void status()};
+$('conteggioAutoArchiveDates').onchange=()=>{if($('conteggioAutoArchiveDates').value){$('conteggioAutoDate').value=$('conteggioAutoArchiveDates').value;loadDate();void status()}};
+$('conteggioAutoClose').onclick=()=>dialog.close();
 $('conteggioAutoConfigure').onclick=async()=>{
  try{const date=$('conteggioAutoDate').value,client=text($('conteggioAutoClient').value),place=text($('conteggioAutoPlace').value);if(!validDate(date)||!client)throw Error('INSERISCI DATA E COMMITTENTE');
  const config=read(CONFIG,{});config[date]={client,place};local.setItem(CONFIG,JSON.stringify(config));
+ rememberDate();
  const recovered=await recoverConfigured(date);
+ const entries=(await api.list()).flatMap(r=>r.conteggioVisits?.[date]?[r.conteggioVisits[date]]:[]);
+ $('conteggioAutoResult').textContent=date.split('-').reverse().join('/')+' · '+(entries.length?entries.length+' VISITE NEL CONTEGGIO ('+entries.filter(e=>e.status==='sent').length+' GIÀ INVIATE).':'NESSUNA VISITA COMPLETA TROVATA NELL’ARCHIVIO DI QUESTO DISPOSITIVO.');
  last='COMMITTENTE SALVATO: '+client+(recovered?' · '+recovered+' VISITE RECUPERATE DALL’ARCHIVIO':'');await status();void drain();
  }catch(e){$('conteggioAutoDetails').textContent=e.message||'CONFIGURAZIONE NON SALVATA'}
 };
@@ -122,3 +149,4 @@ setInterval(()=>{if(document.visibilityState!=='hidden')void drain()},30000);
 const connected=receiveConnection();if(connected)void $('btnConteggioAuto').onclick();
 void recoverConfigured().then(()=>drain()).catch(()=>{last='RECUPERO CONTEGGI NON COMPLETATO: RIPROVA DAL PANNELLO';void status().catch(()=>{})});
 })();
+
