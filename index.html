@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261002-import-referti-v1">
+<meta name="lumen-build" content="20261002-omonimi-v1">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261002-import-referti-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261002-omonimi-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -374,9 +374,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="import-preview-help">Puoi correggere direttamente ogni campo. Le righe evidenziate richiedono controllo: dati mancanti, CF non valido o possibile duplicato. Nulla viene eliminato automaticamente.</div>
  </div>
 
- <div class="list-search"><input id="workerSearch" placeholder="CERCA COGNOME O NOME"><button type="button" id="btnPrecedente" class="secondary">PRECEDENTE</button><button type="button" id="btnSuccessivo" class="secondary">SUCCESSIVO</button></div>
+ <div class="list-search"><input id="workerSearch" placeholder="CERCA COGNOME, NOME O CODICE FISCALE"><button type="button" id="btnPrecedente" class="secondary">PRECEDENTE</button><button type="button" id="btnSuccessivo" class="secondary">SUCCESSIVO</button></div>
  <div class="workers-summary" id="workersSummary">NESSUNA LISTA CARICATA.</div>
- <div class="workers-table-wrap"><table class="workers-table"><thead><tr><th>N.</th><th>STATO</th><th>COGNOME</th><th>NOME</th><th>NASCITA</th><th>ORARIO</th><th>AZIONE</th></tr></thead><tbody id="workersBody"></tbody></table></div>
+ <div class="workers-table-wrap"><table class="workers-table"><thead><tr><th>N.</th><th>STATO</th><th>COGNOME</th><th>NOME</th><th>NASCITA</th><th>CODICE FISCALE</th><th>ORARIO</th><th>AZIONE</th></tr></thead><tbody id="workersBody"></tbody></table></div>
  <div class="list-note">IMPORTA LISTA accetta Excel, CSV, PDF testuali e Word (.docx). LEGGI FOTO / SCANSIONE usa l’OCR sul dispositivo anche per immagini ricevute da WhatsApp. L’ordine originale viene mantenuto e ogni risultato passa dall’anteprima modificabile prima della conferma. Dopo la conferma, una copia del file originale viene conservata localmente sul dispositivo e associata alla sessione.</div>
 </section>
 
@@ -1004,7 +1004,7 @@ function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const 
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -1013,7 +1013,7 @@ async function openArchiveRecord(id){
  const r=await getCartellaRecord(id);
  if(!r)return alert('Cartella non trovata.');
  const nome=((r.cognome||'')+' '+(r.nome||'')).trim();
- if(!confirm('Aprire la cartella di '+nome+'? I dati attualmente visibili verranno sostituiti.'))return;
+ if(!confirm('Aprire la cartella di '+nome+'?\nCF: '+(r.cf||(r.data||{}).codice_fiscale||'NON PRESENTE')+'\nDATA DI NASCITA: '+(fmt(r.dataNascita||(r.data||{}).data_nascita)||'NON PRESENTE')+'\n\nI dati attualmente visibili verranno sostituiti.'))return;
  // Usa sempre l'identità della riga scelta. In questo modo un'identità rimasta
  // nella schermata (o in una vecchia copia interna) non può bloccare l'archivio
  // sull'ultimo lavoratore aperto.
@@ -1235,10 +1235,29 @@ async function parseXlsx(buf){
  let z=await unzipEntries(buf),td=new TextDecoder();let shared=[];if(z['xl/sharedStrings.xml']){let doc=new DOMParser().parseFromString(td.decode(z['xl/sharedStrings.xml']),'application/xml');shared=[...doc.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}let sheetName=Object.keys(z).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));if(!sheetName)throw new Error('Nessun foglio trovato nel file Excel.');let doc=new DOMParser().parseFromString(td.decode(z[sheetName]),'application/xml'),rows=[];for(const r of doc.getElementsByTagName('row')){let arr=[];for(const c of r.getElementsByTagName('c')){let ref=c.getAttribute('r')||'A1',letters=(ref.match(/[A-Z]+/)||['A'])[0],col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;col--;let t=c.getAttribute('t'),v=(c.getElementsByTagName('v')[0]||{}).textContent||'';if(t==='s')v=shared[Number(v)]??'';else if(t==='inlineStr')v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');arr[col]=v}rows.push(arr)}return rows
 }
 function saveWorkersLocal(){try{lumenStorage.local.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
-function renderWorkers(){let q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';workers.forEach((w,i)=>{if(q&&!((w.cognome+' '+w.nome).includes(q)))return;let tr=document.createElement('tr');if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');tr.innerHTML='<td>'+(i+1)+'</td><td>'+(w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'))+'</td><td>'+w.cognome+'</td><td>'+w.nome+'</td><td>'+[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - ')+'</td><td>'+w.orario+'</td><td></td>';let td=tr.lastElementChild,b=document.createElement('button');b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);let v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);workersBody.appendChild(tr)});let done=workers.filter(w=>w.visited).length;workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal()}
-const workerDrafts=new Map();
-let emptyWorkerScreen=null;
-function draftKey(d){return cartellaId(d)+'|'+signatureVisit(d)}
+function renderWorkers(){
+ const q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';
+ workers.forEach((w,i)=>{
+  if(q&&!norm([w.cognome,w.nome,w.codice_fiscale].join(' ')).includes(q))return;
+  const tr=document.createElement('tr');
+  if(i===currentWorkerIndex)tr.classList.add('selected');if(w.visited)tr.classList.add('visited');
+  const cells=[i+1,w.visited?'VISITATO':(w.da_verificare?'DA VERIFICARE':'DA VISITARE'),w.cognome,w.nome,[w.luogo_nascita,fmt(w.data_nascita)].filter(Boolean).join(' - '),w.codice_fiscale||'DA COMPLETARE',w.orario||''];
+  for(const value of cells){const td=document.createElement('td');td.textContent=value;tr.appendChild(td)}
+  const td=document.createElement('td'),b=document.createElement('button');
+  b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);
+  const v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);tr.appendChild(td);workersBody.appendChild(tr);
+ });
+ const done=workers.filter(w=>w.visited).length;
+ workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal();
+}
+const workerDrafts=new Map(),workerDraftRows=new WeakMap();
+let emptyWorkerScreen=null,workerDraftRowSequence=0,activeDraftWorker=null,activeDraftVersion=-1;
+// Incomplete identities belong to one list row, never to a name shared by homonyms.
+function draftKey(d,row=null){
+ if(row){if(!workerDraftRows.has(row))workerDraftRows.set(row,++workerDraftRowSequence);return 'ROW_'+workerDraftRows.get(row)+'|'+workerDate(signatureVisit(d))}
+ const x=cartellaIdentity(d);
+ return x.cf||x.cognome&&x.nome&&x.dn?cartellaId({...d,data_nascita:workerDate(x.dn)})+'|'+workerDate(signatureVisit(d)):null;
+}
 function workerDate(value){const s=String(value||'').trim(),m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):s}
 function workerMatch(a,b){
  const x=cartellaIdentity(a),y=cartellaIdentity(b);
@@ -1256,18 +1275,30 @@ function mergeWorkerData(data,base){
  for(const field of allFields())if(field.type==='date'&&merged[field.id])merged[field.id]=workerDate(merged[field.id]);
  return merged;
 }
-function workerDraftFor(base){
- const exact=workerDrafts.get(draftKey(base));if(exact)return exact;
- const matches=[...workerDrafts.values()].filter(d=>workerMatch(base,d)===2&&workerDate(signatureVisit(d))===workerDate(signatureVisit(base)));
+function workerDraftFor(base,row){
+ const exact=row&&workerDrafts.get(draftKey(base,row));
+ if(exact&&workerMatch(base,exact)>0)return exact;
+ const cf=cartellaIdentity(base).cf,listAmbiguous=workers.filter(w=>workerMatch({...base,codice_fiscale:''},w)>0).length>1;
+ const reusable=[...workerDrafts.entries()].filter(([key,d])=>!key.startsWith('ROW_')||cf&&cartellaIdentity(d).cf===cf).map(([,d])=>d);
+ const matches=[...new Set(reusable)].filter(d=>workerMatch(base,d)===2&&(!listAmbiguous||cf&&cartellaIdentity(d).cf===cf)&&workerDate(signatureVisit(d))===workerDate(signatureVisit(base)));
+ if(!cartellaIdentity(base).cf&&new Set([...matches,...workers.filter(w=>workerMatch(base,w)===2)].map(d=>cartellaIdentity(d).cf).filter(Boolean)).size>1)return null;
  return matches.length===1?matches[0]:null;
 }
 async function findWorkerArchive(base){
  const exact=await getCartellaRecord(cartellaId(base));
- if(exact&&workerMatch(base,workerRecordData(exact))===2)return {records:[exact],possible:[]};
  const rows=await listCartelleArchive([base.cognome,base.nome].filter(Boolean).join(' '));
- const records=rows.filter(r=>workerMatch(base,workerRecordData(r))===2),possible=rows.filter(r=>workerMatch(base,workerRecordData(r))===1);
- const differentCF=new Set(records.map(r=>cartellaIdentity(workerRecordData(r)).cf).filter(Boolean));
- if(!cartellaIdentity(base).cf&&differentCF.size>1)return {records:[],possible:[...records,...possible]};
+ // Include legacy keys and exact CF matches, but check all homonyms before loading.
+ if(exact&&!rows.some(r=>r.id===exact.id))rows.push(exact);
+ let records=rows.filter(r=>workerMatch(base,workerRecordData(r))===2);
+ const possible=rows.filter(r=>workerMatch(base,workerRecordData(r))===1),cf=cartellaIdentity(base).cf;
+ const namedBase={...base,codice_fiscale:''};
+ const differentCF=new Set([...rows.map(r=>workerRecordData(r)),...workers].filter(d=>workerMatch(namedBase,d)===2).map(d=>cartellaIdentity(d).cf).filter(Boolean));
+ if(differentCF.size>1){
+  const uncertain=records.filter(r=>!cf||cartellaIdentity(workerRecordData(r)).cf!==cf);
+  records=records.filter(r=>cf&&cartellaIdentity(workerRecordData(r)).cf===cf);
+  possible.push(...uncertain);
+ }
+ if(cf&&records.some(r=>cartellaIdentity(workerRecordData(r)).cf===cf))records=records.filter(r=>cartellaIdentity(workerRecordData(r)).cf===cf);
  return {records,possible};
 }
 function showWorkerArchiveSearch(base,message){
@@ -1281,12 +1312,16 @@ async function selectWorker(i){
  const w=workers[i];if(!w)return;
  const previous=collect();
  // A blank screen shown while reading the archive is not an edited draft.
- if(previous.cognome&&previous.nome&&JSON.stringify(previous)!==emptyWorkerScreen)workerDrafts.set(draftKey(previous),previous);
+ if(previous.cognome&&previous.nome&&JSON.stringify(previous)!==emptyWorkerScreen){
+  const row=activeDraftVersion===workerSelectionVersion&&activeDraftWorker&&workerMatch(activeDraftWorker,previous)>0?activeDraftWorker:null;
+  const key=draftKey(previous,row);if(key)workerDrafts.set(key,previous);
+ }
  const dataVisita=text('v9Data')||today();
  const base={cognome:w.cognome||'',nome:w.nome||'',luogo_nascita:w.luogo_nascita||'',data_nascita:w.data_nascita||'',codice_fiscale:w.codice_fiscale||'',sesso:w.sesso||'',datore_lavoro:w.datore_lavoro||text('v9Azienda'),mansione:w.mansione||'',data_cartella:dataVisita,data_giudizio:dataVisita,data_dichiarazione:dataVisita,firma_lavoratore_png:''};
  currentWorkerIndex=i;
- const draft=workerDraftFor(base);
+ const draft=workerDraftFor(base,w);
  apply(draft?mergeWorkerData(draft,base):base);
+ activeDraftWorker=w;activeDraftVersion=workerSelectionVersion;
  const initial=JSON.stringify(collect());
  emptyWorkerScreen=draft?null:initial;
  document.getElementById('certificate').style.display='none';
@@ -1294,7 +1329,7 @@ async function selectWorker(i){
  document.body.className='';
  renderWorkers();
  const version=workerSelectionVersion;
- setStatus((draft?'BOZZA RIAPERTA: ':'RICERCA CARTELLA SALVATA: ')+base.cognome+' '+base.nome+'.');
+ setStatus((draft?'BOZZA RIAPERTA: ':'RICERCA CARTELLA SALVATA: ')+base.cognome+' '+base.nome+' — CF: '+(text('codice_fiscale')||'DA COMPLETARE')+'.');
  document.getElementById('cognome').scrollIntoView({behavior:'smooth',block:'center'});
  if(draft)return;
  // Look up the saved CF when it was completed after importing the list.
@@ -1306,9 +1341,10 @@ async function selectWorker(i){
   const saved=candidates.find(d=>workerMatch(base,d)===2&&workerDate(signatureVisit(d))===workerDate(dataVisita));
   if(saved){
    apply(mergeWorkerData(saved,base));emptyWorkerScreen=null;
-   setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.');
+   activeDraftWorker=w;activeDraftVersion=workerSelectionVersion;
+   setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' — CF: '+(text('codice_fiscale')||'NON PRESENTE')+' — RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.');
   }else if(w.visited||found.records.length||found.possible.length){
-   const message='Non è stato possibile recuperare automaticamente la cartella di '+base.cognome+' '+base.nome+' per il '+fmt(dataVisita)+'. Apri l’archivio per controllare nominativo e data. Nessuna cartella salvata è stata modificata.';
+   const message='Non è stato possibile recuperare automaticamente la cartella di '+base.cognome+' '+base.nome+' per il '+fmt(dataVisita)+'. In caso di omonimi o dati incompleti, scegli nell’archivio controllando CODICE FISCALE e DATA DI NASCITA. Nessuna cartella salvata è stata modificata.';
    setStatus(message);showWorkerArchiveSearch(base,message);
   }else setStatus('NUOVA CARTELLA DI '+base.cognome+' '+base.nome+': NESSUN SALVATAGGIO TROVATO PER QUESTA VISITA.');
  }catch(_){if(version===workerSelectionVersion){const message='LETTURA DELL’ARCHIVIO NON RIUSCITA. CONTROLLARE LA CARTELLA SALVATA PRIMA DI COMPILARNE UNA NUOVA.';setStatus(message);showWorkerArchiveSearch(base,message)}}

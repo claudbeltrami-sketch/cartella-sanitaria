@@ -20,7 +20,7 @@ async function app(factory=new idb.IDBFactory(),query='',seed={}){
  const setTimer=w.setTimeout.bind(w);w.setTimeout=(f,ms,...args)=>ms>=1000?0:setTimer(f,ms,...args);
  const sources=[...w.document.scripts].map(s=>s.src?(s.getAttribute('src').startsWith('http')||s.getAttribute('src').startsWith('vendor/')?'':fs.readFileSync(path.join(root,s.getAttribute('src').split('?')[0]),'utf8')):s.textContent);
  const main=sources.findIndex(s=>s.includes('window.lumenBatchCertApi='));
- sources[main]=sources[main].replace('window.lumenBatchCertApi=','window.testApi={rows:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),cartelle:()=>readAllFromDb(openCartelleDb,CARTELLE_STORE),backup:creaBackupCompleto,restore:ripristinaBackupCompleto,storeOriginalFile};window.lumenBatchCertApi=');
+ sources[main]=sources[main].replace('window.lumenBatchCertApi=','window.testApi={setWorkers:rows=>{workers=rows;currentWorkerIndex=-1;renderWorkers()},selectWorker,findWorkerArchive,openArchiveRecord,putCartellaRecord,rows:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),cartelle:()=>readAllFromDb(openCartelleDb,CARTELLE_STORE),backup:creaBackupCompleto,restore:ripristinaBackupCompleto,storeOriginalFile};window.lumenBatchCertApi=');
  for(const [k,v]of Object.entries(seed.session||{}))w.sessionStorage.setItem(k,JSON.stringify(v));
  for(const [k,v]of Object.entries(seed.local||{}))w.localStorage.setItem(k,JSON.stringify(v));
  w.eval(sources.join('\n;\n'));await new Promise(r=>setTimeout(r,60));
