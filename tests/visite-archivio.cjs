@@ -15,11 +15,19 @@ function worker(n,d=date){return {cognome:'COLLAUDO '+String(n).padStart(2,'0'),
   const records=await p.w.lumenArchiveVisitsApi.list(),selected=p.w.lumenArchiveVisitsApi.selectDate(records,date);assert.equal(selected.length,16);assert.equal(selected[0].data.mansione,'IMPIEGATO AGGIORNATO');assert.ok(selected.every(r=>r.data.data_giudizio===date));
   const misleading=[{...records[0],updatedAt:date+'T12:00:00Z',data:worker(50,'2026-09-29'),history:[]}];assert.equal(p.w.lumenArchiveVisitsApi.selectDate(misleading,date).length,0);
   const duplicate=[...records,{id:'LEGACY',data:worker(2),updatedAt:'2026-09-30T23:00:00Z'}];assert.equal(p.w.lumenArchiveVisitsApi.selectDate(duplicate,date).length,16);
+  // Presence indicators must follow the selected historical visit, not today's record.
+  const storage=p.w.lumenAllegatiStorage,db=await storage.open();
+  await new Promise((resolve,reject)=>{const tx=db.transaction(storage.store,'readwrite');
+   for(const [n,note,visit] of [[1,'ANALISI SERMOLAB — DRUG TEST PRESENTE',date],[2,'ANALISI SERMOLAB',date],[3,'DRUG TEST NEGATIVO',date],[4,'DOCUMENTO GENERICO',date],[5,'ANALISI SERMOLAB — DRUG TEST PRESENTE','2026-09-29']]){
+    const d=worker(n);tx.objectStore(storage.store).put({id:'ATT_TEST_'+n,kind:'allegato_cartella_v1',workerKey:p.api.cartellaId(d),workerCf:d.codice_fiscale,visit,note,name:'referto.pdf',blob:new Blob(['PDF FITTIZIO'],{type:'application/pdf'})});
+   }tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });db.close();
   const beforeDraft={...worker(99,'2026-09-28'),mansione:'BOZZA DA CONSERVARE'};p.api.apply(beforeDraft);const original=JSON.stringify(p.api.collect());
   await p.$('btnElencoVisiteArchivio').onclick();p.$('visiteArchiveDate').value=date;await p.$('visiteArchiveLoad').onclick();assert.match(p.$('visiteArchiveMessage').textContent,/16 VISITE TROVATE — 16 SELEZIONATE/);
-  p.$('visiteArchiveClient').value='SERMOLAB';p.$('visiteArchivePdf').onclick();assert.match(p.$('visiteArchiveMessage').textContent,/ELENCO PDF PREPARATO: 16 VISITE/);
-  const dir=path.join(__dirname,'../tmp/pdfs');fs.mkdirSync(dir,{recursive:true});const file=p.downloads.at(-1);fs.writeFileSync(path.join(dir,'elenco-16-fittizi.pdf'),Buffer.from(await file.blob.arrayBuffer()));
-  const many=p.w.lumenArchiveVisitsApi.createListPdf(Array.from({length:65},(_,i)=>({data:worker(i+1)})),{data:date,committente:'COLLAUDO MULTIPAGINA'});assert.ok(many.getNumberOfPages()>1);fs.writeFileSync(path.join(dir,'elenco-multipagina-fittizio.pdf'),Buffer.from(many.output('arraybuffer')));
+  assert.match(p.$('visiteArchiveRows').textContent,/Drug Test/);assert.match(p.$('visiteArchiveRows').textContent,/DA VERIFICARE/);
+  p.$('visiteArchiveClient').value='SERMOLAB';await p.$('visiteArchivePdf').onclick();assert.match(p.$('visiteArchiveMessage').textContent,/ELENCO PDF PREPARATO: 16 VISITE/);
+  const dir=path.join(__dirname,'../tmp/pdfs');fs.mkdirSync(dir,{recursive:true});const file=p.downloads.at(-1);const pdfBytes=Buffer.from(await file.blob.arrayBuffer());assert.ok(pdfBytes.includes(Buffer.from('(ANALISI)')));assert.ok(pdfBytes.includes(Buffer.from('(DRUG TEST)')));assert.ok(pdfBytes.includes(Buffer.from('(DA)')));assert.ok(pdfBytes.includes(Buffer.from('(VERIFICARE)')));fs.writeFileSync(path.join(dir,'elenco-16-fittizi.pdf'),pdfBytes);
+  const many=await p.w.lumenArchiveVisitsApi.createListPdf(Array.from({length:65},(_,i)=>({id:p.api.cartellaId(worker(i+1)),data:worker(i+1)})),{data:date,committente:'COLLAUDO MULTIPAGINA'});assert.ok(many.getNumberOfPages()>1);fs.writeFileSync(path.join(dir,'elenco-multipagina-fittizio.pdf'),Buffer.from(many.output('arraybuffer')));
   p.$('visiteArchiveNone').onclick();assert.equal(p.$('visiteArchiveCertificates').disabled,true);p.$('visiteArchiveAll').onclick();
   const checkbox=p.$('visiteArchiveRows').querySelector('[data-row="15"]');checkbox.checked=false;checkbox.onchange();assert.match(p.$('visiteArchiveMessage').textContent,/15 SELEZIONATE/);checkbox.checked=true;checkbox.onchange();
   const rendered=[];let fail=false,pages=1;
