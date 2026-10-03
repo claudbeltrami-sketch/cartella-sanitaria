@@ -1,0 +1,67 @@
+/* Compact controls only: clinical fields and printed pages keep their layout. */
+@media screen {
+  #mainToolbar {
+    display: block;
+    position: sticky;
+    top: 0;
+    padding: 7px;
+    border-radius: 10px;
+  }
+  .toolbar-primary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .toolbar-primary > button, .toolbar-primary > .file-label {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .toolbar-primary .signature-command { background: #6b3fa0; }
+  #btnAltriComandi { background: #555; }
+  #btnAltriComandi[aria-expanded="true"] { background: #333; }
+  #mainToolbar button:focus-visible, #mainToolbar .file-label:focus-within {
+    outline: 3px solid #111;
+    outline-offset: 2px;
+  }
+  /* Keep the receive-file input keyboard accessible inside its existing label. */
+  .toolbar-primary .file-label { position: relative; }
+  .toolbar-primary .file-label input {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+  #toolbarExtra {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: -2px;
+    right: -2px;
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    max-height: calc(100vh - 140px);
+    max-height: calc(100dvh - 140px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 2px solid var(--blu);
+    border-radius: 10px;
+    background: #f7f8fa;
+    box-shadow: 0 8px 24px #0003;
+  }
+  #toolbarExtra[hidden] { display: none; }
+  #toolbarExtra .tool-group-title { font-size: 14px; }
+  #toolbarExtra .thermal-choice { width: 100%; }
+  html { scroll-padding-top: 120px; }
+  @media (max-width: 650px) {
+    .toolbar-primary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #toolbarExtra { grid-template-columns: 1fr; max-height: calc(100vh - 235px); max-height: calc(100dvh - 235px); }
+    html { scroll-padding-top: 220px; }
+  }
+}

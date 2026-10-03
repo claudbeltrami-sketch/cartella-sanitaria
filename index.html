@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261003-spirometria-prova-v2">
+<meta name="lumen-build" content="20261003-comandi-compatti-v1">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261003-spirometria-prova-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-comandi-compatti-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -325,35 +325,40 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    content in browsers even when the complete section fits on one A4 sheet. */
 @page{size:A4 portrait;margin:10mm 12mm}
 </style>
+<link rel="stylesheet" href="toolbar-compact.css?v=20261003-1">
 </head>
 <body>
-<div class="toolbar" aria-label="Comandi principali">
+<div class="toolbar" id="mainToolbar" aria-label="Comandi principali">
+ <div class="toolbar-primary">
+<button type="button" id="btnSalva">SALVA CARTELLA</button>
+<button class="success" type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
+<button class="signature-command" type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
+<button type="button" id="btnAltriComandi" aria-expanded="false" aria-controls="toolbarExtra">ALTRI COMANDI</button>
+<button type="button" id="btnStampa">STAMPA CARTELLA</button>
+<button class="signature-command" type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA</button>
+<button id="btnRecuperaFirme" class="signature-command" type="button" onclick="window.lumenFirmaOffline.openRecovery()">RECUPERA FIRME</button>
+<label class="file-label signature-command">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
+ </div>
+ <div id="toolbarExtra" aria-label="Altri comandi" hidden>
  <section class="tool-group visit">
   <div class="tool-group-title">1 · VISITA</div>
   <div class="tool-buttons">
    <label class="file-label">APRI DATI<input type="file" id="fileApri" accept="application/json,.json"></label>
    <label class="file-label success">IMPORTA CARTELLE (ZIP)<input type="file" id="fileImportaCartelle" accept=".zip,.json,application/zip,application/json"></label>
    <label class="file-label">IMPORTA CARTELLA DA PDF<input type="file" id="fileImportaCartellaPdf" accept="application/pdf,.pdf"></label>
-   <button type="button" id="btnSalva">SALVA CARTELLA</button>
-   <button type="button" id="btnFirmaLavoratore">ACQUISISCI FIRMA</button>
    <button type="button" id="btnCert">GENERA CERTIFICATO</button>
-   <button type="button" id="btnStampa">STAMPA CARTELLA</button>
   </div>
  </section>
  <section class="tool-group handoff-tools">
   <div class="tool-group-title">2 · IPHONE–MAC</div>
   <div class="tool-buttons">
-   <button type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
    <button type="button" id="btnInviaCartellaCompletaIphone">INVIA CARTELLA COMPLETA A IPHONE</button>
-   <button type="button" onclick="window.lumenFirmaOffline.openRecovery()">RECUPERA FIRME</button>
    <button type="button" id="btnIncollaFirma">INCOLLA FIRMA</button>
-   <label class="file-label">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
   </div>
  </section>
  <section class="tool-group archive-tools">
   <div class="tool-group-title">3 · ARCHIVIO E SICUREZZA</div>
   <div class="tool-buttons">
-   <button type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
    <button type="button" id="btnAllegatiCartella">ALLEGATI CARTELLA</button>
    <label class="file-label">IMPORTA REFERTI ZIP<input type="file" id="fileImportaRefertiZip" accept=".zip,application/zip,application/x-zip-compressed"></label>
    <label class="file-label">ACQUISISCI CONSENSO CARTACEO<input type="file" id="fileConsensoCartaceo" accept="image/*,application/pdf,.pdf" capture="environment" multiple></label>
@@ -371,6 +376,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    <button type="button" id="btnAzzera" class="danger">AZZERA TUTTO</button>
   </div>
  </section>
+ </div>
 </div>
 <div class="status" id="status">PRONTA. I DATI RESTANO SU QUESTO DISPOSITIVO E NON VENGONO INVIATI SU INTERNET.</div>
 <div class="save-info" id="saveInfo"><div class="save-title" id="saveTitle"></div><div class="save-detail" id="saveDetail"></div><div class="mini-actions" id="saveActions"></div></div>
@@ -2046,4 +2052,5 @@ input.addEventListener('change',async e=>{
 <script src="archive-referti.js?v=20261002-1"></script>
 <script src="visite-archivio.js?v=20261002-pdf-referti"></script>
 <script src="conteggio-automatico.js?v=20261001-recupero"></script>
+<script src="toolbar-compact.js?v=20261003-1"></script>
 </body></html>
