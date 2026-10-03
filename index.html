@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261003-comandi-compatti-v2">
+<meta name="lumen-build" content="20261003-sessione-lista-compatte-v1">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261003-comandi-compatti-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-sessione-lista-compatte-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -326,6 +326,26 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 @page{size:A4 portrait;margin:10mm 12mm}
 </style>
 <link rel="stylesheet" href="toolbar-compact.css?v=20261003-2">
+
+<style id="lumen-panels-compact-style">
+@media screen {
+ #v9Panel,#listPanel { padding:8px 10px; }
+ .lumen-panel-heading {display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
+ .lumen-panel-heading h3 {margin:0;font-size:16px;flex:1 1 180px;}
+ .lumen-panel-heading button {min-height:40px;padding:7px 10px;font-size:13px;}
+ .lumen-panel-summary {flex:1 1 100%;font-size:14px;line-height:1.35;overflow-wrap:anywhere;}
+ #workersSummary {margin:6px 0 0;font-size:14px;line-height:1.35;overflow-wrap:anywhere;}
+ #lumenSessionDetails,#lumenListManage,#lumenListContents {margin-top:10px;}
+ #lumenListContents .list-search {display:block;}
+ #lumenListContents .list-search input {width:100%;}
+ #lumenSessionDetails[hidden],#lumenListManage[hidden],#lumenListContents[hidden] {display:none!important;}
+ .lumen-panel-heading button:focus-visible {outline:3px solid #111;outline-offset:2px;}
+ @media(max-width:650px) {
+  .lumen-panel-heading button {min-height:44px;flex:1 1 auto;}
+  .lumen-panel-heading h3 {flex-basis:100%;}
+ }
+}
+</style>
 </head>
 <body>
 <div class="toolbar" id="mainToolbar" aria-label="Comandi principali">
@@ -2053,4 +2073,49 @@ input.addEventListener('change',async e=>{
 <script src="visite-archivio.js?v=20261002-pdf-referti"></script>
 <script src="conteggio-automatico.js?v=20261001-recupero"></script>
 <script src="toolbar-compact.js?v=20261003-1"></script>
+
+<script id="lumen-panels-compact-script">
+/* Only move existing controls: retain their IDs, values and event handlers. */
+(function(){
+ 'use strict';
+ const byId=id=>document.getElementById(id);
+ const session=byId('v9Panel'),list=byId('listPanel');
+ if(!session||!list)return;
+ function group(id){const el=document.createElement('div');el.id=id;return el;}
+ function toggle(label,close,body,heading){
+  const button=document.createElement('button');button.type='button';button.className='secondary';
+  button.setAttribute('aria-controls',body.id);
+  function open(value){body.hidden=!value;button.textContent=value?close:label;button.setAttribute('aria-expanded',String(value));}
+  button.addEventListener('click',()=>open(body.hidden));heading.appendChild(button);open(false);
+  return {open,button};
+ }
+ const sessionHeading=group('lumenSessionHeading');sessionHeading.className='lumen-panel-heading';
+ sessionHeading.appendChild(session.querySelector('h3'));
+ const sessionDetails=group('lumenSessionDetails');
+ while(session.firstChild)sessionDetails.appendChild(session.firstChild);
+ session.append(sessionHeading,sessionDetails);
+ toggle('MODIFICA SESSIONE','CHIUDI DETTAGLI',sessionDetails,sessionHeading);
+ const sessionSummary=group('lumenSessionSummary');sessionSummary.className='lumen-panel-summary';sessionHeading.appendChild(sessionSummary);
+ function updateSessionSummary(){
+  let saved=null;try{saved=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessione_attiva')||'null');}catch(_){}
+  if(!saved){sessionSummary.textContent='NESSUNA SESSIONE ATTIVA';return;}
+  const date=/^\d{4}-\d{2}-\d{2}$/.test(saved.data||'')?saved.data.split('-').reverse().join('/'):saved.data;
+  sessionSummary.textContent=[date,saved.committente,'SEDE: '+(saved.sede||'—'),'AZIENDA: '+(saved.azienda||'—'),saved.stato].filter(Boolean).join(' · ');
+ }
+ new MutationObserver(updateSessionSummary).observe(byId('v9Card'),{childList:true,subtree:true,characterData:true});updateSessionSummary();
+ const listHeading=group('lumenListHeading');listHeading.className='lumen-panel-heading';
+ listHeading.appendChild(list.querySelector('h3'));
+ ['btnPrecedente','btnSuccessivo'].forEach(id=>listHeading.appendChild(byId(id)));
+ const contents=group('lumenListContents'),manage=group('lumenListManage');
+ ['.list-search','.workers-table-wrap'].forEach(selector=>contents.appendChild(list.querySelector(selector)));
+ ['.list-actions','.manual-grid','.import-preview','.list-note'].forEach(selector=>manage.appendChild(list.querySelector(selector)));
+ list.prepend(listHeading);list.append(manage,contents);
+ toggle('MOSTRA LISTA','NASCONDI LISTA',contents,listHeading);
+ const manageToggle=toggle('GESTISCI LISTA','CHIUDI GESTIONE',manage,listHeading);
+ // Cross-panel add-worker actions and import previews must remain visible.
+ [byId('manualGrid'),byId('importPreview')].forEach(el=>new MutationObserver(()=>{
+  if(el.classList.contains('show'))manageToggle.open(true);
+ }).observe(el,{attributes:true,attributeFilter:['class']}));
+})();
+</script>
 </body></html>
