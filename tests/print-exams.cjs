@@ -64,6 +64,20 @@ if not int(sys.argv[3]):
     await page.emulateMedia({media:'screen'});
     assert.equal(await page.evaluate(()=>JSON.stringify({data:window.lumenBatchCertApi.collect(),storage:{...localStorage}})),before);
    }
+   // A fresh browser context contains only synthetic data. Fantasma deliberately has no birth date.
+   await page.goto(origin);await page.waitForFunction(()=>window.lumenBatchCertApi&&window.lumenSpirometriaPercentuali);
+   await page.evaluate(d=>window.lumenBatchCertApi.apply(d),{...fixture,lumen_prova:false,sesso:'M',altezza:'175',data_nascita:'1951-01-01',data_giudizio:'2026-10-03',spirometria_fvc_percentuale:'',spirometria_fev1_percentuale:'',spirometria_pef_percentuale:''});
+   await page.setViewportSize({width:Math.floor(186*96/25.4/1.25),height:1100});
+   await page.emulateMedia({media:'print'});
+   await page.evaluate(()=>{document.body.className='print-cartella';window.dispatchEvent(new Event('beforeprint'))});
+   const autoHeight=await page.locator('#cartellaForm>.page').nth(2).evaluate(el=>el.getBoundingClientRect().height);
+   console.log(name,'auto125',autoHeight);
+   assert.ok(autoHeight<277*96/25.4/1.25,'Automatic reference note must fit at 125%');
+   if(name==='chromium')await page.pdf({path:path.join(out,'exams-auto.pdf'),preferCSSPageSize:true,printBackground:true,scale:1.25});
+   await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));
+   await page.emulateMedia({media:'screen'});
+   await page.goto(origin+'/?prova=fantasma');await page.waitForFunction(()=>window.lumenBatchCertApi&&document.getElementById('nome').value==='FANTASMA');
+   await page.evaluate(d=>window.lumenBatchCertApi.apply(d),fixture);
    // Compaction may not crop a longer clinician-edited interpretation.
    if(name==='chromium'){
     await page.locator('#audiometria_interpretazione').fill(Array.from({length:65},(_,i)=>`NOTA AUDIO ${String(i+1).padStart(3,'0')}: TESTO FITTIZIO DA CONSERVARE IN STAMPA.`).join('\n'));

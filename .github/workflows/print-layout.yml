@@ -3,7 +3,7 @@ name: Verifica stampa cartella A4
 on:
   push:
     branches: [main, fix/stampa-cartella-a4-20260912, fix/firme-20260915, feature/stampante-termica-20260915]
-    paths: [index.html, thermal-print.js, tests/thermal-print.cjs, tests/verify-thermal-pdfs.py, tests/signature-handoff.cjs, tests/print-layout.cjs, tests/print-fantasma.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
+    paths: [index.html, spirometria-percentuali.js, tests/spirometria-percentuali.cjs, tests/print-exams.cjs, thermal-print.js, tests/thermal-print.cjs, tests/verify-thermal-pdfs.py, tests/signature-handoff.cjs, tests/print-layout.cjs, tests/print-fantasma.cjs, tests/verify-print-pdfs.py, .github/workflows/print-layout.yml]
   workflow_dispatch:
 
 permissions:
@@ -35,6 +35,8 @@ jobs:
         env:
           NODE_PATH: /tmp/lumen-print-check/node_modules
         run: |
+          timeout 120s node tests/spirometria-percentuali.cjs
+          timeout 120s node tests/print-exams.cjs
           timeout 120s node tests/print-layout.cjs
           timeout 120s node tests/print-fantasma.cjs
       - name: Collauda PDF per stampante termica
