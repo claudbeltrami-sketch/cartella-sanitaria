@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261003-stampa-iphone-v4">
+<meta name="lumen-build" content="20261003-stampa-esami-v5">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261003-stampa-iphone-v4';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-stampa-esami-v5';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -293,6 +293,29 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .print-cartella .anagrafica-page .signature-grid>div:empty{display:none}
  .print-cartella .worker-contacts{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
  .print-cartella .worker-email{align-items:stretch}
+ /* Complete exam sheet, including both graphs, also at 125% print scale.
+    Natural overflow remains available for longer doctor-written notes. */
+ .print-cartella .surveillance-page .section-title{margin:4px 0 2px}
+ .print-cartella .surveillance-page .exams-heading{display:flex;flex-wrap:wrap;gap:0 12px;align-items:baseline}
+ .print-cartella .surveillance-page .field{min-height:20px}
+ .print-cartella .surveillance-page .lumen-print-value{min-height:19px;padding:1px 3px;line-height:1.2}
+ .print-cartella .surveillance-page .audiometry-grid{gap:3px;margin:3px 0 4px}
+ .print-cartella .surveillance-page .audiogramma-box{padding:4px;margin:3px 0}
+ .print-cartella .surveillance-page .audiogramma-box svg{height:28mm;max-height:28mm}
+ .print-cartella .surveillance-page .audiogramma-box svg text{font-size:18px}
+ .print-cartella .surveillance-page .audiogramma-title{font-size:12px;margin-bottom:2px}
+ .print-cartella .surveillance-page .audiogramma-note{font-size:9px;margin-top:2px}
+ .print-cartella .surveillance-page .spirometry-grid{gap:3px!important;margin:3px 0}
+ .print-cartella .surveillance-page .spirometry-row{min-height:20px}
+ .print-cartella .surveillance-page .spirometry-row span{padding-bottom:3px}
+ .print-cartella .surveillance-page>.row3{display:block}
+ .print-cartella .surveillance-page>.row3>.field{flex-wrap:nowrap}
+ .print-cartella .surveillance-page .spirometry-interpretation{margin-top:3px}
+ .print-cartella .surveillance-page .lumen-print-multiline{min-height:0;padding:3px;line-height:1.2}
+ .print-cartella .surveillance-page .spirometry-charts{gap:4px;margin:4px 0}
+ .print-cartella .surveillance-page .spirometry-chart svg{height:22mm;max-height:22mm}
+ .print-cartella .surveillance-page .spirometry-chart svg text{font-size:16px}
+ .print-cartella .surveillance-page .spirometry-chart-title{font-size:10px}
 }
 </style>
 <style id="lumen-cartella-page-size" media="not all">
@@ -523,13 +546,13 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="signature-grid"><div><div class="field"><label>Data</label><input id="data_dichiarazione" type="date" class="today"></div></div><div class="cartella-worker-signature"><b>Presa visione il lavoratore</b><div class="worker-sign-output"><img id="cartellaAnamnesiWorkerSignature" alt="Firma del lavoratore"></div><div class="signature-line"></div></div></div>
 </section>
 
-<section class="page compact-exams">
+<section class="page compact-exams surveillance-page">
 <div class="section-title">4. PROGRAMMA DI SORVEGLIANZA SANITARIA</div>
 <div class="checks three" id="protocollo">
 <label class="check"><input type="checkbox" value="VISITA MEDICA">Visita medica</label><label class="check"><input type="checkbox" value="AUDIOMETRIA">Audiometria</label><label class="check"><input type="checkbox" value="SPIROMETRIA BASALE">Spirometria basale</label><label class="check"><input type="checkbox" value="ELETTROCARDIOGRAMMA">Elettrocardiogramma</label><label class="check"><input type="checkbox" value="ESAME FUNZIONALE DEL RACHIDE">Esame funzionale del rachide</label><label class="check"><input type="checkbox" value="ANALISI EMATOCHIMICHE">Analisi ematochimiche</label><label class="check"><input type="checkbox" value="VISIOTEST">Visiotest</label><label class="check"><input type="checkbox" value="ESAMI TOSSICOLOGICI">Esami tossicologici</label>
 </div>
-<div class="section-title">Esiti degli accertamenti</div>
-<div class="section-title">Audiometria — soglie in dB HL</div>
+<div class="exams-heading"><div class="section-title">Esiti degli accertamenti</div>
+<div class="section-title">Audiometria — soglie in dB HL</div></div>
 <div class="audiometry-grid">
   <div class="audiometry-row audiometry-head"><span></span><span>500 Hz</span><span>1000 Hz</span><span>2000 Hz</span><span>4000 Hz</span></div>
   <div class="audiometry-row"><label>DX</label><input id="audio_dx_500" type="number" step="5" placeholder="20" aria-label="Orecchio destro 500 Hz"><input id="audio_dx_1000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 1000 Hz"><input id="audio_dx_2000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 2000 Hz"><input id="audio_dx_4000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 4000 Hz"></div>
@@ -1813,7 +1836,8 @@ window.aggiornaAudiometriaAuto=aggiornaAudiometriaAuto;
 
 <script>
 (function(){
-function n(id){var e=document.getElementById(id);return e?parseFloat(String(e.value||'').replace(',','.')):NaN;}
+// Never turn a malformed value such as "4,,75" into a plausible "4.00".
+function n(id){var e=document.getElementById(id),s=e?String(e.value||'').trim():'';return /^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(s)?Number(s.replace(',','.')):NaN;}
 function svgVolumeTempo(fvc,fev1){
  var l=42,r=318,t=15,b=182,xmax=6,ymax=Math.max(1,Math.ceil(fvc*1.15)),sx=function(x){return l+x/xmax*(r-l)},sy=function(y){return b-y/ymax*(b-t)},p=['<rect width="330" height="220" fill="#fff"/>'];
  for(var x=0;x<=6;x++){var xx=sx(x);p.push('<line x1="'+xx+'" y1="'+t+'" x2="'+xx+'" y2="'+b+'" stroke="#e2e6e9"/><text x="'+xx+'" y="199" text-anchor="middle" font-size="10">'+x+'</text>')}
@@ -1836,6 +1860,20 @@ function aggiornaGraficiSpirometria(d){
 }
 function aggiornaSpirometriaAuto(){
  var fvc=n('spirometria_fvc'),fev1=n('spirometria_fev1'),pef=n('spirometria_pef'),fvcPct=n('spirometria_fvc_percentuale'),fev1Pct=n('spirometria_fev1_percentuale'),pefPct=n('spirometria_pef_percentuale');
+ var invalidi=[];
+ [['spirometria_fvc','FVC',fvc],['spirometria_fev1','FEV1',fev1],['spirometria_pef','PEF',pef],['spirometria_fvc_percentuale','FVC %',fvcPct],['spirometria_fev1_percentuale','FEV1 %',fev1Pct],['spirometria_pef_percentuale','PEF %',pefPct]].forEach(function(c){
+  var e=document.getElementById(c[0]);if(!e)return;
+  var invalido=(String(e.value||'').trim()!==''||e.validity.badInput)&&(!isFinite(c[2])||c[2]<=0);
+  if(invalido){invalidi.push(c[1]);e.setAttribute('aria-invalid','true')}else e.removeAttribute('aria-invalid');
+ });
+ if(invalidi.length){
+  document.getElementById('spirometria_rapporto').value='';document.getElementById('spirometria_interpretazione').value='';
+  document.getElementById('spirometryCharts').classList.add('hidden');
+  document.getElementById('spirometryVolumeTimeSvg').innerHTML='';document.getElementById('spirometryFlowVolumeSvg').innerHTML='';document.getElementById('spirometryGraphSummary').textContent='';
+  var avviso=document.getElementById('spirometryGraphStatus');avviso.classList.remove('hidden');
+  avviso.textContent='CONTROLLARE '+invalidi.join(', ')+': INSERIRE UN NUMERO POSITIVO CON UNA SOLA VIRGOLA O UN SOLO PUNTO DECIMALE (ES. 4,75). CALCOLI E GRAFICI SOSPESI.';
+  return;
+ }
  aggiornaGraficiSpirometria({fvc:fvc,fev1:fev1,pef:pef,fvcPct:fvcPct,fev1Pct:fev1Pct,pefPct:pefPct});
  var ratio=(isFinite(fvc)&&fvc>0&&isFinite(fev1))?fev1/fvc*100:NaN;
  var r=document.getElementById('spirometria_rapporto'),o=document.getElementById('spirometria_interpretazione');
