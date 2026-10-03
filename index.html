@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261003-stampa-iphone-v3">
+<meta name="lumen-build" content="20261003-stampa-iphone-v4">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261003-stampa-iphone-v3';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-stampa-iphone-v4';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -274,11 +274,23 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  html:has(body.print-cartella){-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .print-cartella .screen-help{display:none!important}
  .print-cartella .anagrafica-page>.row>div:empty{display:none}
- .print-cartella .anagrafica-page .field{min-height:25px}
- .print-cartella .anagrafica-page .row{row-gap:3px}
+ .print-cartella .anagrafica-page .field{min-height:22px}
+ .print-cartella .anagrafica-page .field input,.print-cartella .anagrafica-page .field select,.print-cartella .anagrafica-page .lumen-print-value{min-height:20px}
+ .print-cartella .anagrafica-page .row{row-gap:2px}
  .print-cartella .anagrafica-page .section-title{margin:6px 0 3px}
  .print-cartella .anagrafica-page .signature-grid{margin-top:8px}
  .print-cartella .anagrafica-page .signature-line{margin-top:8px}
+ /* A wrapped flex row adds an entire barcode-height at larger print scales.
+    Fixed columns keep CF and barcode together without shrinking any text. */
+ .print-cartella .anagrafica-page .cf-barcode-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,230px);gap:9px}
+ .print-cartella .anagrafica-page .cf-barcode-wrap>div{min-width:0}
+ .print-cartella .anagrafica-page .cf-barcode-box{min-width:0;width:100%}
+ .print-cartella .anagrafica-page .cf-barcode-svg{width:100%}
+ /* Keep the dated closing block and doctor together; avoid a fragmented grid
+    with an empty first cell in WebKit's paged layout. */
+ .print-cartella .anagrafica-closing{break-inside:avoid;page-break-inside:avoid}
+ .print-cartella .anagrafica-page .signature-grid{display:block;width:47%;margin-left:auto}
+ .print-cartella .anagrafica-page .signature-grid>div:empty{display:none}
  .print-cartella .worker-contacts{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
  .print-cartella .worker-email{align-items:stretch}
 }
@@ -486,8 +498,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <label class="check"><input type="checkbox" value="MOVIMENTAZIONE MANUALE DEI CARICHI">Movimentazione manuale dei carichi</label><label class="check"><input type="checkbox" value="RISCHIO BIOLOGICO">Rischio biologico</label><label class="check"><input type="checkbox" value="POSTURA">Postura</label><label class="check"><input type="checkbox" value="MICROCLIMA">Microclima</label><label class="check"><input type="checkbox" value="IMPEGNO ARTI SUP - MOV. RIP.">Impegno arti sup - Mov. Rip.</label><label class="check"><input type="checkbox" value="LAVORO NOTTURNO">Lavoro notturno</label><label class="check"><input type="checkbox" value="VIBRAZIONI">Vibrazioni</label><label class="check"><input type="checkbox" value="LAVORO IN ALTEZZA">Lavoro in altezza</label><label class="check"><input type="checkbox" value="RUMORE">Rumore</label><label class="check"><input type="checkbox" value="RISCHIO CHIMICO">Rischio chimico</label><label class="check"><input type="checkbox" value="POLVERI INERTI">Polveri inerti</label><label class="check"><input type="checkbox" value="VDT">VDT</label>
 </div>
 <div class="field"><label>Altri rischi</label><input id="altri_rischi" data-upper></div>
+<div class="anagrafica-closing">
 <div class="row"><div class="field"><label>Tempo esposizione (giorni/anno)</label><input id="tempo_esposizione"></div><div class="field"><label>Data</label><input id="data_cartella" type="date" class="today"></div></div>
 <div class="signature-grid"><div></div><div><b>Il Medico Competente</b><div class="firma-medico-cartella"></div><div class="signature-line"></div></div></div>
+</div>
 </section>
 
 <section class="page">

@@ -59,6 +59,41 @@ p[0].get_pixmap().save(sys.argv[2])`,pdf,path.join(out,'fantasma-first-page.png'
    assert.equal(await page.locator('.lumen-print-value').count(),0);
    await page.emulateMedia({media:'screen'});
    assert.equal(await page.locator('#mansione').evaluate(el=>getComputedStyle(el).fontSize),screenText,'Printing does not alter the screen text size');
+   // Reproduce the reported incomplete Fantasma and the enlarged print layout.
+   // At 120%, the former wrapping CF flex row moved the doctor to page 2.
+   await page.evaluate(()=>{
+    document.getElementById('data_nascita').value='';
+    document.getElementById('codice_fiscale').value='';
+    document.getElementById('codice_fiscale').dispatchEvent(new Event('input',{bubbles:true}));
+   });
+   const enlargedBefore=await snapshot();
+   await page.setViewportSize({width:Math.floor(186*96/25.4/1.25),height:1100});
+   await page.emulateMedia({media:'print'});
+   await page.evaluate(()=>{document.body.className='print-cartella';window.dispatchEvent(new Event('beforeprint'))});
+   const enlarged=await page.locator('.anagrafica-page').boundingBox();
+   assert.ok(enlarged.height<277*96/25.4/1.25,`${name}: first sheet fits even at 125% print scale`);
+   const cf=await page.locator('.anagrafica-page .cf-barcode-wrap').boundingBox();
+   const barcodeBox=await page.locator('.anagrafica-page .cf-barcode-box').boundingBox();
+   assert.ok(barcodeBox.y<cf.y+5,'Barcode must not wrap to a second row');
+   if(name==='chromium'){
+    for(const scale of [1.2,1.25]){
+     await page.evaluate(()=>{document.body.className='print-cartella'});
+     const pdf=path.join(out,`fantasma-scale-${scale}.pdf`);
+     await page.pdf({path:pdf,preferCSSPageSize:true,printBackground:true,scale});
+     execFileSync('python',['-c',`import fitz,sys
+p=fitz.open(sys.argv[1])
+# Later sections with populated exam charts may flow at an enlarged scale.
+assert len(p)>=5, len(p)
+t=p[0].get_text()
+for text in ['PROVA FANTASMA','Fattori di rischio','Tempo esposizione','Il Medico Competente']:
+ assert text in t, text
+assert p[0].get_images(), 'Doctor signature missing from first page'
+assert '1. ANAMNESI LAVORATIVA' in p[1].get_text()
+p[0].get_pixmap().save(sys.argv[2])`,pdf,path.join(out,`fantasma-scale-${scale}.png`)]);
+    }
+   }
+   await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));
+   assert.equal(await snapshot(),enlargedBefore,'Enlarged printing must preserve form data and storage');
    // Cartella margins must not leak into later certificate/consent printing.
    for(const kind of ['certificato','consenso']){
     await page.evaluate(kind=>{document.body.className='print-'+kind;window.dispatchEvent(new Event('beforeprint'))},kind);
