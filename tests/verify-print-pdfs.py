@@ -25,12 +25,15 @@ for name in expected:
             problems.append(f'{name} page {i+1}: not A4')
         if len(texts[i].strip()) < 20:
             problems.append(f'{name} page {i+1}: blank or nearly empty page')
-        # Named-page margins should apply on overflow pages as well.
+        # Cartella margins should apply on overflow pages as well.
         for x0, y0, x1, y1, text, *_ in page.get_text('blocks'):
             if x0 < 30 or x1 > page.rect.width - 30 or y0 < 24 or y1 > page.rect.height - 24:
                 problems.append(f'{name} page {i+1}: text outside margins: {text[:70]!r}')
     joined = '\n'.join(texts)
     if name.endswith('standard.pdf'):
+        for marker in ['Domicilio', 'Datore di lavoro', 'Sede/i di lavoro', 'Fattori di rischio', 'Il Medico Competente']:
+            if marker not in texts[0]:
+                problems.append(f'{name}: first-page content displaced: {marker}')
         for marker, page_index in [('CARTELLA SANITARIA E DI RISCHIO', 0), ('1. ANAMNESI LAVORATIVA', 1),
                                    ('4. PROGRAMMA DI SORVEGLIANZA SANITARIA', 2), ('5. ESAME CLINICO GENERALE', 3)]:
             if page_index >= len(texts) or marker not in texts[page_index]:

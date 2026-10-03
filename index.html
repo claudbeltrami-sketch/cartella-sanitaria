@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261003-parametri-cf-v1">
+<meta name="lumen-build" content="20261003-stampa-firma-v2">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261003-parametri-cf-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-stampa-firma-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -236,12 +236,12 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 /* Cartella A4: five logical pages, with natural overflow for longer records. */
 .lumen-print-value{display:none}
 @media print{
- @page lumen-cartella{size:A4 portrait;margin:10mm 12mm}
  html:has(body.print-cartella){width:auto!important;height:auto!important;overflow:visible!important;background:#fff!important}
  body.print-cartella{width:auto!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}
  body.print-cartella> :not(.cartella){display:none!important}
- body.print-cartella>.cartella{display:block!important;width:auto!important;page:lumen-cartella}
+ body.print-cartella>.cartella{display:block!important;width:auto!important}
  .print-cartella .cartella>.page{width:auto;height:auto;min-height:0;max-height:none;margin:0;padding:0;overflow:visible;box-shadow:none;break-inside:auto;page-break-inside:auto;break-after:page;page-break-after:always}
+ html[data-lumen-prova] body.print-cartella .page:before{font-size:12px;line-height:1.2;padding:4px;margin-bottom:6px}
  .print-cartella .cartella>.page:last-child{break-after:auto;page-break-after:auto}
  .print-cartella .row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .print-cartella .row3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -270,6 +270,11 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .print-cartella .cartella-worker-signature .signature-line{margin-top:0}
  .print-cartella .page>.small:has(+.section-title){break-after:avoid}
 }
+</style>
+<style id="lumen-cartella-page-size" media="not all">
+/* Enabled only for cartella printing. Named pages can fragment nested SVG/grid
+   content in browsers even when the complete section fits on one A4 sheet. */
+@page{size:A4 portrait;margin:10mm 12mm}
 </style>
 </head>
 <body>
@@ -1934,7 +1939,9 @@ input.addEventListener('change',async e=>{
   if(!document.body.className.trim()&&!form.classList.contains('hidden')){
    nativeCartella=true;document.body.classList.add('print-cartella');
   }
-  if(!document.body.classList.contains('print-cartella'))return;
+  const cartellaPrint=document.body.classList.contains('print-cartella');
+  document.getElementById('lumen-cartella-page-size').media=cartellaPrint?'print':'not all';
+  if(!cartellaPrint)return;
   clearPrintValues();
   form.querySelectorAll('input,select,textarea').forEach(el=>{
    if(['hidden','checkbox','radio','button','file','submit','reset'].includes(el.type)||el.closest('.cf-helper,.altezza-temporary'))return;
@@ -1948,6 +1955,7 @@ input.addEventListener('change',async e=>{
   });
  });
  window.addEventListener('afterprint',function(){
+  document.getElementById('lumen-cartella-page-size').media='not all';
   clearPrintValues();
   if(nativeCartella){document.body.classList.remove('print-cartella');nativeCartella=false;}
  });
