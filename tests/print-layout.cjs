@@ -4,12 +4,7 @@ const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'tmp/print-layout');
 fs.mkdirSync(out,{recursive:true});
-const server=http.createServer((req,res)=>{
-  const file=new URL(req.url,'http://localhost').pathname;
-  if(!['/','/index.html','/cambia-lista.js','/thermal-print.js','/firma-recupero.js','/firma-offline.js','/vendor/peerjs-1.5.4.min.js'].includes(file)){res.writeHead(404);return res.end();}
-  res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':'text/html');
-  res.end(fs.readFileSync(path.join(root,file==='/'?'index.html':file.slice(1))));
-});
+const server=require('./local-server.cjs')(root);
 const fixture={
  cognome:'PROVA',nome:'COLLAUDO',luogo_nascita:'ROMA',data_nascita:'1980-01-01',sesso:'M',
  codice_fiscale:'TSTPRV80A01H501X',domicilio:'INDIRIZZO FITTIZIO PER COLLAUDO',telefono:'0000000000',
@@ -23,7 +18,7 @@ const fixture={
  anamnesi_familiare:'INFORMAZIONI FITTIZIE PER LA SOLA VERIFICA DI IMPAGINAZIONE.',
  anamnesi_patologica:'TESTO DI PROVA. NESSUN DATO SANITARIO REALE.',
  non_fumatore:true,farmaci:'NESSUNO',infortuni:'NESSUNO',invalidita_stato:'NO',altre_notizie:'DATI DI COLLAUDO.',
- altezza:'175',peso:'70',pas:'120',pad:'80',polso:'70',cute:'NDR',torace:'NDR',cuore:'NDR',addome:'NDR',
+ altezza:'175',peso:'70',pas:'120',pad:'80',polso:'70',temperatura:'36,7',spo2:'98',cute:'NDR',torace:'NDR',cuore:'NDR',addome:'NDR',
  organi_ipocondriaci:'NDR',genito_urinario:'NDR',rachide:'NDR',arti:'NDR',sistema_nervoso:'NDR',
  altri_rilievi:'DATI DI COLLAUDO SENZA VALORE CLINICO.',giudizio:'IDONEO',periodicita:'ANNUALE',periodicita_protocollo:'ANNUALE',
  prescrizioni:'TESTO DI PROVA PER LA VERIFICA DELLE FIRME.',data_trasmissione:'2026-09-12',mezzo_trasmissione:'CONSEGNA',
@@ -152,6 +147,6 @@ async function run(engine,name,viewport){
  try{
   await run(chromium,'chromium-desktop',{width:1440,height:1000});
   await run(chromium,'chromium-mobile',{width:390,height:844});
-  await run(webkit,'webkit',{width:390,height:844});
+  if(!process.env.CHROMIUM_ONLY)await run(webkit,'webkit',{width:390,height:844});
  }finally{server.close();}
 })().catch(e=>{fs.writeFileSync(path.join(out,'browser-error.txt'),String(e.stack||e));console.error(e);process.exitCode=1;});

@@ -35,7 +35,7 @@ for name in expected:
                                    ('4. PROGRAMMA DI SORVEGLIANZA SANITARIA', 2), ('5. ESAME CLINICO GENERALE', 3)]:
             if page_index >= len(texts) or marker not in texts[page_index]:
                 problems.append(f'{name}: {marker} is not on page {page_index+1}')
-        for label in ['PAS', 'PAD', '120', '80']:
+        for label in ['PAS', 'PAD', '120', '80', 'T (°C)', 'SpO', '36,7', '98']:
             if len(texts) < 4 or label not in texts[3]:
                 problems.append(f'{name}: vital signs split or missing: {label}')
         if not pdf[0].get_images() or not pdf[-1].get_images():

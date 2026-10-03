@@ -74,7 +74,7 @@ async function importDirect(page,charts){return page.evaluate(async charts=>{con
     try{await api.commit([{data:charts[1]}],api.fingerprint(before),new Date().toISOString());return ''}catch(e){return e.message}
    },fresh);assert.match(stale,/ARCHIVIO CAMBIATO/);
    console.log('PASS: transaction rollback on second write failure; stale preview refuses commit');
-   await page.locator('#fileImportaCartelle').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([fresh[1],{...fresh[1],codice_fiscale:'',luogo_nascita:'',cf_comune:''}]))});
+   await page.locator('#fileImportaCartelle').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([fresh[1],{...fresh[1],codice_fiscale:'',luogo_nascita:'',cf_comune:'',cf_codice_catastale:''}]))});
    await page.waitForFunction(()=>document.getElementById('chartImportMessage').textContent.startsWith('IMPORTAZIONE NON AVVIATA'));
    assert.match(await page.locator('#chartImportMessage').innerText(),/CF assente/);assert(!(await read(page)).some(r=>r.cf===fresh[1].codice_fiscale));
    await page.locator('#chartImportClose').click();

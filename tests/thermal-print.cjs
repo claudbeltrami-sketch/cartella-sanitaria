@@ -3,7 +3,7 @@ const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),
 const root=path.resolve(__dirname,'..'),out=path.join(root,'tmp/print-layout');fs.mkdirSync(out,{recursive:true});
 const fixture=vm.runInNewContext('('+fs.readFileSync(path.join(__dirname,'print-layout.cjs'),'utf8').match(/const fixture=(\{[\s\S]*?\n\});/)[1]+')');
 const libraries={html2canvas:fs.readFileSync(require.resolve('html2canvas/dist/html2canvas.min.js'),'utf8'),jspdf:fs.readFileSync(require.resolve('jspdf/dist/jspdf.umd.min.js'),'utf8')};
-const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname.slice(1)||'index.html';if(!['index.html','thermal-print.js','cambia-lista.js'].includes(name)){res.writeHead(404);return res.end()}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(fs.readFileSync(path.join(root,name)))});
+const server=require('./local-server.cjs')(root);
 async function run(engine,name){
  const browser=await engine.launch({headless:true});
  try{
@@ -31,4 +31,4 @@ async function run(engine,name){
   assert.deepEqual(errors,[]);
  }finally{await browser.close()}
 }
-(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));try{await run(chromium,'chromium');await run(webkit,'webkit');}finally{server.close()}})().catch(e=>{console.error(e);process.exitCode=1;server.close()});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));try{await run(chromium,'chromium');if(!process.env.CHROMIUM_ONLY)await run(webkit,'webkit');}finally{server.close()}})().catch(e=>{console.error(e);process.exitCode=1;server.close()});

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261002-import-cartelle-v1">
+<meta name="lumen-build" content="20261003-parametri-cf-v1">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -31,7 +31,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261002-import-cartelle-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261003-parametri-cf-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V15 Backup locale guidato (sviluppo)</title>
 <style>
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -443,7 +443,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    <div class="field"><label>Codice catastale</label><input id="cf_codice_catastale" maxlength="4" data-upper placeholder="AUTOMATICO"></div>
   </div>
   <div class="cf-action"><button type="button" id="btnCalcolaCF" class="success">CALCOLA CODICE FISCALE</button><span class="cf-result" id="cfResult"></span></div>
-  <div class="cf-note">Il codice catastale viene trovato automaticamente per i Comuni italiani e per gli Stati esteri. Verificare sempre il risultato con un documento ufficiale: i casi di omocodia possono produrre un codice diverso.</div>
+  <div class="cf-note">Il CF viene calcolato automaticamente durante la compilazione, quando i dati sono completi; un CF già presente viene conservato. Il codice catastale viene trovato automaticamente per i Comuni italiani e per gli Stati esteri. Verificare sempre il risultato con un documento ufficiale: i casi di omocodia possono produrre un codice diverso.</div>
  </div>
  <div class="field full"><label>Domicilio</label><input id="domicilio" data-upper></div>
  <div class="worker-contacts full">
@@ -524,7 +524,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 
 <section class="page compact-exams clinical-page">
 <div class="section-title">5. ESAME CLINICO GENERALE</div>
-<div class="row3"><div class="field"><label>Altezza (cm)</label><input id="altezza" type="number" min="50" max="250" step="0.1" inputmode="decimal" style="min-width:88px;font-weight:700;color:#185a32"></div><div class="field altezza-temporary"><label>Feet (input temporaneo)</label><input id="altezza_feet" data-temporary type="text" inputmode="numeric" pattern="[0-8]*" placeholder="ES. 5" autocomplete="off"></div><div class="field altezza-temporary"><label>Inches (input temporaneo)</label><input id="altezza_inches" data-temporary type="text" inputmode="decimal" placeholder="ES. 9" autocomplete="off"></div><div class="field"><label>Peso (kg)</label><input id="peso" inputmode="decimal" placeholder="ES. 72,5"></div><div class="field bmi-output"><label>BMI (kg/m²)</label><input id="bmi" readonly aria-live="polite"></div><div class="field bmi-classification"><label>Classificazione BMI</label><input id="bmi_classificazione" readonly aria-live="polite"></div><div class="field"><label>PAS</label><input id="pas" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>PAD</label><input id="pad" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>Polso</label><input id="polso" inputmode="numeric"></div></div>
+<div class="row3"><div class="field"><label>Altezza (cm)</label><input id="altezza" aria-describedby="altezza_avviso" type="number" min="120" max="220" step="0.1" inputmode="decimal" style="min-width:88px;font-weight:700;color:#185a32"></div><div class="field altezza-temporary"><label>Feet (input temporaneo)</label><input id="altezza_feet" data-temporary type="text" inputmode="numeric" pattern="[0-8]*" placeholder="ES. 5" autocomplete="off"></div><div class="field altezza-temporary"><label>Inches (input temporaneo)</label><input id="altezza_inches" data-temporary type="text" inputmode="decimal" placeholder="ES. 9" autocomplete="off"></div><div class="field"><label>Peso (kg)</label><input id="peso" inputmode="decimal" placeholder="ES. 72,5"></div><div class="field bmi-output"><label>BMI (kg/m²)</label><input id="bmi" readonly aria-live="polite"></div><div class="field bmi-classification"><label>Classificazione BMI</label><input id="bmi_classificazione" readonly aria-live="polite"></div><div class="field"><label>PAS</label><input id="pas" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>PAD</label><input id="pad" inputmode="numeric" placeholder="mmHg"></div><div class="field"><label>Polso</label><input id="polso" inputmode="numeric"></div><div class="field"><label for="temperatura">T (°C)</label><input id="temperatura" inputmode="decimal" placeholder="FACOLTATIVA"></div><div class="field"><label for="spo2">SpO₂ (%)</label><input id="spo2" inputmode="decimal" placeholder="FACOLTATIVA"></div></div>
+<div id="altezza_avviso" role="status" hidden style="margin:6px 0;padding:8px;border:2px solid #a23b3b;color:#8b2020;font-weight:700"></div>
 <div class="small altezza-temporary">Feet e inches servono soltanto per la conversione: il dato sanitario salvato e stampato resta l’altezza in centimetri.</div>
 <div id="altezza_conversione_risultato" class="altezza-temporary" style="margin:6px 0;padding:8px;border:2px solid #287a46;border-radius:7px;background:#f5fff8;color:#185a32;font-size:16px;font-weight:700;text-align:center">INSERISCI FEET E INCHES: QUI APPARIRÀ SUBITO IL RISULTATO IN CM</div>
 <script>
@@ -685,23 +686,53 @@ function controlChar(code15){
  let sum=0;[...code15].forEach((ch,i)=>sum+=(i%2===0?odd[ch]:even[ch]));return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[sum%26]
 }
 function findComuneCode(name){const key=normComune(name);return COMUNI_MAP.get(key)||STATI_ESTERI_MAP.get(key)||''}
-function syncComuneCode(){const inp=document.getElementById('cf_comune'),out=document.getElementById('cf_codice_catastale');const code=findComuneCode(inp.value);if(code){out.value=code;document.getElementById('luogo_nascita').value=inp.value.toUpperCase()}}
-document.getElementById('cf_comune').addEventListener('change',syncComuneCode);
-document.getElementById('cf_comune').addEventListener('blur',syncComuneCode);
-document.getElementById('luogo_nascita').addEventListener('change',()=>{if(!document.getElementById('cf_comune').value)document.getElementById('cf_comune').value=document.getElementById('luogo_nascita').value;syncComuneCode()});
-document.getElementById('btnCalcolaCF').onclick=()=>{
- const cognome=text('cognome'),nome=text('nome'),data=text('data_nascita'),sesso=text('sesso');
- let comune=text('cf_comune')||text('luogo_nascita'),cat=text('cf_codice_catastale').toUpperCase();
- if(!cat)cat=findComuneCode(comune);
- if(!cognome||!nome||!data||!sesso||!cat){alert('Per calcolare il codice fiscale servono COGNOME, NOME, DATA DI NASCITA, SESSO e COMUNE/CODICE CATASTALE.');return}
- const [y,m,d]=data.split('-').map(Number),months='ABCDEHLMPRST';
- const day=sesso==='F'?d+40:d;
- const partial=codeSurname(cognome)+codeName(nome)+String(y).slice(-2)+months[m-1]+String(day).padStart(2,'0')+cat;
- if(partial.length!==15){alert('Controllare i dati inseriti.');return}
- const cf=partial+controlChar(partial);document.getElementById('codice_fiscale').value=cf;document.getElementById('cf_codice_catastale').value=cat;syncCFBarcode();
- syncLavoratore();document.getElementById('luogo_nascita').value=comune.toUpperCase();
- document.getElementById('cfResult').textContent='CALCOLATO: '+cf;setStatus('CODICE FISCALE CALCOLATO LOCALMENTE: '+cf+' — VERIFICARE CON DOCUMENTO UFFICIALE.');
-};
+// Automatic calculation only reacts to edits; opening an archive never changes its identity.
+let autoCFValue='';
+function calculateCFData(d){
+ const cognome=cleanLetters(d.cognome),nome=cleanLetters(d.nome),data=String(d.data_nascita||''),sesso=String(d.sesso||'').toUpperCase();
+ const comune=String(d.luogo_nascita||d.cf_comune||'').trim(),manual=String(d.cf_codice_catastale||'').trim().toUpperCase();
+ const codes=[...new Set([...COMUNI_CF,...STATI_ESTERI_CF].filter(([n])=>normComune(n)===normComune(comune)).map(([,c])=>c))];
+ // An explicit code may resolve an unknown/historical place; never guess between homonymous places.
+ const cat=codes.length===1?codes[0]:(codes.length>1?(codes.includes(manual)?manual:''):manual);
+ if(!cognome||!nome||!/^\d{4}-\d{2}-\d{2}$/.test(data)||!['M','F'].includes(sesso)||! /^[A-Z]\d{3}$/.test(cat))return null;
+ const [y,m,day]=data.split('-').map(Number),dt=new Date(y,m-1,day);
+ if(y<1000||dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==day||data>today())return null;
+ const partial=codeSurname(cognome)+codeName(nome)+String(y).slice(-2)+'ABCDEHLMPRST'[m-1]+String(day+(sesso==='F'?40:0)).padStart(2,'0')+cat;
+ return {cf:partial+controlChar(partial),cat};
+}
+function syncComuneCode(source){
+ const inp=document.getElementById('cf_comune'),place=document.getElementById('luogo_nascita'),out=document.getElementById('cf_codice_catastale');
+ if(source==='luogo_nascita')inp.value=place.value;else place.value=inp.value;
+ const codes=[...new Set([...COMUNI_CF,...STATI_ESTERI_CF].filter(([n])=>normComune(n)===normComune(place.value)).map(([,c])=>c))];
+ out.value=codes.length===1?codes[0]:'';
+}
+function aggiornaCFAutomatico(manual=false){
+ const el=document.getElementById('codice_fiscale'),existing=el.value.trim();
+ if(existing&&existing!==autoCFValue){
+  if(manual)setStatus('CODICE FISCALE GIÀ PRESENTE: CONSERVATO. PER CORREGGERLO, MODIFICARE IL CAMPO.');
+  return;
+ }
+ const d={};['cognome','nome','data_nascita','sesso','luogo_nascita','cf_comune','cf_codice_catastale'].forEach(id=>d[id]=text(id));
+ const result=calculateCFData(d);
+ if(!result){
+  if(autoCFValue){el.value='';autoCFValue='';syncCFBarcode()}
+  document.getElementById('cfResult').textContent='';
+  if(manual)alert('Per calcolare il codice fiscale servono COGNOME, NOME, DATA DI NASCITA valida, SESSO e COMUNE/CODICE CATASTALE non ambiguo.');
+  return;
+ }
+ el.value=result.cf;autoCFValue=result.cf;
+ document.getElementById('cf_codice_catastale').value=result.cat;
+ document.getElementById('cfResult').textContent='CALCOLATO: '+result.cf+' — VERIFICARE CON DOCUMENTO UFFICIALE';
+ syncLavoratore();syncCFBarcode();
+}
+['cognome','nome','data_nascita','sesso','luogo_nascita','cf_comune','cf_codice_catastale'].forEach(id=>{
+ ['input','change'].forEach(event=>document.getElementById(id).addEventListener(event,()=>{
+  if(id==='luogo_nascita'||id==='cf_comune')syncComuneCode(id);
+  aggiornaCFAutomatico();
+ }));
+});
+document.getElementById('codice_fiscale').addEventListener('input',()=>{autoCFValue='';document.getElementById('cfResult').textContent=''});
+document.getElementById('btnCalcolaCF').onclick=()=>aggiornaCFAutomatico(true);
 
 
 function renderCode39(svgId,value){
@@ -738,11 +769,17 @@ function convertiAltezzaInCm(){window.convertiAltezzaIOS()}
 function numeroDecimale(v){return Number(String(v||'').trim().replace(',','.'))}
 function aggiornaBmi(){
  const altezza=numeroDecimale(document.getElementById('altezza').value),peso=numeroDecimale(document.getElementById('peso').value),bmi=document.getElementById('bmi'),classe=document.getElementById('bmi_classificazione');
- if(!(altezza>=50&&altezza<=250&&peso>0)){bmi.value='';classe.value='';return}
+ const heightEl=document.getElementById('altezza'),warning=document.getElementById('altezza_avviso');
+ const suspect=heightEl.value!==''&&(!Number.isFinite(altezza)||altezza<120||altezza>220);
+ warning.hidden=!suspect;
+ warning.textContent=suspect?'ALTEZZA DA VERIFICARE: '+heightEl.value+' CM (INTERVALLO DI CONTROLLO 120–220 CM). BMI NON CALCOLATO. CONTROLLARE LA MISURA ORIGINALE.':'';
+ heightEl.setAttribute('aria-invalid',String(suspect));
+ if(suspect||!(altezza>=120&&altezza<=220&&Number.isFinite(peso)&&peso>0)){bmi.value='';classe.value='';return}
  const valore=peso/Math.pow(altezza/100,2);
  bmi.value=valore.toFixed(1).replace('.',',');
  classe.value=valore<18.5?'SOTTOPESO':valore<25?'NORMOPESO':valore<30?'SOVRAPPESO':valore<35?'OBESITÀ CLASSE I':valore<40?'OBESITÀ CLASSE II':'OBESITÀ CLASSE III';
 }
+window.aggiornaBmi=aggiornaBmi;
 ['altezza','peso'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',aggiornaBmi);e.addEventListener('change',aggiornaBmi)});
 function aggiornaInvalidita(){const attiva=document.getElementById('invalidita_stato').value==='SÌ';['invalidita_ente','invalidita_percentuale','invalidita_note'].forEach(id=>{document.getElementById(id).disabled=!attiva})}
 document.getElementById('invalidita_stato').addEventListener('change',aggiornaInvalidita);aggiornaInvalidita();
@@ -753,7 +790,7 @@ function workerSignatureStore(){try{return JSON.parse(lumenStorage.local.getItem
 function optimizeWorkerSignature(data,strict=false){return new Promise((resolve,reject)=>{if(!data||!String(data).startsWith('data:image/'))return resolve(data||'');const im=new Image();im.onload=()=>{const maxW=700,maxH=240,scale=Math.min(1,maxW/im.naturalWidth,maxH/im.naturalHeight),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale));if(scale===1&&String(data).startsWith('data:image/png;base64,'))return resolve(data);const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);resolve(cv.toDataURL('image/png'))};im.onerror=()=>strict?reject(new Error('IMMAGINE FIRMA NON LEGGIBILE. RIPETERE L’INVIO.')):resolve(data);im.src=data})}
 async function saveWorkerSignature(key,data){const optimized=await optimizeWorkerSignature(data),store=workerSignatureStore();store[key]=optimized;try{lumenStorage.local.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store))}catch(e){throw new Error('MEMORIA FIRME PIENA. CREARE UN BACKUP PRIMA DI PROSEGUIRE.')}if(key===workerSignatureIdentity(collect()))useWorkerSignature(optimized);else window.dispatchEvent(new Event('beltrami-signature-updated'));return optimized}
 function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=workerSignatureIdentity(d);if(!key)return;const store=workerSignatureStore();store[key]=d.firma_lavoratore_png;try{lumenStorage.local.setItem(WORKER_SIGNATURE_KEY,JSON.stringify(store));window.dispatchEvent(new Event('beltrami-signature-updated'))}catch(_){}}
-function collect(){syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();if(lumenStorage.isTest){Object.assign(d,lumenStorage.identity);d.lumen_prova=true}return d}
+function collect(){aggiornaBmi();syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:e.value});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();if(lumenStorage.isTest){Object.assign(d,lumenStorage.identity);d.lumen_prova=true}return d}
 function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return {cognome:value||'',nome:''};return {cognome:parts.shift(),nome:parts.join(' ')}}
 // A complete load always replaces the visible record, including absent fields.
 let workerSelectionVersion=0;
@@ -786,6 +823,7 @@ function normalizzaEmailLavoratore(source){
 }
 function apply(source){
  lumenStorage.checkData(source);
+ autoCFValue='';
  const d=normalizzaEmailLavoratore(source);
  workerSelectionVersion++;
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
@@ -1005,7 +1043,7 @@ function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const 
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
 function archiveHaystack(r){const d=r.data||{},visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query=''){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -1456,13 +1494,7 @@ try{let d=JSON.parse(lumenStorage.local.getItem('beltrami_workers_v8')||'null');
 window.lumenListaParser={parseXlsx,parseDocx,parsePdf,parseDelimited,rowsToWorkers};
 window.lumenAllegatiStorage={open:openOriginalDb,store:ORIGINAL_STORE,list:()=>readAllFromDb(openOriginalDb,ORIGINAL_STORE),identity:cartellaIdentity};
 window.lumenArchiveVisitsApi={list:()=>listCartelleArchive('')};
-window.lumenImportCartelleStorage={open:openCartelleDb,store:CARTELLE_STORE,identity:cartellaIdentity,id:cartellaId,validCF:cf=>/^[0-9]{11}$/.test(cf)||cf.length===16&&controlChar(cf.slice(0,15))===cf[15],calculateCF:d=>{
- const cat=findComuneCode(d.luogo_nascita||d.cf_comune||'');
- if(!d.cognome||!d.nome||!d.data_nascita||!['M','F'].includes(d.sesso)||!cat)return null;
- const [y,m,day]=d.data_nascita.split('-').map(Number);
- const partial=codeSurname(d.cognome)+codeName(d.nome)+String(y).slice(-2)+'ABCDEHLMPRST'[m-1]+String(day+(d.sesso==='F'?40:0)).padStart(2,'0')+cat;
- return partial.length===15?{cf:partial+controlChar(partial),cat}:null;
-}};
+window.lumenImportCartelleStorage={open:openCartelleDb,store:CARTELLE_STORE,identity:cartellaIdentity,id:cartellaId,validCF:cf=>/^[0-9]{11}$/.test(cf)||cf.length===16&&controlChar(cf.slice(0,15))===cf[15],calculateCF:calculateCFData};
 window.lumenConteggioStorage={list:()=>listCartelleArchive(''),change:async(id,mutate)=>{const db=await openCartelleDb();return new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite'),store=tx.objectStore(CARTELLE_STORE),request=store.get(id);request.onsuccess=()=>{if(request.result){try{mutate(request.result);store.put(request.result)}catch(e){tx.abort();reject(e)}}};tx.oncomplete=()=>{db.close();resolve()};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||new Error('Conteggio non aggiornato'))}})}};
 window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
 
