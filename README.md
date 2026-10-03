@@ -29,7 +29,16 @@ riferimento; l'apertura non riscrive l'archivio. Il pulsante esplicito
 RICALCOLA LE TRE % riattiva il calcolo su tutti e tre i campi. I vecchi PEF
 senza unità conservano la convenzione preesistente (>25: L/min).
 
-Verifiche: `node tests/spirometria-percentuali.cjs` e
+In PROVA FANTASMA la data di nascita resta vuota e bloccata per preservare
+l’identità fittizia. Il campo esplicito «Età di prova (anni)» permette di
+provare le percentuali insieme a sesso e altezza. L’età viene conservata
+solo nella cartella di prova; il calcolo è etichettato SIMULAZIONE e questo
+campo non viene mai usato nelle cartelle ordinarie. Il pulsante segnala i
+dati mancanti o non validi, anche quando non è ancora stata inserita alcuna
+misura. Non vengono introdotti valori anagrafici impliciti.
+
+Verifiche: `node tests/spirometria-percentuali.cjs`,
+`node tests/spirometria-prova.cjs` e
 `node tests/print-exams.cjs` con Playwright Chromium/WebKit. Dati sintetici:
 calcolo, percentuali precedenti/manuali, passaggio tra cartelle,
 serializzazione, unità, date, valori invalidi, ciclo di stampa e PDF al 125%.
