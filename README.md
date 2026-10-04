@@ -1,5 +1,27 @@
 # cartella-sanitaria
 
+## Elenco visite e ricerca archivio — 4 ottobre 2026
+
+L'elenco conserva la ricerca già applicata nell'archivio (azienda, nominativo,
+CF o altri termini) e vi aggiunge la data clinica scelta, incluse le versioni
+storiche. Il filtro attivo è mostrato nella finestra. Una ricerca senza
+risultati non viene mai sostituita dall'intero archivio. La data scelta resta
+disponibile alla riapertura; il committente resta l'intestazione dell'output,
+ora indicata esplicitamente. PDF e certificati usano solo le righe selezionate.
+Nessuna migrazione o riscrittura delle cartelle è introdotta da questa modifica.
+
+Verifiche con dati sintetici: `tests/visite-filtro.cjs` (24 visite, CBV 6,
+ricerca combinata 4, storico, data, PDF, certificati, filtri vuoti, CF e modalità
+PROVA FANTASMA); `tests/visite-archivio.cjs`; `tests/allegati-dom.cjs`
+(persistenza, backup e ripristino). `tests/visite-filtro-browser.cjs` verificato
+in Chromium a 390 × 844. WebKit non eseguito per dipendenze di sistema mancanti.
+Il test preesistente `tests/omonimi.cjs` fallisce anche sul commit precedente
+396ca70 nel confronto dell'archivio dopo riapertura; la correzione del filtro
+non modifica quel comportamento. Ritorno disponibile sul ramo
+`backup/elenco-prima-filtro-20261004`. Prima di aggiornare il dispositivo,
+esportare il suo backup completo; i dati del dispositivo non sono accessibili
+da questo collaudo.
+
 ## Percentuali spirometriche — 3 ottobre 2026
 
 FVC e FEV1 in litri; PEF con unità esplicita L/s o L/min. Le percentuali
