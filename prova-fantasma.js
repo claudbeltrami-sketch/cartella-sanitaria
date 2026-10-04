@@ -5,6 +5,51 @@
  const entry=document.getElementById('btnModalitaProva');
  entry.onclick=()=>window.open(location.pathname+'?prova=fantasma','_blank','noopener');
  if(!mode.isTest)return;
+ // Trial only: the last smoking choice replaces the other two. Electronic
+ // cigarettes and alcohol stay independent; loading old records never guesses.
+ const smokingIds=['fumatore','non_fumatore','ex_fumatore'];
+ for(const id of smokingIds){
+  const field=document.getElementById(id);
+  field.addEventListener('change',event=>{
+   if(!event.isTrusted||!field.checked)return;
+   for(const otherId of smokingIds){
+    const other=document.getElementById(otherId);
+    if(other!==field&&other.checked){
+     other.checked=false;
+     other.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+   }
+  });
+ }
+ // Check the protocol only after a user enters a result, never on defaults,
+ // record restoration, automatic interpretations, age or measurement units.
+ const examFields=new Map();
+ for(const ear of ['dx','sx'])for(const hz of [500,1000,2000,4000])
+  examFields.set('audio_'+ear+'_'+hz,{exam:'AUDIOMETRIA',numeric:true});
+ for(const id of ['audiometria_esito','audiometria_difetto','audiometria_interpretazione'])
+  examFields.set(id,{exam:'AUDIOMETRIA'});
+ for(const measurement of ['fvc','fev1','pef'])for(const suffix of ['','_percentuale'])
+  examFields.set('spirometria_'+measurement+suffix,{exam:'SPIROMETRIA BASALE',numeric:true,positive:true});
+ function checkEnteredExam(event){
+  if(!event.isTrusted)return;
+  const field=event.target,rule=examFields.get(field.id);
+  if(!rule)return;
+  const value=field.value.trim();
+  if(!value)return;
+  if(rule.numeric){
+   const number=Number(value.replace(',','.'));
+   if(!Number.isFinite(number)||(rule.positive&&number<=0))return;
+  }
+  const checkbox=document.querySelector('#protocollo input[value="'+rule.exam+'"]');
+  if(checkbox&&!checkbox.checked){
+   checkbox.checked=true;
+   checkbox.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+ }
+ // Never remove a protocol selection when results are cleared: an exam may
+ // still be planned. Explicit checkbox edits remain available to the doctor.
+ document.addEventListener('input',checkEnteredExam);
+ document.addEventListener('change',checkEnteredExam);
  const fromQr=location.hash.startsWith('#firma=');
  const style=document.createElement('style');style.textContent=`
  html[data-lumen-prova] [hidden],html[data-lumen-prova] #v9Panel,html[data-lumen-prova] #listPanel{display:none!important}
