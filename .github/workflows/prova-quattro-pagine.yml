@@ -1,0 +1,28 @@
+name: Collaudo quattro pagine solo PROVA
+on:
+  push:
+    branches: [fix/prova-quattro-pagine-20261004]
+permissions:
+  contents: read
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --prefix /tmp/lumen-print-check --no-save playwright@1.62.1
+          node /tmp/lumen-print-check/node_modules/playwright/cli.js install --with-deps chromium
+          python -m pip install pymupdf==1.26.6
+      - run: node tests/print-four-pages.cjs
+        env:
+          NODE_PATH: /tmp/lumen-print-check/node_modules
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prova-quattro-pagine
+          path: tmp/quattro-pagine/
+          retention-days: 7
