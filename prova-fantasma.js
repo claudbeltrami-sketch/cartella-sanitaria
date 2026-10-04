@@ -12,6 +12,23 @@
  #provaBanner strong{display:block;font-size:22px}#provaBanner button{margin:8px 8px 0 0;background:#864b00}#provaBanner p{margin:6px 0}
  html[data-lumen-prova] .page:before{content:'PROVA FANTASMA — DOCUMENTO DI PROVA';display:block;text-align:center;color:#864b00;font-weight:bold;border:2px solid #864b00;padding:6px;margin-bottom:8px}
  @media print{#provaBanner{display:none}}
+
+ /* Four-sheet print trial: active only after the test-mode guard above.
+    Keep all fields and signatures. Long notes may continue onto extra sheets. */
+ @media print{
+ html[data-lumen-prova] body.print-cartella .cartella>.clinical-page{break-after:auto;page-break-after:auto}
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page:before{display:none}
+ html[data-lumen-prova] body.print-cartella .clinical-page>.field{min-height:24px}
+ html[data-lumen-prova] body.print-cartella .clinical-page>.field:has(.lumen-print-multiline){display:flex;align-items:baseline;gap:7px;break-inside:avoid;page-break-inside:avoid}
+ html[data-lumen-prova] body.print-cartella .clinical-page>.field:has(.lumen-print-multiline)>label{max-width:40%;margin:0;flex-shrink:0}
+ html[data-lumen-prova] body.print-cartella .clinical-page .lumen-print-multiline{min-height:24px;padding:3px;line-height:1.25}
+ html[data-lumen-prova] body.print-cartella .clinical-page .section-title,
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page .section-title{margin:6px 0 3px}
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page .section-title[style]{margin-top:14px!important}
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page .signature-grid{margin-top:8px}
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page .signature-line{margin-top:12px}
+ html[data-lumen-prova] body.print-cartella .clinical-page+.page .cartella-worker-signature .signature-line{margin-top:0}
+ }
  `;document.head.append(style);
  const banner=document.createElement('section');banner.id='provaBanner';banner.setAttribute('aria-label','Modalità prova');
  const title=document.createElement('strong');title.textContent='PROVA FANTASMA · MODALITÀ PROVA';
