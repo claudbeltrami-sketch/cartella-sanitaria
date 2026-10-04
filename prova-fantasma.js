@@ -30,6 +30,8 @@
   examFields.set(id,{exam:'AUDIOMETRIA'});
  for(const measurement of ['fvc','fev1','pef'])for(const suffix of ['','_percentuale'])
   examFields.set('spirometria_'+measurement+suffix,{exam:'SPIROMETRIA BASALE',numeric:true,positive:true});
+ for(const id of ['visiotest_esito','visiotest_note'])
+  examFields.set(id,{exam:'VISIOTEST'});
  function checkEnteredExam(event){
   if(!event.isTrusted)return;
   const field=event.target,rule=examFields.get(field.id);
