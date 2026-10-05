@@ -1,5 +1,42 @@
 # cartella-sanitaria
 
+## Backup automatico durante l’uso — PROVA, 5 ottobre 2026
+
+Implementazione sul ramo `backup-automatico-mac-20261005`, da promuovere solo
+dopo il backup aggiornato del dispositivo operativo. Base stabile: `c8cd452`.
+Nessuna cartella reale del Mac è accessibile dai test; nessun backup del Mac è
+stato eseguito da questo ambiente.
+
+In ALTRI COMANDI → BACKUP AUTOMATICO, attivazione esplicita per ciascuna
+sessione/scheda. Copia immediata, poi ogni 30 minuti mentre la pagina è visibile;
+al ritorno da una pausa viene eseguita l’eventuale copia scaduta. Chiusura e
+ricarica disattivano la funzione. Nessuna cancellazione automatica delle copie.
+Usare una sola scheda e una cartella locale non sincronizzata.
+
+Con `showDirectoryPicker`, scrittura nella cartella scelta e rilettura completa
+prima della conferma. Senza questa API, download periodici: il browser può
+richiedere autorizzazione o conferma; l’interfaccia dichiara sempre che il
+salvataggio su disco non è verificato. Non cambiare browser senza prima
+trasferire il backup, perché gli archivi sono separati.
+
+Backup manuale e automatico condividono il formato V1. Inclusi ora anche i
+consensi cartacei, prima omessi. I vecchi backup privi di questo campo restano
+leggibili e non cancellano i consensi esistenti. Il ripristino ferma il timer;
+un backup automatico in corso impedisce il ripristino. PROVA e reale mantengono
+archivi e file marcati separati. Nessun salvataggio automatico altera le
+cartelle cliniche, lo storico o la cartella aperta.
+
+Verifiche: `tests/backup-automatico.cjs` (timer, file distinti, download, rilettura,
+permessi revocati, disco pieno, file corrotto, ripristino storico/allegati/consensi,
+compatibilità V1, isolamento PROVA e riapertura); `tests/backup-automatico-browser.cjs`
+(download reale e ripristino in archivio vuoto, interfaccia Chromium, esclusione
+dalla stampa); `tests/allegati-dom.cjs`; `tests/visite-filtro.cjs` (PDF e certificati
+filtrati). Dati sintetici soltanto. Il selettore nativo e il disco del Mac non
+sono stati verificati: il percorso cartella usa un handle simulato nel test.
+WebKit/Safari non collaudato; il ramo download è collaudato in Chromium senza API
+cartella. Per i test Node sono necessari jsdom, fake-indexeddb e jspdf; per il
+browser Playwright e Chromium (`CHROMIUM_EXECUTABLE_PATH` opzionale).
+
 ## Elenco visite e ricerca archivio — 4 ottobre 2026
 
 L'elenco conserva la ricerca già applicata nell'archivio (azienda, nominativo,

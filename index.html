@@ -384,6 +384,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    <label class="file-label">ACQUISISCI CONSENSO CARTACEO<input type="file" id="fileConsensoCartaceo" accept="image/*,application/pdf,.pdf" capture="environment" multiple></label>
    <button type="button" id="btnArchivioConsensi">ARCHIVIO CONSENSI</button>
    <button type="button" id="btnBackupCompleto">CREA BACKUP</button>
+   <button type="button" id="btnBackupAutomatico">BACKUP AUTOMATICO</button>
    <label class="file-label">RIPRISTINA BACKUP<input type="file" id="fileRipristinaBackup" accept="application/json,.json"></label>
   </div>
  </section>
@@ -1304,32 +1305,52 @@ function blobToBackupData(blob){return new Promise((resolve,reject)=>{const r=ne
 function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^;,]*)(?:;base64)?,(.*)$/);if(!m)throw new Error('Contenuto di un file originale non valido.');const mime=m[1]||type||'application/octet-stream',raw=atob(m[2]),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return new Blob([a],{type:mime})}
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
-async function creaBackupCompleto(){
- const btn=document.getElementById('btnBackupCompleto');btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
- try{
+function openConsensiBackupDb(){return openLumenDbWithStore('beltrami_consensi_cartacei_v1','consensi',db=>{const st=db.createObjectStore('consensi',{keyPath:'id'});st.createIndex('workerKey','workerKey',{unique:false});st.createIndex('acquiredAt','acquiredAt',{unique:false})})}
+let ripristinoBackupInCorso=false;
+async function preparaBackupCompleto(){
+ if(ripristinoBackupInCorso)throw Error("Attendere la fine del ripristino prima di creare un backup.");
+ const cartella_visibile=collect();
   const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
   for(const r of originali){originaliSerializzati.push({...r,blob:r.blob?await blobToBackupData(r.blob):null})}
+  const consensi=await readAllFromDb(openConsensiBackupDb,'consensi'),consensi_cartacei=[];
+  for(const r of consensi)consensi_cartacei.push({...r,blob:r.blob?await blobToBackupData(r.blob):null});
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
-  const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,cartella_visibile:collect()}};
+  return {...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,consensi_cartacei,cartella_visibile}};
+}
+window.lumenBackupApi={prepare:preparaBackupCompleto,get restoring(){return ripristinoBackupInCorso}};
+async function creaBackupCompleto(){
+ const btn=document.getElementById('btnBackupCompleto');btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+ try{
+  const packet=await preparaBackupCompleto(),cartelle=packet.contenuto.cartelle,originali=packet.contenuto.originali;
   const name='BACKUP_LUMEN_'+backupStamp()+'.json',ok=await shareOrDownloadPacket(packet,name,'Copia di sicurezza LUMEN');
   if(!ok){setStatus('CREAZIONE DELLA COPIA ANNULLATA.');return}
   showSaveInfo('ok','✓ COPIA DI SICUREZZA PREPARATA','Nome: '+name+'\nOra: '+clock()+'\nCartelle archiviate: '+cartelle.length+'\nFile originali inclusi: '+originali.length+'\n\nSu iPhone scegli “Salva su File” e conserva il file nella cartella privata CARTELLA SANITARIA.',[{label:'RIPRISTINA UNA COPIA',className:'secondary',onclick:()=>document.getElementById('fileRipristinaBackup').click()}]);setStatus('COPIA DI SICUREZZA COMPLETA PREPARATA. VERIFICARE CHE IL FILE SIA STATO SALVATO.');
  }catch(e){showSaveInfo('error','COPIA NON CREATA',e.message||String(e));setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
 }
 async function ripristinaBackupCompleto(file){
+ if(ripristinoBackupInCorso)throw Error('Un ripristino è già in corso.');
+ if(window.lumenAutoBackup?.busy)throw Error('Attendere la conclusione del backup automatico prima del ripristino.');
  const raw=await file.text(),packet=JSON.parse(raw);if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
  lumenStorage.checkPacket(packet);
  const c=packet.contenuto,cartelle=Array.isArray(c.cartelle)?c.cartelle:[],originali=Array.isArray(c.originali)?c.originali:[];
  cartelle.forEach(r=>lumenStorage.checkData(r.data));if(c.cartella_visibile)lumenStorage.checkData(c.cartella_visibile);
  if(c.firme_da_trasferire!==undefined&&(!Array.isArray(c.firme_da_trasferire)||c.firme_da_trasferire.some(r=>!window.lumenFirmaOffline.valid(r))))throw Error('Firme del backup non valide.');
+ if(c.consensi_cartacei!==undefined&&(!Array.isArray(c.consensi_cartacei)||c.consensi_cartacei.some(r=>!r||typeof r.id!=='string'||!r.id)))throw Error('Consensi cartacei del backup non validi.');
+ const consensiRipristinati=c.consensi_cartacei===undefined?null:c.consensi_cartacei.map(r=>({...r,blob:r.blob?backupDataToBlob(r.blob,r.mimeType):null}));
  if(!confirm('RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
+ if(window.lumenAutoBackup?.busy)throw Error('Backup automatico in corso: riprovare tra pochi secondi.');
+ window.lumenAutoBackup?.stop();
+ ripristinoBackupInCorso=true;
+ try{
  const keys=[];for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_'))keys.push(k)}keys.forEach(k=>lumenStorage.local.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_')&&typeof v==='string')lumenStorage.local.setItem(k,v)});
  await replaceAllInDb(openCartelleDb,CARTELLE_STORE,cartelle);
  const originaliRipristinati=originali.map(r=>({...r,blob:r.blob?backupDataToBlob(r.blob,r.type):null}));await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
  if(c.firme_da_trasferire)await window.lumenFirmaOffline.restore(c.firme_da_trasferire);
+ if(consensiRipristinati!==null)await replaceAllInDb(openConsensiBackupDb,'consensi',consensiRipristinati);
  if(c.cartella_visibile)apply(c.cartella_visibile);
  showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
+ }finally{ripristinoBackupInCorso=false}
 }
 document.getElementById('btnBackupCompleto').onclick=creaBackupCompleto;
 document.getElementById('btnRipristinaDaArchivio').onclick=()=>document.getElementById('fileRipristinaBackup').click();
@@ -2141,4 +2162,5 @@ input.addEventListener('change',async e=>{
  }).observe(el,{attributes:true,attributeFilter:['class']}));
 })();
 </script>
+<script src="backup-automatico.js?v=20261005"></script>
 </body></html>
