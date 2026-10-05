@@ -9,13 +9,22 @@ const SELECTED_DATE='lumen_conteggio_selected_date_v1';
 function rememberDate(){try{sessionStorage.setItem(SELECTED_DATE,$('conteggioAutoDate').value)}catch{}}
 function read(key,fallback){try{return JSON.parse(local.getItem(key)||'null')||fallback}catch{return fallback}}
 function text(v){return String(v||'').trim().toLocaleUpperCase('it-IT').replace(/\s+/g,' ')}
+// These prefixes explicitly identify the commissioner in Claudio's archive.
+// Never infer it from a date, workplace, worker name or an unlabelled employer.
+function companyClient(company){
+ const value=text(company);
+ if(/^(?:GRUPPO )?ORIZZONTE(?:$|\s)/.test(value))return 'GRUPPO ORIZZONTE';
+ if(/^SERMOLAB(?:$|\s)/.test(value))return 'SERMOLAB';
+ return '';
+}
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v}
 function prepare(data,old,id,now){
  const previous=old?.conteggioVisits||{};if(storage?.isTest||data.lumen_prova)return previous;
  const date=String(data.data_giudizio||data.data_cartella||'');
  if(!data.giudizio||!validDate(date)||!text(data.cognome)||!text(data.nome))return previous;
  const key=date,prev=previous[key],config=read(CONFIG,{})[date]||{};
- const entry={key,version:crypto.randomUUID(),identity:id,date,name:text(data.cognome)+' '+text(data.nome),company:text(data.datore_lavoro),client:prev?.client||config.client||'',place:prev?.client?prev.place:(config.place||''),savedAt:now,status:'pending'};
+ const client=prev?.client||companyClient(data.datore_lavoro)||config.client||'';
+ const entry={key,version:crypto.randomUUID(),identity:id,date,name:text(data.cognome)+' '+text(data.nome),company:text(data.datore_lavoro),client,place:prev?.client?prev.place:(client===config.client?(config.place||''):''),savedAt:now,status:'pending'};
  return {...previous,[key]:entry};
 }
 window.lumenConteggio={prepare,wake:()=>{void drain()}};
@@ -23,10 +32,25 @@ async function hash(value){return Array.from(new Uint8Array(await crypto.subtle.
 function connection(){const link=read(LINK,null);return link&&link.expires>Date.now()?link:null}
 async function payload(entry,link){return {visitId:await hash(link.salt+'|'+entry.identity+'|'+entry.date),date:entry.date,client:entry.client,place:entry.place,name:entry.name,company:entry.company,savedAt:entry.savedAt}}
 async function pending(){const rows=await api.list();return rows.flatMap(r=>Object.values(r.conteggioVisits||{}).filter(e=>e.status==='pending').map(e=>({id:r.id,entry:e})))}
+// Repair only unassigned administrative entries, using their own dated company.
+// Keep existing assignments, visit identities, dates and clinical snapshots intact.
+async function recoverCompanyClients(){
+ if(storage?.isTest)return;
+ for(const record of await api.list()){
+   if(!Object.values(record.conteggioVisits||{}).some(e=>e.status==='pending'&&!e.client&&companyClient(e.company)))continue;
+   await api.change(record.id,current=>{
+     for(const entry of Object.values(current.conteggioVisits||{})){
+       const client=companyClient(entry.company);
+       if(entry.status==='pending'&&!entry.client&&client){entry.client=client;entry.version=crypto.randomUUID()}
+     }
+   });
+ }
+}
 // Recover only explicitly assigned days, including visits saved before this feature.
 // Clinical records, signatures, histories and their timestamps are never rewritten.
 async function recoverConfigured(date){
  if(storage?.isTest)return 0;
+ await recoverCompanyClients();
  const config=read(CONFIG,{}),dates=date?[date]:Object.keys(config);let recovered=0;
  for(const record of await api.list())await api.change(record.id,current=>{
    for(const day of dates){
@@ -89,6 +113,7 @@ async function drain(){
  if(initializing){rerun=true;return}
  if(busy){rerun=true;return}busy=true;
  try{
+ await recoverCompanyClients();
  const link=connection();if(!link){await status();return}
  for(const {id,entry}of await pending()){
    if(!entry.client)continue;
