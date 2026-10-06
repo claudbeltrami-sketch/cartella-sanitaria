@@ -976,7 +976,7 @@ function handoffName(prefix,d){const c=String(d.cognome||'SENZA_COGNOME').replac
 function handoffEncode(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function handoffDecode(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
 function showFirmaQr(packet){if(!window.QRCode){alert('CODICE QR NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE.');return false}const d=packet.cartella||{},slim={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:packet.tipo,versione:packet.versione,id:packet.id,creato:packet.creato,identita:packet.identita,visita:packet.visita,peerId:packet.peerId||'',cartella:{...(lumenStorage.isTest?{lumen_prova:true}:{}),cognome:d.cognome||'',nome:d.nome||'',data_nascita:d.data_nascita||'',codice_fiscale:d.codice_fiscale||'',data_cartella:d.data_cartella||'',data_giudizio:d.data_giudizio||'',data_dichiarazione:d.data_dichiarazione||'',firma_lavoratore_png:''}},url=location.origin+location.pathname+(lumenStorage.isTest?'?prova=fantasma':'')+'#firma='+handoffEncode(slim),overlay=document.createElement('div');overlay.id='firmaQrOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center"><h2 style="margin:0 0 8px">FIRMA SU IPHONE</h2><p id="firmaQrMessage" style="margin:0 0 12px">Apri la Fotocamera dell’iPhone e inquadra questo codice. Dopo la firma, il Mac la riceverà da solo.</p><div id="firmaQrCode" style="display:flex;justify-content:center"></div><button type="button" style="margin-top:14px;width:100%">CHIUDI</button></div>';document.body.appendChild(overlay);new QRCode(overlay.querySelector('#firmaQrCode'),{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});if(!packet.peerId)overlay.querySelector('#firmaQrMessage').textContent='Inquadra il QR e firma. Il collegamento automatico non è disponibile: invia il file al Mac e premi RICEVI DA IPHONE.';overlay.querySelector('button').onclick=()=>{overlay.remove();firmaPreparationVersion++;closeFirmaMacPeer()};setStatus('INQUADRARE IL CODICE QR. IL MAC RICEVERÀ AUTOMATICAMENTE LA FIRMA.');return true}
-async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const json=JSON.stringify(packet,null,2),file=new File([json],name,{type:'application/json'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
+async function shareOrDownloadPacket(packet,name,title){if(packet&&packet.tipo==='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')return showFirmaQr(packet);const file=window.lumenBackupIO.toFile(packet,name);try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return true}}catch(e){if(e&&e.name==='AbortError')return false}fallbackDownload(file,name);return true}
 async function inviaCartellaCompletaIphone(){
  const d=collect();
  if(!workerSignatureIdentity(d)){alert('PRIMA INSERIRE O SELEZIONARE IL LAVORATORE.');return}
@@ -1318,15 +1318,16 @@ async function creaBackupCompleto(){
  }catch(e){showSaveInfo('error','COPIA NON CREATA',e.message||String(e));setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
 }
 async function ripristinaBackupCompleto(file){
- const raw=await file.text(),packet=JSON.parse(raw);if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
+ const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
  lumenStorage.checkPacket(packet);
  const c=packet.contenuto,cartelle=Array.isArray(c.cartelle)?c.cartelle:[],originali=Array.isArray(c.originali)?c.originali:[];
  cartelle.forEach(r=>lumenStorage.checkData(r.data));if(c.cartella_visibile)lumenStorage.checkData(c.cartella_visibile);
  if(c.firme_da_trasferire!==undefined&&(!Array.isArray(c.firme_da_trasferire)||c.firme_da_trasferire.some(r=>!window.lumenFirmaOffline.valid(r))))throw Error('Firme del backup non valide.');
+ const originaliRipristinati=originali.map(r=>({...r,blob:r.blob instanceof Blob?r.blob:(r.blob?backupDataToBlob(r.blob,r.type):null)}));
  if(!confirm('RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
  const keys=[];for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_'))keys.push(k)}keys.forEach(k=>lumenStorage.local.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_')&&typeof v==='string')lumenStorage.local.setItem(k,v)});
  await replaceAllInDb(openCartelleDb,CARTELLE_STORE,cartelle);
- const originaliRipristinati=originali.map(r=>({...r,blob:r.blob?backupDataToBlob(r.blob,r.type):null}));await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
+ await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
  if(c.firme_da_trasferire)await window.lumenFirmaOffline.restore(c.firme_da_trasferire);
  if(c.cartella_visibile)apply(c.cartella_visibile);
  showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
@@ -2091,6 +2092,7 @@ input.addEventListener('change',async e=>{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="importa-cartelle.js?v=20261002-1"></script>
 <script src="importa-referti.js?v=20261002-1"></script>
+<script src="backup-io.js?v=20261006-1"></script>
 <script src="allegati-cartella.js?v=20260930-1"></script>
 <script src="archive-referti.js?v=20261002-1"></script>
 <script src="visite-archivio.js?v=20261004-filtro-archivio"></script>

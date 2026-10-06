@@ -1,0 +1,12 @@
+{
+  "name": "lumen-backup-io-build",
+  "private": true,
+  "scripts": {
+    "build:backup": "esbuild backup-io.source.js --bundle --format=iife --minify --outfile=backup-io.js",
+    "test:backup": "node test-backup-io.cjs"
+  },
+  "devDependencies": {
+    "@streamparser/json": "0.0.26",
+    "esbuild": "0.28.2"
+  }
+}
