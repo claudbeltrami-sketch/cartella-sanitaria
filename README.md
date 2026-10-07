@@ -1,5 +1,47 @@
 # cartella-sanitaria
 
+## Committente e datore di lavoro — 7 ottobre 2026
+
+La cartella conserva `committente` separato da `datore_lavoro`. La sessione
+precompila il committente delle nuove visite; l'apertura di un'altra cartella
+non eredita il committente della sessione attiva. Le liste possono avere una
+colonna COMMITTENTE. Il conteggio usa il campo esplicito quando disponibile.
+
+Archivio e elenco visite hanno filtri indipendenti e combinabili per
+committente e datore. L'elenco applica i filtri di ruolo alla versione della
+visita nella data scelta, anche quando il lavoratore ha cambiato azienda.
+Una modifica ai filtri invalida la selezione precedente prima dell'esportazione.
+Il PDF elenco mostra entrambi i ruoli; il certificato riporta il datore.
+I controlli amministrativi non modificano l'impaginazione della cartella stampata.
+
+Le vecchie diciture con prefisso SERMOLAB o ORIZZONTE/GRUPPO ORIZZONTE
+vengono separate in lettura. La dicitura originale resta disponibile e viene
+conservata nel salvataggio successivo, insieme allo storico precedente.
+Una sede Orizzonte viene rimossa dal campo datore solo se precede una
+ragione sociale esplicita con suffisso SRL. Le assegnazioni amministrative
+possono integrare un committente assente soltanto per la medesima data visita.
+Nessuna migrazione massiva: ricerca, apertura e PDF non riscrivono il database.
+Le denominazioni incomplete restano da completare; non dedurre aziende da
+nomi di persone, date o sedi. Per i casi dubbi consultare i certificati già
+inviati, confrontando identità e data; il cartaceo prevale nelle discordanze.
+Raccogliere i dubbi residui per il referente. Nessun documento personale
+viene incluso nel codice o nelle prove.
+
+Collaudi su dati sintetici e archivi isolati: `tests/ruoli-azienda.cjs`,
+`tests/ruoli-azienda-browser.cjs`, `tests/visite-filtro.cjs`,
+`tests/visite-archivio.cjs`, `tests/allegati-dom.cjs`,
+`tests/conteggio-automatico.cjs`, `tests/conteggio-committenti.cjs`.
+Verificati anche PROVA FANTASMA, backup/ripristino, conservazione storico,
+certificato e PDF, interfaccia Chromium mobile 390px e desktop.
+WebKit/Safari e dispositivi dell'utente non verificati in questo collaudo.
+
+Preparazione sul ramo `fix/committente-datore-20261007`. Prima dell'attivazione
+operativa serve il backup completo aggiornato del dispositivo, come previsto
+dalla memoria operativa. Base stabile: `a46d5187ee02ea0cf29b0c6c18d516a669677054`.
+Rollback del codice tramite annullamento del commit; i campi originali e lo
+storico rimangono conservati. Le cartelle locali non sono accessibili da questo
+ambiente: il collaudo non certifica il contenuto dell'archivio dell'utente.
+
 ## Elenco visite e ricerca archivio — 4 ottobre 2026
 
 L'elenco conserva la ricerca già applicata nell'archivio (azienda, nominativo,

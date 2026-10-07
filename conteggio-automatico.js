@@ -23,7 +23,7 @@ function prepare(data,old,id,now){
  const date=String(data.data_giudizio||data.data_cartella||'');
  if(!data.giudizio||!validDate(date)||!text(data.cognome)||!text(data.nome))return previous;
  const key=date,prev=previous[key],config=read(CONFIG,{})[date]||{};
- const client=prev?.client||companyClient(data.datore_lavoro)||config.client||'';
+ const client=text(data.committente)||prev?.client||companyClient(data.datore_lavoro)||config.client||'';
  const entry={key,version:crypto.randomUUID(),identity:id,date,name:text(data.cognome)+' '+text(data.nome),company:text(data.datore_lavoro),client,place:prev?.client?prev.place:(client===config.client?(config.place||''):''),savedAt:now,status:'pending'};
  return {...previous,[key]:entry};
 }
