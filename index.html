@@ -1321,17 +1321,30 @@ function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
 function openBackupSaveDialog(){
- const dialog=document.createElement('dialog');dialog.id='lumenBackupDialog';
+ const overlay=document.createElement('div');overlay.id='lumenBackupOverlay';
+ overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box';
+ const dialog=document.createElement('section');dialog.id='lumenBackupDialog';
+ dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.tabIndex=-1;
  dialog.setAttribute('aria-labelledby','lumenBackupTitle');
  dialog.style.cssText='width:calc(100% - 24px);max-width:520px;max-height:85vh;overflow:auto;box-sizing:border-box;border:3px solid #287a46;border-radius:14px;padding:20px;background:white;color:#222';
  dialog.innerHTML='<h2 id="lumenBackupTitle" style="margin:0 0 12px">PREPARAZIONE BACKUP…</h2><p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Sto raccogliendo cartelle, firme e allegati. Attendi senza chiudere questa pagina.</p><button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0" hidden>SALVA SU FILE / CONDIVIDI</button><a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a><button type="button" id="lumenBackupClose" class="secondary" style="width:100%;margin-top:8px" disabled>ATTENDI LA PREPARAZIONE</button>';
- document.body.appendChild(dialog);dialog.showModal();
+ overlay.appendChild(dialog);document.body.appendChild(overlay);dialog.focus();
+ // The panel is deliberately not a native dialog: only the explicit close
+ // button removes it. Outside taps, Escape and native close events retain it.
+ overlay.addEventListener('click',e=>e.stopPropagation());
+ dialog.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();return}
+  if(e.key!=='Tab')return;
+  const controls=[...dialog.querySelectorAll('button,a[href]')].filter(el=>!el.disabled&&!el.hidden&&el.style.display!=='none');
+  if(!controls.length){e.preventDefault();return}
+  const first=controls[0],last=controls[controls.length-1];
+  if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog)){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&(document.activeElement===last||document.activeElement===dialog)){e.preventDefault();first.focus()}
+ });
  const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload'),close=dialog.querySelector('#lumenBackupClose');
  let url=null,preparing=true;
  const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
- dialog.addEventListener('cancel',e=>{if(preparing)e.preventDefault()});
- dialog.addEventListener('close',()=>{clearTimeout(slow);dialog.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),60000)},{once:true});
- close.onclick=()=>dialog.close();
+ close.onclick=()=>{if(preparing)return;clearTimeout(slow);overlay.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);document.getElementById('btnAltriComandi').focus()};
  function finish(){preparing=false;clearTimeout(slow);close.disabled=false;close.textContent='CHIUDI'}
  return {
   ready(file,cartelle,originali){

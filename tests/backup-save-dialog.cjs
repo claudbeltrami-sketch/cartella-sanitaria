@@ -23,15 +23,18 @@ function fixture(shareMode='ok',fail=false){
   assert.equal(f.body.children.length,1,'dialog opens before database reads finish');assert.equal(f.button.disabled,true);
   await f.c.creaBackupCompleto();assert.equal(f.body.children.length,1,'duplicate preparation prevented');
   await pending;assert.equal(f.button.disabled,false);assert(!f.calls.includes('SHARE'),'no async automatic share');
-  const d=f.body.children[0],get=id=>d.querySelector('#lumenBackup'+id),file=f.urls.get('blob:synthetic');
+  const overlay=f.body.children[0],d=overlay.children[0],get=id=>d.querySelector('#lumenBackup'+id),file=f.urls.get('blob:synthetic');
   assert(file instanceof File);const packet=JSON.parse(await file.text());
   assert.equal(packet.tipo,'BELTRAMI_BACKUP_COMPLETO_V1');assert.equal(packet.contenuto.localStorage.beltrami_synthetic,'kept');assert.equal(packet.contenuto.localStorage.unrelated,undefined);
   assert.equal(packet.contenuto.cartelle[0].history[0].data.note,'history');assert.equal(packet.contenuto.originali[0].blob,'data:text/plain;base64,c3ludGhldGljIGJ5dGVz');assert.equal(packet.contenuto.firme_da_trasferire[0].id,'synthetic signature');assert.equal(packet.contenuto.cartella_visibile.note,'visible synthetic');
   assert.match(get('Title').textContent,/PRONTO DA SALVARE/);assert.equal(get('Share').hidden,mode==='none');
   if(mode!=='none'){const share=get('Share').onclick();assert(f.calls.includes('SHARE'),'share starts immediately on explicit tap');await share;assert.equal(get('Share').disabled,false);if(mode==='cancel')assert.match(get('Message').textContent,/annullato/);if(mode==='error')assert.match(get('Message').textContent,/Impossibile/)}
   get('Download').onclick();assert.match(get('Message').textContent,/non può confermarne/);assert.equal(get('Download').href,'blob:synthetic');
-  get('Close').onclick();assert.equal(d.removed,true);
+  d.handlers.close?.();d.handlers.cancel?.({preventDefault(){}});assert(!overlay.removed,'native close/cancel must not remove backup');
+  let prevented=false;d.handlers.keydown({key:'Escape',preventDefault(){prevented=true},stopPropagation(){}});assert(prevented);assert(!overlay.removed,'Escape must retain prepared file');
+  overlay.handlers.click({stopPropagation(){}});assert(!overlay.removed,'outside click must retain panel');
+  get('Close').onclick();assert.equal(overlay.removed,true);
  }
- const f=fixture('ok',true);await f.c.creaBackupCompleto();assert.equal(f.urls.size,0);assert.equal(f.button.disabled,false);const d=f.body.children[0];assert.match(d.querySelector('#lumenBackupTitle').textContent,/NON CREATO/);assert.match(d.querySelector('#lumenBackupMessage').textContent,/Lettura archivio fallita/);
+ const f=fixture('ok',true);await f.c.creaBackupCompleto();assert.equal(f.urls.size,0);assert.equal(f.button.disabled,false);const d=f.body.children[0].children[0];assert.match(d.querySelector('#lumenBackupTitle').textContent,/NON CREATO/);assert.match(d.querySelector('#lumenBackupMessage').textContent,/Lettura archivio fallita/);
  console.log('PASS: inline syntax; immediate visible progress; duplicate guard; explicit share; cancellation; share error; download fallback; archive-read error; V1 backup preserves synthetic history, attachments, signatures, local settings and current form. Native iOS save sheet not tested.');
 })().catch(e=>{console.error(e);process.exitCode=1});
