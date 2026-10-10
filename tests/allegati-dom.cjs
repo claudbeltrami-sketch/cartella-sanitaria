@@ -52,10 +52,11 @@ if(require.main===module)(async()=>{
   const add=idb.IDBObjectStore.prototype.add;let calls=0;idb.IDBObjectStore.prototype.add=function(...args){if(++calls===2)throw new DOMException('Test quota','QuotaExceededError');return add.apply(this,args)};
   try{await select(p,[new File(['%PDF UNO'],'uno.pdf'),new File(['%PDF DUE'],'due.pdf')])}finally{idb.IDBObjectStore.prototype.add=add}
   assert.match(p.$('allegatiMessage').textContent,/ALLEGATI NON SALVATI/);assert.equal((await p.t.rows()).length,3);
-  p.$('allegatiClose').onclick();await p.t.backup();const backup=JSON.parse(await p.downloads.at(-1).blob.text());assert.equal(backup.contenuto.originali.length,3);
+  p.$('allegatiClose').onclick();await p.t.backup();p.$('lumenBackupDownload').click();const backup=JSON.parse(await p.downloads.at(-1).blob.text());assert.equal(backup.contenuto.originali.length,3);
   const q=await app();try{await q.t.restore(new File([JSON.stringify(backup)],'backup.json'));assert.deepEqual(await serial(await q.t.rows()),await serial(await p.t.rows()));q.api.apply(a);await q.$('btnAllegatiCartella').onclick();assert.equal(q.$('allegatiList').children.length,2);await q.$('allegatiList').querySelector('[data-delete]').onclick();assert.equal((await q.t.rows()).length,2);assert.equal(JSON.stringify(await q.t.cartelle()),before);assert.deepEqual(q.errors,[])}finally{q.dom.window.close()}
   const reopened=await app(factory);try{reopened.api.apply(a);await reopened.$('btnAllegatiCartella').onclick();assert.equal(reopened.$('allegatiList').children.length,2);assert.deepEqual(reopened.errors,[])}finally{reopened.dom.window.close()}
   const ghost=await app(factory,'?prova=fantasma');try{await ghost.$('btnAllegatiCartella').onclick();await select(ghost,[pdf]);assert.equal((await ghost.t.rows()).length,1);assert.equal((await p.t.rows()).length,3);ghost.$('allegatiClose').onclick();await ghost.w.lumenStorage.reset();assert.equal((await ghost.t.rows()).length,0);assert.equal((await p.t.rows()).length,3);assert.deepEqual(ghost.errors,[])}finally{ghost.dom.window.close()}
   assert.deepEqual(p.errors,[]);console.log('PASS: full application initialization; attachment association; deduplication; download; invalid selection rollback; worker-change guard; simulated quota rollback; persistence across app instances; full backup and restore including bytes; deletion; ghost isolation/reset; existing cartelle and source file unchanged. Browser layout not tested by this harness.');
  }finally{p.dom.window.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
+

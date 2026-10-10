@@ -1320,18 +1320,53 @@ function blobToBackupData(blob){return new Promise((resolve,reject)=>{const r=ne
 function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^;,]*)(?:;base64)?,(.*)$/);if(!m)throw new Error('Contenuto di un file originale non valido.');const mime=m[1]||type||'application/octet-stream',raw=atob(m[2]),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return new Blob([a],{type:mime})}
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
+function openBackupSaveDialog(){
+ const dialog=document.createElement('dialog');dialog.id='lumenBackupDialog';
+ dialog.setAttribute('aria-labelledby','lumenBackupTitle');
+ dialog.style.cssText='width:calc(100% - 24px);max-width:520px;max-height:85vh;overflow:auto;box-sizing:border-box;border:3px solid #287a46;border-radius:14px;padding:20px;background:white;color:#222';
+ dialog.innerHTML='<h2 id="lumenBackupTitle" style="margin:0 0 12px">PREPARAZIONE BACKUP…</h2><p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Sto raccogliendo cartelle, firme e allegati. Attendi senza chiudere questa pagina.</p><button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0" hidden>SALVA SU FILE / CONDIVIDI</button><a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a><button type="button" id="lumenBackupClose" class="secondary" style="width:100%;margin-top:8px" disabled>ATTENDI LA PREPARAZIONE</button>';
+ document.body.appendChild(dialog);dialog.showModal();
+ const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload'),close=dialog.querySelector('#lumenBackupClose');
+ let url=null,preparing=true;
+ const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
+ dialog.addEventListener('cancel',e=>{if(preparing)e.preventDefault()});
+ dialog.addEventListener('close',()=>{clearTimeout(slow);dialog.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),60000)},{once:true});
+ close.onclick=()=>dialog.close();
+ function finish(){preparing=false;clearTimeout(slow);close.disabled=false;close.textContent='CHIUDI'}
+ return {
+  ready(file,cartelle,originali){
+   finish();url=URL.createObjectURL(file);download.href=url;download.download=file.name;download.style.display='block';
+   const details='Nome: '+file.name+'\nDimensione: '+(file.size/1024/1024).toFixed(2)+' MB\nCartelle: '+cartelle+' — File originali: '+originali;
+   title.textContent='BACKUP PRONTO DA SALVARE';
+   let canShare=false;try{canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(_){}
+   share.hidden=!canShare;
+   message.textContent=details+'\n\n'+(canShare?'Tocca SALVA SU FILE / CONDIVIDI, poi scegli “Salva su File” e conferma “Salva”.':'Tocca SCARICA BACKUP e completa il salvataggio proposto dal browser.')+'\nIl file è preparato, ma non ancora salvato.';
+   share.onclick=async()=>{
+    share.disabled=true;
+    try{
+     // Invoked directly by this new tap: no database work before the native share sheet.
+     await navigator.share({files:[file],title:'Copia di sicurezza LUMEN'});
+     message.textContent=details+'\n\nCondivisione conclusa. Il browser non conferma dove è stato salvato il file. Se hai scelto “Salva su File” e premuto “Salva”, controlla la cartella scelta.';
+    }catch(e){message.textContent=details+'\n\n'+(e&&e.name==='AbortError'?'Salvataggio annullato. Puoi riprovare con uno dei pulsanti qui sotto.':'Impossibile aprire la condivisione: '+(e.message||String(e))+'\nTocca SCARICA BACKUP per usare il download.')}
+    finally{share.disabled=false}
+   };
+   download.onclick=()=>{message.textContent=details+'\n\nDownload richiesto. Completa il salvataggio del browser e controlla il file nella cartella scelta. Questa pagina non può confermarne il salvataggio.'};
+   (canShare?share:download).focus();
+  },
+  error(e){finish();title.textContent='BACKUP NON CREATO';message.textContent='Non è stato preparato alcun file.\n'+(e.message||String(e));close.focus()}
+ };
+}
 async function creaBackupCompleto(){
- const btn=document.getElementById('btnBackupCompleto');btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+ const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog();btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
  try{
   const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
   for(const r of originali){originaliSerializzati.push({...r,blob:r.blob?await blobToBackupData(r.blob):null})}
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
   const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,cartella_visibile:collect()}};
-  const name='BACKUP_LUMEN_'+backupStamp()+'.json',ok=await shareOrDownloadPacket(packet,name,'Copia di sicurezza LUMEN');
-  if(!ok){setStatus('CREAZIONE DELLA COPIA ANNULLATA.');return}
-  showSaveInfo('ok','✓ COPIA DI SICUREZZA PREPARATA','Nome: '+name+'\nOra: '+clock()+'\nCartelle archiviate: '+cartelle.length+'\nFile originali inclusi: '+originali.length+'\n\nSu iPhone scegli “Salva su File” e conserva il file nella cartella privata CARTELLA SANITARIA.',[{label:'RIPRISTINA UNA COPIA',className:'secondary',onclick:()=>document.getElementById('fileRipristinaBackup').click()}]);setStatus('COPIA DI SICUREZZA COMPLETA PREPARATA. VERIFICARE CHE IL FILE SIA STATO SALVATO.');
- }catch(e){showSaveInfo('error','COPIA NON CREATA',e.message||String(e));setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
+  const name='BACKUP_LUMEN_'+backupStamp()+'.json';
+  view.ready(window.lumenBackupIO.toFile(packet,name),cartelle.length,originali.length);setStatus('BACKUP PRONTO: COMPLETARE IL SALVATAGGIO NELLA FINESTRA APERTA.');
+ }catch(e){view.error(e);setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
 }
 async function ripristinaBackupCompleto(file){
  const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
