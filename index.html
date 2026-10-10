@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261010-backup-permanente-v17">
+<meta name="lumen-build" content="20261010-backup-progressivo-v18">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -32,8 +32,8 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261010-backup-permanente-v17';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
-<title>Cartella Sanitaria Beltrami - V17 Backup permanente</title>
+<script>(function(){var build='20261010-backup-progressivo-v18';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<title>Cartella Sanitaria Beltrami - V18 Backup progressivo</title>
 <style>
 @media print{#lumenBackupOverlay{display:none!important}}
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
@@ -357,7 +357,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </head>
 <body>
 <section id="lumenBackupOverlay" aria-labelledby="lumenBackupTitle" style="position:relative;z-index:21;max-width:980px;margin:0 auto 12px;padding:16px;border:3px solid #287a46;border-radius:14px;background:white;color:#222">
- <h2 id="lumenBackupTitle" style="margin:0 0 12px;font-size:20px;font-style:normal">BACKUP — V17</h2>
+ <h2 id="lumenBackupTitle" style="margin:0 0 12px;font-size:20px;font-style:normal">BACKUP — V18</h2>
  <p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Prepara una copia delle cartelle, delle firme e degli allegati presenti in questo browser. Poi salvala su File.</p>
  <button type="button" id="btnBackupInPagina" class="success" style="width:100%;margin:8px 0">1 · PREPARA BACKUP</button>
  <button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0;display:none">2 · SALVA SU FILE / CONDIVIDI</button>
@@ -1338,10 +1338,11 @@ function openBackupSaveDialog(){
  const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload');
  let url=overlay._backupUrl||null,preparing=true;
  if(url){URL.revokeObjectURL(url);overlay._backupUrl=null}
- title.textContent='PREPARAZIONE BACKUP…';message.textContent='Sto raccogliendo cartelle, firme e allegati. Attendi.';share.style.display='none';download.style.display='none';
+ title.textContent='PREPARAZIONE BACKUP…';message.textContent='Sto raccogliendo cartelle, firme e allegati. Attendi.';share.style.display='none';download.style.display='none';share.onclick=null;download.onclick=null;download.removeAttribute('href');
  const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
  function finish(){preparing=false;clearTimeout(slow);prepare.disabled=false;prepare.textContent='1 · PREPARA NUOVO BACKUP'}
  return {
+  progress(current,total,percent){message.textContent='Preparazione allegato '+current+' di '+total+' — '+percent+'%.\nIl backup non è ancora salvato.'},
   ready(file,cartelle,originali){
    finish();url=URL.createObjectURL(file);overlay._backupUrl=url;download.href=url;download.download=file.name;download.style.display='block';
    const details='Nome: '+file.name+'\nDimensione: '+(file.size/1024/1024).toFixed(2)+' MB\nCartelle: '+cartelle+' — File originali: '+originali;
@@ -1367,14 +1368,16 @@ function openBackupSaveDialog(){
 async function creaBackupCompleto(){
  const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog();btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
  try{
+  lumenStorage.session.setItem('lumen_backup_in_corso','1');
+  await new Promise(resolve=>setTimeout(resolve,0));
   const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
-  const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
-  for(const r of originali){originaliSerializzati.push({...r,blob:r.blob?await blobToBackupData(r.blob):null})}
+  const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE);
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
-  const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,originali:originaliSerializzati,firme_da_trasferire,cartella_visibile:collect()}};
+  const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,firme_da_trasferire,cartella_visibile:collect()}};
   const name='BACKUP_LUMEN_'+backupStamp()+'.json';
-  view.ready(window.lumenBackupIO.toFile(packet,name),cartelle.length,originali.length);setStatus('BACKUP PRONTO: COMPLETARE IL SALVATAGGIO NEL PANNELLO IN CIMA ALLA PAGINA.');
- }catch(e){view.error(e);setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{btn.disabled=false;btn.textContent=old}
+  const result=await window.lumenBackupStream.build({packet,name,openDb:openOriginalDb,store:ORIGINAL_STORE,progress:view.progress});
+  view.ready(result.file,cartelle.length,result.originals);setStatus('BACKUP PRONTO: COMPLETARE IL SALVATAGGIO NEL PANNELLO IN CIMA ALLA PAGINA.');
+ }catch(e){view.error(e);setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{lumenStorage.session.removeItem('lumen_backup_in_corso');btn.disabled=false;btn.textContent=old}
 }
 async function ripristinaBackupCompleto(file){
  const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
@@ -1390,6 +1393,11 @@ async function ripristinaBackupCompleto(file){
  if(c.firme_da_trasferire)await window.lumenFirmaOffline.restore(c.firme_da_trasferire);
  if(c.cartella_visibile)apply(c.cartella_visibile);
  showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
+}
+if(lumenStorage.session.getItem('lumen_backup_in_corso')){
+ document.getElementById('lumenBackupTitle').textContent='BACKUP INTERROTTO';
+ document.getElementById('lumenBackupMessage').textContent='La pagina è stata ricaricata durante la preparazione. Nessun backup è pronto da salvare. L’archivio è ancora sul dispositivo.';
+ lumenStorage.session.removeItem('lumen_backup_in_corso');
 }
 document.getElementById('btnBackupInPagina').onclick=()=>creaBackupCompleto();
 document.getElementById('btnBackupCompleto').onclick=e=>{e.preventDefault();e.stopPropagation();const toggle=document.getElementById('btnAltriComandi');if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();creaBackupCompleto()};
@@ -2153,6 +2161,7 @@ input.addEventListener('change',async e=>{
 <script src="importa-cartelle.js?v=20261002-1"></script>
 <script src="importa-referti.js?v=20261002-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
+<script src="backup-stream.js?v=20261010-18"></script>
 <script src="allegati-cartella.js?v=20260930-1"></script>
 <script src="archive-referti.js?v=20261002-1"></script>
 <script src="visite-archivio.js?v=20261007-ruoli"></script>
