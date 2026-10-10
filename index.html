@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="lumen-build" content="20261010-backup-pannello-v2">
+<meta name="lumen-build" content="20261010-backup-permanente-v17">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -32,9 +32,10 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261010-backup-pannello-v2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
-<title>Cartella Sanitaria Beltrami - V16 Backup in pagina</title>
+<script>(function(){var build='20261010-backup-permanente-v17';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<title>Cartella Sanitaria Beltrami - V17 Backup permanente</title>
 <style>
+@media print{#lumenBackupOverlay{display:none!important}}
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
 *{box-sizing:border-box} html,body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;background:var(--bg)}
 body{padding:10px}.toolbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1.35fr 1fr;gap:10px;padding:10px;background:#f7f8fa;border:2px solid var(--blu);border-radius:12px;max-width:980px;margin:0 auto 10px;box-shadow:0 2px 8px #9998}
@@ -355,6 +356,14 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </style>
 </head>
 <body>
+<section id="lumenBackupOverlay" aria-labelledby="lumenBackupTitle" style="position:relative;z-index:21;max-width:980px;margin:0 auto 12px;padding:16px;border:3px solid #287a46;border-radius:14px;background:white;color:#222">
+ <h2 id="lumenBackupTitle" style="margin:0 0 12px;font-size:20px;font-style:normal">BACKUP — V17</h2>
+ <p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Prepara una copia delle cartelle, delle firme e degli allegati presenti in questo browser. Poi salvala su File.</p>
+ <button type="button" id="btnBackupInPagina" class="success" style="width:100%;margin:8px 0">1 · PREPARA BACKUP</button>
+ <button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0;display:none">2 · SALVA SU FILE / CONDIVIDI</button>
+ <a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a>
+ <p style="margin:8px 0 0;font-size:14px">Questo riquadro rimane nella pagina. Preparare il backup non significa averlo già salvato.</p>
+</section>
 <div class="toolbar" id="mainToolbar" aria-label="Comandi principali">
  <div class="toolbar-primary">
 <button type="button" id="btnSalva">SALVA CARTELLA</button>
@@ -1321,31 +1330,24 @@ function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
 function openBackupSaveDialog(){
- const overlay=document.createElement('div');overlay.id='lumenBackupOverlay';
- overlay.style.cssText='position:relative;max-width:980px;margin:0 auto 12px;box-sizing:border-box';
- const dialog=document.createElement('section');dialog.id='lumenBackupDialog';
- dialog.setAttribute('role','region');dialog.tabIndex=-1;
- dialog.setAttribute('aria-labelledby','lumenBackupTitle');
- dialog.style.cssText='width:100%;box-sizing:border-box;border:3px solid #287a46;border-radius:14px;padding:20px;background:white;color:#222';
- dialog.innerHTML='<h2 id="lumenBackupTitle" style="margin:0 0 12px">PREPARAZIONE BACKUP…</h2><p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Sto raccogliendo cartelle, firme e allegati. Attendi senza chiudere questa pagina.</p><button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0" hidden>SALVA SU FILE / CONDIVIDI</button><a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a><button type="button" id="lumenBackupClose" class="secondary" style="width:100%;margin-top:8px" disabled>ATTENDI LA PREPARAZIONE</button>';
- overlay.appendChild(dialog);document.body.prepend(overlay);
- // Keep the backup outside the collapsing toolbar; defer scrolling until its
- // originating tap has finished. No popup or native share sheet opens here.
- setTimeout(()=>{if(overlay.isConnected)overlay.scrollIntoView({block:'start'})},0);
- // Only CHIUDI removes this persistent panel; ordinary taps and Escape do not.
- overlay.addEventListener('click',e=>e.stopPropagation());
- const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload'),close=dialog.querySelector('#lumenBackupClose');
- let url=null,preparing=true;
+ const overlay=document.getElementById('lumenBackupOverlay'),dialog=overlay;
+ overlay.dataset.active='true';
+ document.getElementById('mainToolbar').style.position='relative';
+ const prepare=document.getElementById('btnBackupInPagina');prepare.disabled=true;prepare.textContent='PREPARAZIONE IN CORSO…';
+ overlay.scrollIntoView({block:'start'});
+ const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload');
+ let url=overlay._backupUrl||null,preparing=true;
+ if(url){URL.revokeObjectURL(url);overlay._backupUrl=null}
+ title.textContent='PREPARAZIONE BACKUP…';message.textContent='Sto raccogliendo cartelle, firme e allegati. Attendi.';share.style.display='none';download.style.display='none';
  const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
- close.onclick=()=>{if(preparing)return;clearTimeout(slow);overlay.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);document.getElementById('btnAltriComandi')?.focus({preventScroll:true})};
- function finish(){preparing=false;clearTimeout(slow);close.disabled=false;close.textContent='CHIUDI'}
+ function finish(){preparing=false;clearTimeout(slow);prepare.disabled=false;prepare.textContent='1 · PREPARA NUOVO BACKUP'}
  return {
   ready(file,cartelle,originali){
-   finish();url=URL.createObjectURL(file);download.href=url;download.download=file.name;download.style.display='block';
+   finish();url=URL.createObjectURL(file);overlay._backupUrl=url;download.href=url;download.download=file.name;download.style.display='block';
    const details='Nome: '+file.name+'\nDimensione: '+(file.size/1024/1024).toFixed(2)+' MB\nCartelle: '+cartelle+' — File originali: '+originali;
    title.textContent='BACKUP PRONTO DA SALVARE';
    let canShare=false;try{canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(_){}
-   share.hidden=!canShare;
+   share.style.display=canShare?'inline-flex':'none';
    message.textContent=details+'\n\n'+(canShare?'Tocca SALVA SU FILE / CONDIVIDI, poi scegli “Salva su File” e conferma “Salva”.':'Tocca SCARICA BACKUP e completa il salvataggio proposto dal browser.')+'\nIl file è preparato, ma non ancora salvato.';
    share.onclick=async()=>{
     share.disabled=true;
@@ -1363,7 +1365,7 @@ function openBackupSaveDialog(){
  };
 }
 async function creaBackupCompleto(){
- const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const existing=document.getElementById('lumenBackupOverlay');if(existing){existing.scrollIntoView({block:'start'});return}const view=openBackupSaveDialog();btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+ const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog();btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
  try{
   const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE),originali=await readAllFromDb(openOriginalDb,ORIGINAL_STORE),originaliSerializzati=[];
@@ -1389,6 +1391,7 @@ async function ripristinaBackupCompleto(file){
  if(c.cartella_visibile)apply(c.cartella_visibile);
  showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
 }
+document.getElementById('btnBackupInPagina').onclick=()=>creaBackupCompleto();
 document.getElementById('btnBackupCompleto').onclick=e=>{e.preventDefault();e.stopPropagation();const toggle=document.getElementById('btnAltriComandi');if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();creaBackupCompleto()};
 document.getElementById('btnRipristinaDaArchivio').onclick=()=>document.getElementById('fileRipristinaBackup').click();
 document.getElementById('fileRipristinaBackup').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await ripristinaBackupCompleto(f)}catch(err){showSaveInfo('error','RIPRISTINO NON ESEGUITO',err.message||String(err));setStatus('COPIA NON VALIDA O DANNEGGIATA.')}finally{e.target.value=''}};
