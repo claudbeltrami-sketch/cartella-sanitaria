@@ -505,7 +505,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="v9-phase close-session"><div class="v9-phase-title">3 · CHIUSURA</div><div class="v9-actions">
    <button type="button" id="v9Chiudi" class="v9-orange">CHIUDI SESSIONE</button>
    <button type="button" id="v9ConteggioVisite" class="success">AGGIUNGI VISITATI A CONTEGGIO</button>
-   <button type="button" id="v9Esporta" class="success">ESPORTA LISTA</button>
+   <button type="button" id="v9Esporta" class="success">PDF LISTA</button>
    <button type="button" id="v9InvioCertificati" class="success">PREPARA INVIO CERTIFICATI</button>
    <button type="button" id="v9EmailBtn" class="secondary">PREPARA EMAIL</button>
   </div></div>
@@ -2205,6 +2205,8 @@ input.addEventListener('change',async e=>{
  ['.list-actions','.manual-grid','.import-preview','.list-note'].forEach(selector=>manage.appendChild(list.querySelector(selector)));
  list.prepend(listHeading);list.append(manage,contents);
  toggle('MOSTRA LISTA','NASCONDI LISTA',contents,listHeading);
+ // Keep the original export action visible beside the worker list controls.
+ listHeading.appendChild(byId('v9Esporta'));
  const manageToggle=toggle('GESTISCI LISTA','CHIUDI GESTIONE',manage,listHeading);
  // Cross-panel add-worker actions and import previews must remain visible.
  [byId('manualGrid'),byId('importPreview')].forEach(el=>new MutationObserver(()=>{
