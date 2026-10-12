@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'../protocollo-suggerimenti.js'),'utf8');
+const c=vm.createContext({});vm.runInContext(src,c);
+const api=c.lumenProtocolSuggestions;
+const standard=api.resolve({mansione:'MAGAZZINIERE',committente:'SERMOLAB',datore:'AZIENDA TEST'});
+assert.equal(standard.source,'STANDARD DA VERIFICARE');assert.equal(standard.requiresReview,true);
+const company={mansione:'MAGAZZINIERE',datore:'AZIENDA TEST',committente:'SERMOLAB',rischi:['RUMORE'],protocollo:['AUDIOMETRIA'],periodicita:'ANNUALE'};
+const custom=api.resolve({mansione:'MAGAZZINIERE',committente:'SERMOLAB',datore:'AZIENDA TEST',aziendali:[company]});
+assert.equal(custom.source,'AZIENDALE');assert.deepEqual([...custom.protocollo],['AUDIOMETRIA']);
+assert.equal(api.resolve({mansione:'MAGAZZINIERE',committente:'ORIZZONTE',datore:'AZIENDA TEST',aziendali:[company]}).source,'AZIENDALE NON CONFERMATO');
+assert.equal(api.resolve({mansione:'MANSIONE SCONOSCIUTA',datore:'AZIENDA TEST'}),null);
+assert.equal(api.resolve({mansione:'MAGAZZINIERE',datore:'AZIENDA TEST',aziendali:[company,company]}).source,'AMBIGUO');
+console.log('PASS: reviewed standard fallback, company precedence, mismatch and ambiguity protections.');
