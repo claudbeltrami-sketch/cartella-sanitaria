@@ -1,5 +1,32 @@
 # cartella-sanitaria
 
+## Stampa lista e dati sessione — 12 ottobre 2026
+
+PDF LISTA usa i valori correnti della sessione, conservati localmente a ogni
+modifica anche in preparazione. La stampa leggeva invece prima la copia
+salvata, ignorando eventuali modifiche nei campi; senza SALVA E AVVIA i campi
+non venivano conservati dopo un ricaricamento.
+
+Preparazione e chiusura aprono entrambe un documento separato dalla cartella.
+La preparazione mantiene Esito e Note vuoti. Le sedute con aziende diverse
+possono essere avviate senza un'azienda unica se ogni lavoratore ha il datore.
+Una sessione mancante viene recuperata solo dalla medesima lista attiva,
+con stesso file e stesse identità nell'ordine originale; nessuna deduzione da
+cartelle o liste estranee. I dati già persi e non salvati non sono ricostruibili.
+NUOVA SESSIONE conserva una bozza vuota per non recuperare la sessione precedente.
+
+Il marcatore `lumen-list-build` identifica questa correzione. Il marcatore
+usato dalle vecchie pagine per il ricaricamento automatico resta invariato,
+per non provocare la perdita di campi non salvati su una scheda già aperta.
+
+Collaudi: `tests/lista-sessione.cjs` (app completa con archivi sintetici),
+`tests/lista-sessione-browser.cjs` (Chromium mobile 390 px, 14 lavoratori,
+riapertura, documento separato, pulsante stampa e PDF A4 orizzontale di una pagina).
+Controllati mantenimento di cartelle/firme, file originale ed esiti.
+La stampa nativa su Safari/iPhone non è stata eseguita in questo ambiente.
+Nessun dato sanitario reale è incluso nei test.
+
+
 ## Committente e datore di lavoro — 7 ottobre 2026
 
 La cartella conserva `committente` separato da `datore_lavoro`. La sessione
