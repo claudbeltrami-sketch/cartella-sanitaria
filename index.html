@@ -1139,7 +1139,35 @@ window.beltramiFirmaIphone={
  },
  importPacket:async packet=>{setStatus('CONTROLLO E SALVATAGGIO FIRMA IN CORSO…');await archiveReceivedSignature(packet)}
 };
-window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=(.+)$/);if(!m)return;try{const packet=handoffDecode(m[1]);if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');const context=checkSignatureRequest(packet);apply(packet.cartella||{});lumenStorage.session.setItem('beltrami_firma_handoff',JSON.stringify(context));history.replaceState(null,'',location.pathname+location.search);setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');setTimeout(()=>document.getElementById('btnFirmaLavoratore').click(),350)}catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}});
+// Safari may reuse a tab for a scanned QR: hashchange/pageshow are as important as load.
+let firmaQrOpening=false;
+function openSignatureFromQr(){
+ const m=location.hash.match(/^#firma=(.+)$/);
+ if(!m||firmaQrOpening)return;
+ firmaQrOpening=true;
+ try{
+  const packet=handoffDecode(m[1]);
+  if(!packet||packet.tipo!=='BELTRAMI_RICHIESTA_FIRMA_IPHONE_V1')throw new Error('Richiesta non valida');
+  const context=checkSignatureRequest(packet);
+  apply(packet.cartella||{});
+  lumenStorage.session.setItem('beltrami_firma_handoff',JSON.stringify(context));
+  history.replaceState(null,'',location.pathname+location.search);
+  setStatus('RICHIESTA DAL MAC CARICATA. ORA FIRMARE CON IL DITO.');
+  // Open after the page is visible and responsive, rather than after a fixed 350 ms.
+  const launch=()=>{
+   const button=document.getElementById('btnFirmaLavoratore');
+   if(!button||!button.isConnected){setStatus('FIRMA PRONTA: PREMI FIRMA LAVORATORE.');return;}
+   button.click();
+   const modal=document.getElementById('workerSignModal');
+   if(!modal?.classList.contains('show'))setStatus('FIRMA PRONTA: PREMI FIRMA LAVORATORE PER APRIRE IL RIQUADRO.');
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(launch));
+ }catch(e){alert('NON È STATO POSSIBILE APRIRE LA FIRMA DAL QR: '+(e.message||e))}
+ finally{firmaQrOpening=false}
+}
+window.addEventListener('load',openSignatureFromQr);
+window.addEventListener('pageshow',openSignatureFromQr);
+window.addEventListener('hashchange',openSignatureFromQr);
 async function saveCartellaVerified(){const name=filename('CARTELLA','json');const json=JSON.stringify(collect(),null,2);const blob=new Blob([json],{type:'application/json'});lastVerifiedFile=null;lastVerifiedHandle=null;
  try{
   if('showSaveFilePicker' in window){
