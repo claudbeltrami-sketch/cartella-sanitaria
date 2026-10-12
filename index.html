@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
-<meta name="lumen-build" content="20261011-lista-campi-vuoti-v18">
+<meta name="lumen-build" content="20261012-rubrica-committenti-v20">
 <script src="prova-storage.js?v=20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -33,9 +33,10 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261011-lista-campi-vuoti-v18';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261012-rubrica-committenti-v20';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V18 Backup progressivo</title>
 <style>
+#v9SediSalvateBox[hidden]{display:none}
 @media print{#lumenBackupOverlay{display:none!important}}
 :root{--blu:#1f5f99;--grigio:#555;--verde:#287a46;--rosso:#a23b3b;--bg:#eceff2}
 *{box-sizing:border-box} html,body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;background:var(--bg)}
@@ -483,6 +484,12 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 
 <section class="v9-panel" id="v9Panel">
  <h3>SESSIONE DI VISITE</h3>
+ <div class="v9-grid" style="margin-bottom:12px">
+  <div class="v9-field"><label for="v9Rubrica">Committenti salvati</label><select id="v9Rubrica"><option value="">NUOVO COMMITTENTE / SCEGLI</option></select></div>
+  <div class="v9-field" id="v9SediSalvateBox" hidden><label for="v9SediSalvate">Sedi del committente</label><select id="v9SediSalvate"></select></div>
+  <div class="v9-field"><button type="button" id="v9SalvaCommittente" class="success">SALVA COMMITTENTE E SEDE</button></div>
+ </div>
+ <div class="v9-help" id="v9RubricaStatus" role="status" style="margin-bottom:12px">Salva una volta referente, email e sedi. Nelle prossime sessioni scegli il committente: i dati restano modificabili. Rubrica locale, inclusa nella copia di sicurezza.</div>
  <div class="v9-grid">
   <div class="v9-field"><label>Data sessione</label><input type="date" id="v9Data"></div>
   <div class="v9-field"><label>Fascia / orario</label><input id="v9Fascia" placeholder="ES. MATTINA, 08:30-13:00"></div>
@@ -517,7 +524,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="v9-session-card" id="v9Card">NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.</div>
  <div class="v9-archives" id="v9ArchivesBox">
   <div class="v9-archive-grid">
-   <div class="v9-archive-box"><h4>COMMItTENTI</h4><div class="v9-field"><input id="v9NewComm" placeholder="RAGIONE SOCIALE"><input type="email" id="v9NewCommEmail" placeholder="EMAIL"><input id="v9NewCommRef" placeholder="REFERENTE"></div><div class="v9-actions"><button type="button" id="v9AddComm" class="success">AGGIUNGI / AGGIORNA</button></div><div id="v9CommList" class="v9-mini-list"></div></div>
+   <div class="v9-archive-box"><h4>COMMITTENTI</h4><div class="v9-field"><input id="v9NewComm" placeholder="RAGIONE SOCIALE"><input type="email" id="v9NewCommEmail" placeholder="EMAIL"><input id="v9NewCommRef" placeholder="REFERENTE"></div><div class="v9-actions"><button type="button" id="v9AddComm" class="success">AGGIUNGI / AGGIORNA</button></div><div id="v9CommList" class="v9-mini-list"></div></div>
    <div class="v9-archive-box"><h4>SEDI</h4><div class="v9-field"><input id="v9NewSede" placeholder="NOME SEDE"><input id="v9NewSedeInd" placeholder="INDIRIZZO"></div><div class="v9-actions"><button type="button" id="v9AddSede" class="success">AGGIUNGI / AGGIORNA</button></div><div id="v9SedeList" class="v9-mini-list"></div></div>
    <div class="v9-archive-box"><h4>AZIENDE</h4><div class="v9-field"><input id="v9NewAz" placeholder="AZIENDA DEI LAVORATORI"></div><div class="v9-actions"><button type="button" id="v9AddAz" class="success">AGGIUNGI</button></div><div id="v9AzList" class="v9-mini-list"></div></div>
   </div>
@@ -1698,6 +1705,8 @@ function safe(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 function uid(){return Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
 function getArch(){const a=read(K_ARCH,blankArch());a.committenti=a.committenti||[];a.sedi=a.sedi||[];a.aziende=a.aziende||[];return a}
 function renderArchives(){const a=getArch();
+ $('v9Rubrica').innerHTML='<option value="">NUOVO COMMITTENTE / SCEGLI</option>'+a.committenti.map(x=>'<option value="'+safe(norm(x.nome))+'">'+safe(x.nome)+'</option>').join('');
+ $('v9Rubrica').value=norm($('v9Committente').value);renderSavedSites();
  $('v9Committenti').innerHTML=a.committenti.map(x=>'<option value="'+safe(x.nome)+'"></option>').join('');$('v9Sedi').innerHTML=a.sedi.map(x=>'<option value="'+safe(x.nome)+'"></option>').join('');$('v9Aziende').innerHTML=a.aziende.map(x=>'<option value="'+safe(x.nome)+'"></option>').join('');
  $('v9CommList').innerHTML=a.committenti.map((x,i)=>'<div class="v9-mini-item"><span><b>'+safe(x.nome)+'</b><br>'+safe(x.email||'')+'</span><button data-v9del="committenti" data-i="'+i+'" class="danger">X</button></div>').join('');
  $('v9SedeList').innerHTML=a.sedi.map((x,i)=>'<div class="v9-mini-item"><span><b>'+safe(x.nome)+'</b><br>'+safe(x.indirizzo||'')+'</span><button data-v9del="sedi" data-i="'+i+'" class="danger">X</button></div>').join('');
@@ -1709,8 +1718,56 @@ $('v9AddComm').onclick=()=>{const nome=norm($('v9NewComm').value);if(!nome)retur
 $('v9AddSede').onclick=()=>{const nome=norm($('v9NewSede').value);if(!nome)return alert('Inserire la sede.');upsert('sedi',{nome,indirizzo:norm($('v9NewSedeInd').value)});$('v9NewSede').value=$('v9NewSedeInd').value=''};
 $('v9AddAz').onclick=()=>{const nome=norm($('v9NewAz').value);if(!nome)return alert('Inserire l’azienda.');upsert('aziende',{nome});$('v9NewAz').value=''};
 $('v9Archivi').onclick=()=>$('v9ArchivesBox').classList.toggle('show');
-$('v9Committente').addEventListener('change',()=>{const x=getArch().committenti.find(x=>norm(x.nome)===norm($('v9Committente').value));if(x){$('v9Email').value=x.email||'';$('v9Referente').value=x.referente||''}});
-$('v9Sede').addEventListener('change',()=>{const x=getArch().sedi.find(x=>norm(x.nome)===norm($('v9Sede').value));if(x)$('v9IndirizzoSede').value=x.indirizzo||''});
+function savedClient(){return getArch().committenti.find(x=>norm(x.nome)===norm($('v9Committente').value))}
+function siteKey(s){return norm(s.nome)+'|'+norm(s.indirizzo)}
+function renderSavedSites(){
+ const x=savedClient(),sites=x&&Array.isArray(x.sedi)?x.sedi:[];
+ $('v9SediSalvateBox').hidden=!sites.length;
+ $('v9SediSalvate').innerHTML='<option value="">NUOVA SEDE / SCEGLI</option>'+sites.map(s=>'<option value="'+safe(siteKey(s))+'">'+safe(s.nome)+(s.indirizzo?' — '+safe(s.indirizzo):'')+'</option>').join('');
+ $('v9SediSalvate').value=siteKey({nome:$('v9Sede').value,indirizzo:$('v9IndirizzoSede').value});
+}
+function rememberClient(s,overwrite=false){
+ if(!s||!s.committente)return false;
+ const a=getArch(),name=norm(s.committente),i=a.committenti.findIndex(x=>norm(x.nome)===name);
+ const x=i>=0?{...a.committenti[i]}:{nome:name};
+ for(const key of ['email','referente'])if(overwrite||!x[key])x[key]=s[key]||'';
+ x.sedi=Array.isArray(x.sedi)?x.sedi.slice():[];
+ if(s.sede){
+  const site={nome:norm(s.sede),indirizzo:norm(s.indirizzoSede)},selected=$('v9SediSalvate').value;
+  let n=x.sedi.findIndex(v=>siteKey(v)===siteKey(site));
+  if(n<0&&overwrite)n=x.sedi.findIndex(v=>siteKey(v)===selected&&norm(v.nome)===site.nome);
+  if(n>=0){if(overwrite||!x.sedi[n].indirizzo)x.sedi[n]=site}else x.sedi.push(site);
+  const j=a.sedi.findIndex(v=>norm(v.nome)===site.nome);
+  if(j<0)a.sedi.push(site);else if(overwrite||!a.sedi[j].indirizzo)a.sedi[j]={...a.sedi[j],...site};
+ }
+ if(i>=0)a.committenti[i]=x;else a.committenti.push(x);
+ try{write(K_ARCH,a)}catch(_){$('v9RubricaStatus').textContent='RUBRICA NON SALVATA: spazio locale non disponibile.';return false}
+ renderArchives();return true;
+}
+function chooseClient(name){
+ $('v9Committente').value=name;
+ const x=savedClient(),sites=x&&Array.isArray(x.sedi)?x.sedi:[];
+ $('v9Email').value=x&&x.email||'';$('v9Referente').value=x&&x.referente||'';
+ $('v9Sede').value=sites.length===1?sites[0].nome:'';$('v9IndirizzoSede').value=sites.length===1?sites[0].indirizzo||'':'';
+ renderArchives();persistSessionDraft();
+ $('v9RubricaStatus').textContent=x?(sites.length>1?'COMMITTENTE RICHIAMATO. Scegli una delle sue sedi.':'COMMITTENTE RICHIAMATO. Puoi modificare i dati per questa sessione.'):'Compila i dati e premi SALVA COMMITTENTE E SEDE.';
+}
+$('v9Rubrica').onchange=()=>chooseClient($('v9Rubrica').value);
+$('v9Committente').addEventListener('change',()=>{if(norm($('v9Committente').value)!==$('v9Rubrica').value)chooseClient(norm($('v9Committente').value))});
+$('v9SediSalvate').onchange=()=>{
+ const x=savedClient(),s=x&&(x.sedi||[]).find(v=>siteKey(v)===$('v9SediSalvate').value);
+ $('v9Sede').value=s?s.nome:'';$('v9IndirizzoSede').value=s?s.indirizzo||'':'';persistSessionDraft();
+};
+$('v9Sede').addEventListener('change',()=>{
+ const client=savedClient(),linked=client&&client.sedi||[],name=norm($('v9Sede').value);
+ const matches=linked.filter(x=>norm(x.nome)===name);
+ const x=matches.length===1?matches[0]:!linked.length?getArch().sedi.find(x=>norm(x.nome)===name):null;
+ $('v9IndirizzoSede').value=x?x.indirizzo||'':'';renderSavedSites();
+});
+$('v9SalvaCommittente').onclick=()=>{
+ const s=collectSession();if(!s.committente){$('v9RubricaStatus').textContent='Inserisci il nome del committente.';return}
+ persistSessionDraft();if(rememberClient(s,true))$('v9RubricaStatus').textContent='COMMITTENTE E SEDE SALVATI. Li ritrovi in “Committenti salvati” anche nelle prossime sessioni.';
+};
 function collectSession(){return{id:$('v9Panel').dataset.sid||uid(),data:$('v9Data').value||today(),fascia:norm($('v9Fascia').value),stato:$('v9Stato').value,committente:norm($('v9Committente').value),email:$('v9Email').value.trim(),referente:norm($('v9Referente').value),sede:norm($('v9Sede').value),indirizzoSede:norm($('v9IndirizzoSede').value),azienda:norm($('v9Azienda').value),note:norm($('v9Note').value),listaOriginale:window.beltramiOriginalFiles.getOriginalMeta(),aggiornata:new Date().toISOString()}}
 function applySession(s){if(!s)return;if(s.listaOriginale)lumenStorage.local.setItem(window.beltramiOriginalFiles.metaKey,JSON.stringify(s.listaOriginale));else window.beltramiOriginalFiles.clearOriginalMeta();$('v9Panel').dataset.sid=s.id||uid();$('v9Data').value=s.data||today();$('v9Fascia').value=s.fascia||'';$('v9Stato').value=s.stato||'PREPARAZIONE';$('v9Committente').value=s.committente||'';$('v9Email').value=s.email||'';$('v9Referente').value=s.referente||'';$('v9Sede').value=s.sede||'';$('v9IndirizzoSede').value=s.indirizzoSede||'';$('v9Azienda').value=s.azienda||'';$('v9Note').value=s.note||'';renderCard(s)}
 // Session fields are saved as a draft on every edit, without starting a visit.
@@ -1740,9 +1797,9 @@ function esiti(){return read(K_ESITI,{})}
 function keyOf(w,i){return w.id||[w.cognome,w.nome,w.data_nascita,i].join('|')}
 function stats(){const ws=workersData(),e=esiti();let visitati=0,assenti=0;ws.forEach((w,i)=>{const x=e[keyOf(w,i)];if(x==='ASSENTE')assenti++;else if(w.visited)visitati++});return{totale:ws.length,visitati,assenti,daGestire:Math.max(0,ws.length-visitati-assenti)}}
 function renderCard(s=read(K_SESS,null)){const st=stats();$('v9Card').innerHTML=s?'<strong>SESSIONE ATTIVA</strong> <span class="v9-badge">'+safe(s.stato)+'</span><br><b>Data:</b> '+safe(fmt(s.data))+(s.fascia?' — '+safe(s.fascia):'')+'<br><b>Committente:</b> '+safe(s.committente||'—')+' &nbsp; <b>Sede:</b> '+safe(s.sede||'—')+' &nbsp; <b>Azienda:</b> '+safe(s.azienda||'—')+'<br><b>Lista:</b> totale '+st.totale+' — visitati '+st.visitati+' — assenti '+st.assenti+' — senza esito '+st.daGestire+(s.listaOriginale?'<br><b>File originale:</b> '+safe(s.listaOriginale.name)+' <button type="button" id="v14Originale" class="secondary" style="min-height:30px;padding:4px 8px;font-size:11px">APRI / SALVA ORIGINALE</button>':''):'NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.';const ob=$('v14Originale');if(ob)ob.onclick=()=>window.beltramiOriginalFiles.downloadOriginal(s.listaOriginale)}
-function saveSession(){const s=collectSession();if(!s.committente)return alert('Inserire il committente.');if(!s.sede)return alert('Inserire la sede di visita.');if(!s.azienda&&(!workersData().length||workersData().some(w=>!String(w.datore_lavoro||'').trim())))return alert('Inserire l’azienda dei lavoratori oppure indicare il datore in ogni riga della lista.');if(s.stato==='PREPARAZIONE')s.stato='IN CORSO';$('v9Stato').value=s.stato;$('v9Panel').dataset.sid=s.id;write(K_SESS,s);upsert('committenti',{nome:s.committente,email:s.email,referente:s.referente});upsert('sedi',{nome:s.sede,indirizzo:s.indirizzoSede});if(s.azienda)upsert('aziende',{nome:s.azienda});renderCard(s);const dl=$('datore_lavoro');if(dl&&!dl.value)dl.value=s.azienda;const cm=$('committente');if(cm&&!cm.value&&!$('cognome').value&&!$('nome').value)cm.value=s.committente;alert('SESSIONE SALVATA. I DATI RESTANO SU QUESTO DISPOSITIVO.')}
+function saveSession(){const s=collectSession();if(!s.committente)return alert('Inserire il committente.');if(!s.sede)return alert('Inserire la sede di visita.');if(!s.azienda&&(!workersData().length||workersData().some(w=>!String(w.datore_lavoro||'').trim())))return alert('Inserire l’azienda dei lavoratori oppure indicare il datore in ogni riga della lista.');if(s.stato==='PREPARAZIONE')s.stato='IN CORSO';$('v9Stato').value=s.stato;$('v9Panel').dataset.sid=s.id;write(K_SESS,s);rememberClient(s,true);if(s.azienda)upsert('aziende',{nome:s.azienda});renderCard(s);const dl=$('datore_lavoro');if(dl&&!dl.value)dl.value=s.azienda;const cm=$('committente');if(cm&&!cm.value&&!$('cognome').value&&!$('nome').value)cm.value=s.committente;alert('SESSIONE SALVATA. I DATI RESTANO SU QUESTO DISPOSITIVO.')}
 $('v9Avvia').onclick=saveSession;
-$('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';lumenStorage.local.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});persistSessionDraft()};
+$('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';lumenStorage.local.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});renderArchives();persistSessionDraft()};
 function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);decorateRows();renderCard()}
 function decorateRows(){const ws=workersData(),e=esiti();document.querySelectorAll('#workersBody tr').forEach(tr=>{const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0||!ws[n])return;const td=tr.lastElementChild;if(!td||td.querySelector('.v9-assente-btn'))return;const k=keyOf(ws[n],n),abs=e[k]==='ASSENTE';if(abs){tr.classList.add('v9-absent');tr.children[1].textContent='ASSENTE'}const b=document.createElement('button');b.type='button';b.className='v9-assente-btn '+(abs?'secondary':'v9-orange');b.style.marginLeft='5px';b.textContent=abs?'ANNULLA ASSENTE':'SEGNA ASSENTE';b.onclick=()=>setAbsent(n,!abs);td.appendChild(b)})}
 new MutationObserver(()=>{decorateRows();renderCard()}).observe($('workersBody'),{childList:true,subtree:true});
@@ -1880,7 +1937,7 @@ $('v9EmailBtn').onclick=()=>{const s=read(K_SESS,collectSession());if(!s.email)r
 window.addEventListener('afterprint',()=>{if(document.body.className==='print-v9-lista')document.body.className=''});
 $('v9Data').value=today();renderArchives();
 const active=read(K_SESS,null)||recoverActiveListSession();
-if(active){applySession(active);if(!read(K_SESS,null))write(K_SESS,active)}
+if(active){applySession(active);if(!read(K_SESS,null))write(K_SESS,active);rememberClient(active)}
 decorateRows();renderCard(active);
 ['v9Data','v9Fascia','v9Stato','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>{
  $(id).addEventListener('input',persistSessionDraft);
