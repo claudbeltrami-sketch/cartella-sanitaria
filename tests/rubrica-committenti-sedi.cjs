@@ -15,6 +15,15 @@ async function run(){
   field(p,'v9Sede','SEDE SUD');
   field(p,'v9IndirizzoSede','VIA PROVA 2');
   click(p,'v9SalvaCommittente');
+  // Automatic recall on an imported roster with an explicit, unique client.
+  field(p,'v9Committente','');field(p,'v9Email','');field(p,'v9Referente','');field(p,'v9Sede','');field(p,'v9IndirizzoSede','');
+  assert.equal(p.w.lumenAutoClientFromImportedWorkers([{committente:'AZIENDA TEST',datore_lavoro:'DATORE X'}]),true);
+  assert.equal(p.$('v9Email').value,'test@example.test');
+  assert.equal(p.$('v9Sede').value,'','Multiple sites must not be selected automatically');
+  field(p,'v9Committente','ALTRA AZIENDA');
+  assert.equal(p.w.lumenAutoClientFromImportedWorkers([{committente:'AZIENDA TEST'}]),false);
+  assert.equal(p.$('v9Committente').value,'ALTRA AZIENDA');
+  field(p,'v9Committente','AZIENDA TEST');
   let arch=JSON.parse(p.w.localStorage.getItem('beltrami_v9_archivi'));
   const client=arch.committenti.find(x=>x.nome==='AZIENDA TEST');
   assert(client);assert.equal(client.sedi.length,2);
