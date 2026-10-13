@@ -171,7 +171,7 @@ serializzazione, unità, date, valori invalidi, ciclo di stampa e PDF al 125%.
 ### Scadenzario visite (13 ottobre 2026)
 
 Il pulsante **SCADENZARIO** legge l'archivio locale del dispositivo, incluse le
-versioni storiche, per SERMOLAB e GRUPPO ORIZZONTE. Mostra l'ultima visita per
+versioni storiche, per tutti i committenti indicati nelle cartelle, senza elenco prestabilito. Il filtro si aggiorna automaticamente a ogni apertura o aggiornamento dello scadenzario. Mostra l'ultima visita per
 identità (CF, oppure anagrafica completa), committente e azienda. Una visita più
 recente sostituisce la scadenza precedente anche se la nuova data è da completare;
 le revisioni della stessa visita non duplicano le righe. Le nomine sono escluse.
