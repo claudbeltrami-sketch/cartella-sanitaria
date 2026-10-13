@@ -13,7 +13,7 @@ const worker=n=>({cognome:'COLLAUDO '+String(n).padStart(2,'0'),nome:'FITTIZIO',
   await p.api.saveToLocalArchive({...worker(1),data_giudizio:'2026-10-05'});
   await p.api.saveToLocalArchive({...worker(2),data_giudizio:otherDate});
   const before=JSON.stringify(await p.t.cartelle());
-  await p.t.backup();assert.equal(JSON.parse(await p.downloads.at(-1).blob.text()).contenuto.cartelle.length,24);
+  await p.t.backup();p.$('lumenBackupDownload').click();assert.equal(JSON.parse(await p.downloads.at(-1).blob.text()).contenuto.cartelle.length,24);
   p.w.jspdf={jsPDF};
   async function open(query,expected){
    if(p.$('visiteArchiveDialog').open)p.$('visiteArchiveClose').onclick();
@@ -31,8 +31,7 @@ const worker=n=>({cognome:'COLLAUDO '+String(n).padStart(2,'0'),nome:'FITTIZIO',
   const pdf=Buffer.from(await p.downloads.at(-1).blob.arrayBuffer()).toString('latin1');
   assert.ok(pdf.includes('COLLAUDO 06'));assert.ok(!pdf.includes('COLLAUDO 07'));
   const rendered=[];
-  p.w.html2canvas=async()=>{rendered.push({...p.api.collect()});return {toDataURL:()=> 'FAKE_RASTER'}};
-  p.w.jspdf={jsPDF:class{addPage(){}addImage(){}output(){return new Blob(['CERTIFICATI FITTIZI'],{type:'application/pdf'})}}};
+  p.w.lumenCertificatePdf={snapshot:()=>({...p.api.collect()}),create:async()=>({addCertificate:async d=>rendered.push(d),toBlob:async()=>new Blob(['CERTIFICATI FITTIZI'],{type:'application/pdf'})})};
   await p.$('visiteArchiveCertificates').onclick();assert.equal(rendered.length,6,p.$('visiteArchiveMessage').textContent+' '+p.errors.join('; '));assert.ok(rendered.every(d=>d.datore_lavoro.includes('CBV')&&d.data_giudizio===date));
   await open('SERMOLAB CBV',4);
   p.$('visiteArchiveDate').value=otherDate;p.$('visiteArchiveDate').onchange();

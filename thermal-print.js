@@ -58,6 +58,10 @@ function pageEnd(canvas,start,maxHeight){
  return limit;
 }
 async function createPdf(type,source,token){
+ if(type==='certificato'){
+  if(!window.lumenCertificatePdf)throw new Error('Modulo PDF non disponibile. Ricaricare LUMEN.');
+  return window.lumenCertificatePdf.current();
+ }
  if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('Modulo PDF non disponibile. Ricarica LUMEN con la connessione attiva.');
  const copy=source.cloneNode(true);textFields(source,copy);copy.querySelectorAll('script,.toolbar,.cf-helper,.altezza-temporary').forEach(n=>n.remove());copy.classList.remove('hidden');copy.style.display='block';
  const styles=[...document.querySelectorAll('style')].map(n=>n.textContent.replace(/@media\s+print\b/g,'@media all')).join('\n');

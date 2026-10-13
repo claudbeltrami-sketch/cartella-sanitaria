@@ -1,5 +1,39 @@
 # cartella-sanitaria
 
+## Certificato PDF unico A4 — 13 ottobre 2026
+
+Il certificato non viene più fotografato dalla pagina responsive e stirato
+sull'A4. `certificato-pdf.js` compone testo e barcode vettoriali in punti PDF,
+con metriche Helvetica fisse e firme incorporate nelle proporzioni originali.
+Legge una copia dei campi già popolati del certificato, senza reinterpretare
+i dati clinici né modificare l'archivio. La libreria PDF è locale.
+
+Il pulsante singolo, i certificati dall'archivio, il pulsante cumulativo della
+sessione e l'opzione stampantina usano lo stesso generatore. I batch ripristinano
+la cartella aperta anche in caso di errore. Non vengono aggiunti timestamp o
+identificatori casuali al PDF: stessi campi, firme e versione del modello
+producono gli stessi byte. L'anteprima HTML resta adattabile allo schermo;
+il documento da salvare, stampare o inviare è il PDF del pulsante dedicato.
+
+Contenuti troppo lunghi per un A4, immagini illeggibili e caratteri non
+supportati impediscono l'esportazione con un messaggio esplicito: nessun campo
+o firma viene troncato o sostituito silenziosamente. La modalità PROVA conserva
+la dicitura di prova. Le copie PDF già scaricate non vengono modificate.
+Il marcatore `lumen-certificate-build` identifica la versione `20261013-a4-1`;
+non viene forzato un ricaricamento sulle cartelle aperte.
+
+Collaudo: `node tests/certificato-pdf.cjs` con Playwright Chromium 134 e WebKit
+18.4 su Linux, viewport desktop 1440 px e mobile 390 px, densità 1/3 e fusi
+orari differenti. Con dati sintetici, PDF singoli identici byte per byte in
+tutte le configurazioni e nelle generazioni ripetute; stessa identità del file
+anche per la stampantina. Verificati batch sessione/archivio, firme distinte,
+periodicità personalizzata, ripristino dopo errore, prescrizioni su più righe,
+barcode, immagini, A4 e assenza di testo fuori margine. Verifica selezione
+storica con `node tests/visite-filtro.cjs`. I dispositivi fisici dell'utente
+non sono accessibili da questo collaudo. Le dipendenze dei test restano quelle
+dei test browser/DOM esistenti; `WEBKIT_EXECUTABLE_PATH` permette un runtime
+WebKit locale e `CHROMIUM_ONLY=1` limita il test a Chromium.
+
 ## Stampa lista e dati sessione — 12 ottobre 2026
 
 PDF LISTA usa i valori correnti della sessione, conservati localmente a ogni

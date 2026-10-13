@@ -8,7 +8,47 @@ function sessione(){var s=read(S,null),d=read(W,{workers:[]});if(!s)return null;
 function vdate(d){return String((d&&(d.data_giudizio||d.data_cartella))||'').slice(0,10)}
 function score(d){if(!d)return-1;var n=0;['cognome','nome','codice_fiscale','data_nascita','luogo_nascita','datore_lavoro','mansione','data_giudizio','giudizio','periodicita'].forEach(function(k){if(String(d[k]||'').trim())n+=2});if(Array.isArray(d.rischi))n+=d.rischi.length;if(Array.isArray(d.protocollo))n+=d.protocollo.length;return n}
 function bestData(r,w,s){var c=[];if(r&&r.data)c.push({data:r.data,t:r.updatedAt||''});if(r&&Array.isArray(r.history))r.history.forEach(function(h){if(h&&h.data)c.push({data:h.data,t:h.savedAt||''})});if(!c.length)return null;var target=String(s.data||'').slice(0,10),same=target?c.filter(function(x){return vdate(x.data)===target}):[],p=same.length?same:c;p.sort(function(a,b){return score(b.data)-score(a.data)||String(b.t).localeCompare(String(a.t))});var d=Object.assign({},p[0].data||{});d.cognome=d.cognome||r.cognome||w.cognome||'';d.nome=d.nome||r.nome||w.nome||'';d.codice_fiscale=d.codice_fiscale||r.cf||w.codice_fiscale||'';d.data_nascita=d.data_nascita||r.dataNascita||w.data_nascita||'';d.luogo_nascita=d.luogo_nascita||w.luogo_nascita||'';d.datore_lavoro=d.datore_lavoro||w.datore_lavoro||s.azienda||'';d.mansione=d.mansione||w.mansione||'';if(target&&!d.data_giudizio)d.data_giudizio=target;return d}
-async function prepara(){var b=document.getElementById('v9InvioCertificati'),st=document.getElementById('status');try{var s=sessione(),api=window.lumenBatchCertApi;if(!s)return alert('NESSUNA SESSIONE DISPONIBILE.');if(!api||!window.html2canvas||!window.jspdf?.jsPDF)return alert('MODULO PDF NON DISPONIBILE. RICARICARE LUMEN.');var es=s.esiti||{},ws=s.workers||[],vis=ws.filter(function(w,i){return w&&w.visited&&norm(es[key(w,i)])!=='ASSENTE'});if(!vis.length)return alert('NON RISULTANO LAVORATORI VISITATI.');b.disabled=true;var found=[],missing=[];for(var j=0;j<vis.length;j++){var w=vis[j],r=await api.getCartellaRecord(api.cartellaId(w)),d=bestData(r,w,s);if(d)found.push({data:d});else missing.push(((w.cognome||'')+' '+(w.nome||'')).trim())}if(!found.length)return alert('NESSUNA CARTELLA SALVATA TROVATA.');if(missing.length&&!confirm('MANCANO '+missing.length+' CARTELLE. PREPARO COMUNQUE LE '+found.length+' TROVATE?'))return;var cert=document.getElementById('certificate'),page=cert.querySelector('.page'),cart=document.querySelector('.cartella'),original=api.collect(),oldDisplay=cert.style.display,cartHidden=cart&&cart.classList.contains('hidden');cert.style.display='block';if(cart)cart.classList.add('hidden');var pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}),sede=String(s.sede||'').trim();for(var i=0;i<found.length;i++){b.textContent='CERTIFICATO '+(i+1)+' / '+found.length;if(st)st.textContent='CREAZIONE CERTIFICATO '+(i+1)+' DI '+found.length;var d=Object.assign({},found[i].data);if(!d.luogo_visita&&sede)d.luogo_visita=sede;api.apply(d);api.popolaCertificato(undefined,false);await new Promise(function(ok){requestAnimationFrame(function(){requestAnimationFrame(ok)})});var c=await html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});if(i)pdf.addPage('a4','portrait');pdf.addImage(c.toDataURL('image/jpeg',.94),'JPEG',0,0,210,297,undefined,'FAST')}var name='CERTIFICATI_'+String(s.data||'').replace(/-/g,'')+'_'+found.length+'.pdf',blob=pdf.output('blob'),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},60000);api.apply(original);cert.style.display=oldDisplay||'none';if(cart&&!cartHidden)cart.classList.remove('hidden');if(api.setStatus)api.setStatus('PDF CUMULATIVO PRONTO: '+found.length+' CERTIFICATI COMPILATI.')}catch(e){alert('ERRORE PDF CUMULATIVO:\n'+((e&&e.message)||String(e)))}finally{if(b){b.disabled=false;b.textContent='PREPARA INVIO CERTIFICATI'}}}
+async function prepara(){
+ var b=document.getElementById('v9InvioCertificati'),st=document.getElementById('status'),restore=null;
+ var oldText=b&&b.textContent,api=window.lumenBatchCertApi;
+ try{
+  var s=sessione();if(!s)return alert('NESSUNA SESSIONE DISPONIBILE.');
+  if(!api||!window.lumenCertificatePdf)return alert('MODULO PDF NON DISPONIBILE. RICARICARE LUMEN.');
+  var es=s.esiti||{},ws=s.workers||[],vis=ws.filter(function(w,i){return w&&w.visited&&norm(es[key(w,i)])!=='ASSENTE'});
+  if(!vis.length)return alert('NON RISULTANO LAVORATORI VISITATI.');
+  b.disabled=true;var found=[],missing=[];
+  for(var j=0;j<vis.length;j++){
+   var w=vis[j],r=await api.getCartellaRecord(api.cartellaId(w)),d=bestData(r,w,s);
+   if(d)found.push({data:d});else missing.push(((w.cognome||'')+' '+(w.nome||'')).trim());
+  }
+  if(!found.length)return alert('NESSUNA CARTELLA SALVATA TROVATA.');
+  if(missing.length&&!confirm('MANCANO '+missing.length+' CARTELLE. PREPARO COMUNQUE LE '+found.length+' TROVATE?'))return;
+  var cert=document.getElementById('certificate'),cart=document.querySelector('.cartella');
+  restore={data:api.collect(),display:cert.style.display,cartHidden:cart&&cart.classList.contains('hidden')};
+  var pdf=await window.lumenCertificatePdf.create(),sede=String(s.sede||'').trim();
+  for(var i=0;i<found.length;i++){
+   b.textContent='CERTIFICATO '+(i+1)+' / '+found.length;
+   if(st)st.textContent='CREAZIONE CERTIFICATO '+(i+1)+' DI '+found.length;
+   var data=Object.assign({},found[i].data);if(!data.luogo_visita&&sede)data.luogo_visita=sede;
+   api.apply(data);api.popolaCertificato(undefined,false);
+   await pdf.addCertificate(window.lumenCertificatePdf.snapshot());
+  }
+  var name='CERTIFICATI_'+String(s.data||'').replace(/-/g,'')+'_'+found.length+'.pdf';
+  var blob=await pdf.toBlob(),u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(u)},60000);
+  if(api.setStatus)api.setStatus('PDF CUMULATIVO PRONTO: '+found.length+' CERTIFICATI COMPILATI.');
+ }catch(e){alert('ERRORE PDF CUMULATIVO:\n'+((e&&e.message)||String(e)))}
+ finally{
+  if(restore){
+   api.apply(restore.data);
+   if(restore.display!=='none')api.popolaCertificato(undefined,false);
+   cert.style.display=restore.display;
+   if(cart)cart.classList.toggle('hidden',!!restore.cartHidden);
+  }
+  if(b){b.disabled=false;b.textContent=oldText;}
+ }
+}
 function install(){var a=document.getElementById('v9InvioCertificati');if(a){a.disabled=false;a.onclick=prepara;a.title='PDF CUMULATIVO V4'}}
 document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#v9InvioCertificati'):null;if(!t)return;e.preventDefault();e.stopImmediatePropagation();prepara()},true);install();addEventListener('load',install);addEventListener('pageshow',install);setTimeout(install,300);
 })();

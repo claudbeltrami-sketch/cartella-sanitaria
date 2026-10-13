@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<meta name="lumen-certificate-build" content="20261013-a4-1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -237,6 +238,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <!-- PDF certificato pulito: evita URL/data/pagina aggiunti da Safari iPhone -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="certificato-pdf.js?v=20261013-a4-1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="vendor/peerjs-1.5.4.min.js"></script>
 <script src="firma-offline.js?v=20260929-1"></script>
@@ -1279,14 +1282,9 @@ document.getElementById('btnPrintCert').onclick=async()=>{
   if(!verificaPrimaDelPdf('CERTIFICATO'))return;
   if(!completaLuogoCertificato())return;
   popolaCertificato(undefined,false);
-  if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE INTERNET E RIPROVARE.');
+  if(!window.lumenCertificatePdf)throw new Error('MODULO PDF NON DISPONIBILE. RICARICARE LUMEN E RIPROVARE.');
   btn.disabled=true;btn.textContent='PREPARAZIONE PDF...';setStatus('CREAZIONE DEL PDF PULITO IN CORSO...');
-  const page=document.querySelector('#certificate .page');
-  const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
-  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-  const img=canvas.toDataURL('image/jpeg',0.96);
-  pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');
-  const blob=pdf.output('blob');
+  const blob=await window.lumenCertificatePdf.current();
   const fileName=pdfBaseName('CERTIFICATO_IDONEITA')+'.pdf';
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
@@ -1905,7 +1903,7 @@ function emailCertificati(s,fileName,count){
 async function preparaInvioCertificati(archiveBatch){
  const fromArchive=archiveBatch?.tipo==='LUMEN_ARCHIVE_CERTIFICATES_V1';
  const s=fromArchive?archiveBatch.session:scegliSessioneConclusa();if(!s)return;const api=window.lumenBatchCertApi;
- if(!api||!window.html2canvas||!window.jspdf?.jsPDF){alert('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE LUMEN.');return}
+ if(!api||!window.lumenCertificatePdf){alert('MODULO PDF NON DISPONIBILE. CONTROLLARE LA CONNESSIONE E RICARICARE LUMEN.');return}
  const ws=Array.isArray(s.workers)?s.workers:[],e=s.esiti||{},visitati=ws.filter((w,i)=>w.visited&&e[keyOf(w,i)]!=='ASSENTE');
  if(!visitati.length){alert('IN QUESTA SESSIONE NON RISULTANO LAVORATORI VISITATI.');return}
  const trovati=[],mancanti=[];api.setStatus('CONTROLLO DELLE CARTELLE DEI '+visitati.length+' LAVORATORI VISITATI...');
@@ -1919,14 +1917,13 @@ async function preparaInvioCertificati(archiveBatch){
  const btn=$('v9InvioCertificati'),oldText=btn.textContent,original=api.collect(),cert=$('certificate'),cart=document.querySelector('.cartella'),certEraVisibile=getComputedStyle(cert).display!=='none',sedeCorrente=$('v9Sede').value;
  btn.disabled=true;btn.textContent='CREAZIONE 0 / '+trovati.length;
  try{
-  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}),page=cert.querySelector('.page');
+  const pdf=await window.lumenCertificatePdf.create();
   for(let i=0;i<trovati.length;i++){
    btn.textContent='CREAZIONE '+(i+1)+' / '+trovati.length;api.setStatus('CREAZIONE CERTIFICATO '+(i+1)+' DI '+trovati.length+' — '+(trovati[i].w.cognome||'')+' '+(trovati[i].w.nome||'')+'...');
-   api.apply({...trovati[i].rec.data,luogo_visita:norm(trovati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const canvas=await window.html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
-   if(i>0)pdf.addPage('a4','portrait');pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,210,297,undefined,'FAST');
+   api.apply({...trovati[i].rec.data,luogo_visita:norm(trovati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);
+   await pdf.addCertificate(window.lumenCertificatePdf.snapshot());
   }
-  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=await pdf.toBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
   api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nControllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL e allega questo PDF.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length)}]);
   api.setStatus('PDF MULTIPAGINA CREATO: '+trovati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
@@ -2229,7 +2226,7 @@ input.addEventListener('change',async e=>{
 });
 })();
 </script>
-<script src="cambia-lista.js?v=20260929-1"></script>
+<script src="cambia-lista.js?v=20261013-a4-1"></script>
 <script id="lumen-print-values-20260912">
 /* Temporary print text uses current form values; it never saves or edits a record. */
 (function(){
@@ -2266,7 +2263,7 @@ input.addEventListener('change',async e=>{
  });
 })();
 </script>
-<script src="thermal-print.js?v=20260915-termica-v1"></script>
+<script src="thermal-print.js?v=20261013-a4-1"></script>
 <script src="firma-recupero.js?v=20260929-1"></script>
 <script src="prova-fantasma.js?v=20261004-visiotest-1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
