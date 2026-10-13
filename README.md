@@ -176,20 +176,31 @@ identità (CF, oppure anagrafica completa), committente e azienda. Una visita pi
 recente sostituisce la scadenza precedente anche se la nuova data è da completare;
 le revisioni della stessa visita non duplicano le righe. Le nomine sono escluse.
 
-Nel giudizio, **Prossima visita** (`prossima_visita`) è una data esplicita decisa dal
-medico e viene riportata nel certificato se compilata. Non si calcola dalla
-periodicità. Date mancanti/non valide, prossima visita anteriore all'ultima,
-identità incompleta, azienda o giudizio mancanti richiedono verifica e non entrano
-negli elenchi di scadenza. **Stato rapporto** (`stato_rapporto`) può escludere i
-cessati dalle convocazioni, mantenendoli consultabili in un filtro separato.
-I nuovi campi sono salvati nella cartella e inclusi nel backup esistente.
+La prossima scadenza usa prima `prossima_visita`, se esplicita; altrimenti somma
+alla data della visita la periodicità **registrata** (annuale, biennale,
+quinquennale, semestrale, intervalli esatti in mesi/anni/giorni). Non assume mai
+una periodicità assente. Fine mese e 29 febbraio sono limitati all'ultimo giorno
+valido del mese di destinazione. Un valore esplicito invalido richiede correzione,
+senza nasconderlo mediante il calcolo. La provenienza è visibile in tabella/PDF.
+
+La data proposta è modificabile su ogni riga tramite **SALVA DATA**. Il salvataggio
+atomico verifica che la visita non sia cambiata, conserva lo snapshot precedente
+e aggiorna solo la prossima visita della versione selezionata, anche nello storico.
+I file PDF già esportati non vengono modificati. I dati sono inclusi nel backup.
+
+Le sedi mancanti si recuperano da `conteggioVisits` per quella data, dalle sessioni
+storiche/attive e liste salvate con stessa data e identità verificata (CF oppure
+nome/cognome/data nascita), e dagli snapshot della stessa visita. Committente e
+azienda devono essere compatibili; assenti e fonti discordanti sono esclusi. Una
+sede già presente prevale. Nessuna sede è dedotta dalla sede di lavoro, dalla data
+sola o dalla rubrica generale del committente. Il recupero è una proiezione di sola
+lettura; le fonti e gli eventuali conflitti sono visibili.
 
 Filtri combinabili: committente, azienda, luogo effettivo di visita, nome/CF,
-scaduti, oggi–30/60/90 giorni (finestre cumulative senza scaduti), da completare,
-attivi o cessati. I conteggi di riepilogo riguardano l'intero archivio ammesso.
-Ogni apertura/aggiornamento rilegge l'archivio; nessun dato viene modificato dalla
-consultazione o dal PDF A4 orizzontale multipagina. Non invia convocazioni,
-notifiche o dati in rete e non sincronizza i dispositivi.
+scaduti, oggi–30/60/90 giorni, date da completare, attivi e cessati. Sede/azienda
+mancanti sono segnalate senza bloccare una scadenza calcolabile. I cessati restano
+esclusi dalle convocazioni. Ogni apertura/aggiornamento rilegge l'archivio locale;
+nessun invio di convocazioni o sincronizzazione dei dispositivi è implicito.
 
 Test: `tests/scadenzario.cjs` (logica e integrazione IndexedDB, backup, PDF) e
 `tests/scadenzario-browser.cjs` (Chromium/WebKit, desktop/mobile, data sul

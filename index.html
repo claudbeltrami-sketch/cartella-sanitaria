@@ -707,7 +707,7 @@ window.convertiAltezzaIOS=convertiAltezzaSubito;
 </div>
 <div class="field"><label>Prescrizioni / limitazioni</label><textarea id="prescrizioni" data-upper></textarea></div>
 <div class="row"><div class="field"><label>Periodicità visita medica</label><select id="periodicita"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>QUINQUENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_altro" data-upper></div></div>
-<div class="field"><label for="prossima_visita">Prossima visita — data stabilita nel giudizio</label><input id="prossima_visita" type="date"><span class="small">Inserire la data effettivamente stabilita. Se assente, lo scadenzario segnala DA COMPLETARE.</span></div>
+<div class="field"><label for="prossima_visita">Prossima visita — data stabilita nel giudizio</label><input id="prossima_visita" type="date"><span class="small">Facoltativa se è compilata la periodicità: questa data ha precedenza sul calcolo dello scadenzario.</span></div>
 <div class="row"><div class="field"><label for="luogo_visita">Luogo visita</label><input id="luogo_visita" data-upper placeholder="COMUNE / SEDE DELLA VISITA"></div><div class="field"><label>Data</label><input id="data_giudizio" type="date" class="today"></div></div>
 <p class="small">Avverso il giudizio di idoneità è ammesso ricorso all’Organo di vigilanza territorialmente competente entro 30 giorni. Il lavoratore dichiara di aver ricevuto le informazioni sui rischi lavorativi e sui risultati degli accertamenti sanitari personali.</p>
 <div class="signature-grid"><div class="cartella-worker-signature"><b>Il lavoratore per presa visione</b><div class="worker-sign-output"><img id="cartellaFinaleWorkerSignature" alt="Firma del lavoratore"></div><div class="signature-line"></div></div><div><b>Il Medico Competente</b><div class="firma-medico-cartella"></div><div class="signature-line"></div></div></div>
@@ -2277,7 +2277,7 @@ input.addEventListener('change',async e=>{
 <script src="allegati-cartella.js?v=20260930-1"></script>
 <script src="archive-referti.js?v=20261002-1"></script>
 <script src="visite-archivio.js?v=20261007-ruoli"></script>
-<script src="scadenzario.js?v=20261013-1"></script>
+<script src="scadenzario.js?v=20261013-2"></script>
 <script src="conteggio-automatico.js?v=20261007-ruoli"></script>
 <script src="toolbar-compact.js?v=20261003-1"></script>
 
