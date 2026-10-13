@@ -59,6 +59,15 @@ assert.equal(recover(blank,blank.data,[{...session,esiti:{[base.codice_fiscale]:
   p.$('scRange').value='all';p.$('scRange').dispatchEvent(new p.w.Event('input'));await p.$('scPdf').onclick();assert.ok(p.downloads.length,p.$('scMessage').textContent);assert.equal(p.downloads.at(-1).blob.type,'application/pdf');
   const out=path.join(__dirname,'../tmp/scadenzario');fs.mkdirSync(out,{recursive:true});
   fs.writeFileSync(path.join(out,'elenco.pdf'),Buffer.from(await p.downloads.at(-1).blob.arrayBuffer()));
+  p.$('scClient').value='GRUPPO ORIZZONTE';p.$('scClient').dispatchEvent(new p.w.Event('input'));
+  assert.equal(p.$('scTitle').textContent,'SCADENZARIO VISITE — GRUPPO ORIZZONTE');assert.ok(!p.$('scRows').textContent.includes('SERMOLAB'));
+  assert.match(p.$('scMessage').textContent,/Visualizzati: 1/);assert.match(p.$('scMessage').textContent,/Scaduti: 1/);
+  await p.$('scPdf').onclick();assert.match(p.downloads.at(-1).name,/GRUPPO_ORIZZONTE/);
+  fs.writeFileSync(path.join(out,'solo-orizzonte.pdf'),Buffer.from(await p.downloads.at(-1).blob.arrayBuffer()));
+  p.$('scClient').value='SERMOLAB';p.$('scClient').dispatchEvent(new p.w.Event('input'));
+  assert.equal(p.$('scTitle').textContent,'SCADENZARIO VISITE — SERMOLAB');assert.ok(!p.$('scRows').textContent.includes('ORIZZONTE'));
+  p.$('scClient').value='';p.$('scClient').dispatchEvent(new p.w.Event('input'));assert.match(p.$('scTitle').textContent,/ORIZZONTE \/ SERMOLAB/);
+
   const many=Array.from({length:70},(_,i)=>({...s.rows[i%s.rows.length],name:'LAVORATORE FITTIZIO '+i}));
   const bytes=await (await p.w.lumenScadenzario.pdf(many,'COLLAUDO MULTIPAGINA','2026-10-13')).arrayBuffer();fs.writeFileSync(path.join(out,'multipagina.pdf'),Buffer.from(bytes));
   const doc=await p.w.PDFLib.PDFDocument.load(new p.w.Uint8Array(bytes));assert.ok(doc.getPageCount()>1);
