@@ -5,7 +5,7 @@
  const VERSION='20261013-a4-1', MM=72/25.4, WIDTH=210*MM, HEIGHT=297*MM;
  const MARGIN=10*MM, CONTENT=WIDTH-2*MARGIN;
  const fields=['lavoratore','sesso','luogo','data_nascita','codice_fiscale','azienda','mansione',
-  'data_visita','periodicita','luogo_visita','rischi','giudizio','prescrizioni','luogo_data'];
+  'data_visita','periodicita','prossima_visita','luogo_visita','rischi','giudizio','prescrizioni','luogo_data'];
  function snapshot() {
   const root=document.getElementById('certificate');
   if(!root)throw Error('Certificato non disponibile.');
@@ -85,6 +85,7 @@
     row(field('Azienda',data.azienda,inner)),row(field('Mansione',data.mansione,inner))]);
    const visit=group('VISITA MEDICA',[
     row(field('Data visita',data.data_visita,column),field('Periodicità',data.periodicita,column)),
+    ...(data.prossima_visita?[row(field('Prossima visita',data.prossima_visita,inner))]:[]),
     row(field('Luogo di visita',data.luogo_visita,inner)),row(field('Rischi lavorativi',data.rischi,inner))]);
    const judgement=group('GIUDIZIO DI IDONEITÀ',[
     {cells:[{...field('',data.giudizio,inner,12),height:18}],height:18},

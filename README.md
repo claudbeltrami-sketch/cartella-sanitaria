@@ -167,3 +167,31 @@ Verifiche: `node tests/spirometria-percentuali.cjs`,
 `node tests/print-exams.cjs` con Playwright Chromium/WebKit. Dati sintetici:
 calcolo, percentuali precedenti/manuali, passaggio tra cartelle,
 serializzazione, unità, date, valori invalidi, ciclo di stampa e PDF al 125%.
+
+### Scadenzario visite (13 ottobre 2026)
+
+Il pulsante **SCADENZARIO** legge l'archivio locale del dispositivo, incluse le
+versioni storiche, per SERMOLAB e GRUPPO ORIZZONTE. Mostra l'ultima visita per
+identità (CF, oppure anagrafica completa), committente e azienda. Una visita più
+recente sostituisce la scadenza precedente anche se la nuova data è da completare;
+le revisioni della stessa visita non duplicano le righe. Le nomine sono escluse.
+
+Nel giudizio, **Prossima visita** (`prossima_visita`) è una data esplicita decisa dal
+medico e viene riportata nel certificato se compilata. Non si calcola dalla
+periodicità. Date mancanti/non valide, prossima visita anteriore all'ultima,
+identità incompleta, azienda o giudizio mancanti richiedono verifica e non entrano
+negli elenchi di scadenza. **Stato rapporto** (`stato_rapporto`) può escludere i
+cessati dalle convocazioni, mantenendoli consultabili in un filtro separato.
+I nuovi campi sono salvati nella cartella e inclusi nel backup esistente.
+
+Filtri combinabili: committente, azienda, luogo effettivo di visita, nome/CF,
+scaduti, oggi–30/60/90 giorni (finestre cumulative senza scaduti), da completare,
+attivi o cessati. I conteggi di riepilogo riguardano l'intero archivio ammesso.
+Ogni apertura/aggiornamento rilegge l'archivio; nessun dato viene modificato dalla
+consultazione o dal PDF A4 orizzontale multipagina. Non invia convocazioni,
+notifiche o dati in rete e non sincronizza i dispositivi.
+
+Test: `tests/scadenzario.cjs` (logica e integrazione IndexedDB, backup, PDF) e
+`tests/scadenzario-browser.cjs` (Chromium/WebKit, desktop/mobile, data sul
+certificato identica in byte). La suite `tests/certificato-pdf.cjs` verifica anche
+che i certificati senza prossima visita restino identici alla versione precedente.
