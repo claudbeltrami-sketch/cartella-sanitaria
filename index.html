@@ -432,7 +432,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
- <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = referto riconosciuto dal nome o dalla descrizione; NO = nessun referto riconosciuto. DA VERIFICARE = documento generico, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami.</p><div id="archiveResults" class="archive-referti-scroll"></div>
+ <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere il contenuto dei PDF. DA VERIFICARE = lettura incerta, scansione, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami.</p><div id="archiveResults" class="archive-referti-scroll"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
 
@@ -2275,7 +2275,7 @@ input.addEventListener('change',async e=>{
 <script src="backup-io.js?v=20261006-1"></script>
 <script src="backup-stream.js?v=20261010-18"></script>
 <script src="allegati-cartella.js?v=20260930-1"></script>
-<script src="archive-referti.js?v=20261014-verifica-1"></script>
+<script src="archive-referti.js?v=20261014-auto-2"></script>
 <script src="visite-archivio.js?v=20261007-ruoli"></script>
 <script src="scadenzario.js?v=20261013-5"></script>
 <script src="conteggio-automatico.js?v=20261007-ruoli"></script>
