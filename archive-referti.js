@@ -151,12 +151,30 @@
    for(const key of ['analisi','drug']){const badge=tr.querySelector('[data-referto="'+key+'"] .archive-referto');if(badge&&badge.textContent!==state[key]){badge.textContent=state[key];badge.dataset.state=state[key]}}
   });
  }
+ 
+ async function diagnosticSummary(){
+  const all=await window.lumenAllegatiStorage.list(),attachments=new Map(all.filter(r=>r.kind==='allegato_cartella_v1').map(r=>[r.id,r]));
+  const groups=new Map();let examined=0,complete=0,partial=0;
+  for(const result of all.filter(r=>r.kind==='referti_scan_v1')){
+   const row=attachments.get(result.attachmentId);if(!row||result.fingerprint!==fingerprint(row))continue;
+   examined++;
+   const a=result.analisi!=='DA VERIFICARE',d=result.drug!=='DA VERIFICARE';
+   if(a&&d){complete++;continue}
+   if(a||d)partial++;
+   const reason=result.readable?'Testo letto, riconoscimento degli esami incompleto':result.reason||'Causa non disponibile';
+   groups.set(reason,(groups.get(reason)||0)+1);
+  }
+  return examined?'ESITO ULTIMO CONTROLLO: '+examined+' allegati; '+complete+' riconosciuti completamente; '+partial+' riconosciuti in parte.\n'+[...groups].sort((a,b)=>b[1]-a[1]).map(([reason,count])=>count+' — '+reason).join('\n'):'Nessun esito di lettura salvato.';
+ }
+
  function installScanControl(){
   const summary=document.getElementById('archiveSummary');if(!summary||document.getElementById('refertiScanAll'))return;
   const box=document.createElement('div'),button=document.createElement('button'),status=document.createElement('p');
   button.id='refertiScanAll';button.type='button';button.textContent='CONTROLLA TUTTI GLI ALLEGATI';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const note=document.createElement('p');note.textContent='Legge i PDF di tutte le cartelle sul dispositivo, anche fuori dal filtro attuale. Mantiene le conferme manuali. Immagini e scansioni non leggibili restano da verificare.';
-  box.append(button,note,status);summary.after(box);
+  const diagnostic=document.createElement('p');diagnostic.id='refertiScanDiagnostic';diagnostic.style.whiteSpace='pre-wrap';diagnostic.setAttribute('role','status');
+  const showDiagnostic=async()=>{try{diagnostic.textContent=await diagnosticSummary()}catch(e){diagnostic.textContent='Impossibile leggere il riepilogo: '+e.message}};
+  box.append(button,note,status,diagnostic);summary.after(box);showDiagnostic();
   button.onclick=async()=>{
    if(scanning)return;scanning=true;button.disabled=true;
    let done=0,uncertain=0,cached=0,failed=0;
@@ -174,9 +192,9 @@
      done++;
     }
     await refreshBadges();
-    status.textContent='Controllati '+done+' allegati di tutte le cartelle; '+cached+' già letti e invariati. '+uncertain+' documenti richiedono verifica manuale.'+(failed?' ATTENZIONE: '+failed+' risultati non salvati.':' Risultati salvati sul dispositivo. Le conferme manuali sono state mantenute.');
+    status.textContent='Controllati '+done+' allegati di tutte le cartelle; '+cached+' già letti e invariati. '+uncertain+' documenti non riconosciuti completamente: vedere le cause sotto.'+(failed?' ATTENZIONE: '+failed+' risultati non salvati.':' Risultati salvati sul dispositivo. Le conferme manuali sono state mantenute.');
    }catch(e){status.textContent='Controllo interrotto: '+e.message+'. Elaborati '+done+' allegati.'}
-   finally{scanning=false;button.disabled=false}
+   finally{scanning=false;button.disabled=false;await showDiagnostic()}
   };
  }
  installScanControl();
