@@ -39,10 +39,15 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(JSON.stringify(await p.t.cartelle()),charts);assert.deepEqual(rows.find(r=>r.id===scan.id),scan);
   const flags=await p.w.lumenArchiveReferti.statuses(await p.t.cartelle());assert.equal(flags.get('CF_'+person.codice_fiscale).analisi,'SÌ');
   assert.equal(Buffer.from(await (await api.getBlob(rows.find(r=>r.id===a.id))).arrayBuffer()).toString(),'%PDF SYNTHETIC ONE');
+  p.api.apply(person);await p.$('btnAllegatiCartella').onclick();let openedUrl='',closed=false;
+  p.w.open=()=>({opener:null,location:{replace:url=>{openedUrl=url}},close:()=>{closed=true}});
+  await p.$('allegatiList').querySelector('[data-open="ATT_A"]').onclick();assert.match(openedUrl,/^blob:/);assert.equal(closed,false);
+  p.w.open=()=>null;await p.$('allegatiList').querySelector('[data-open="ATT_A"]').onclick();assert.match(p.$('allegatiMessage').textContent,/SALVA COPIA/);p.$('allegatiClose').onclick();
   const backup=await light(p),packet=JSON.parse(await backup.text());assert.equal(packet.tipo,'BELTRAMI_BACKUP_LEGGERO_V2');assert.equal(packet.contenuto.originali.filter(r=>r.kind==='allegato_cartella_v1').length,2);assert(packet.contenuto.originali.every(r=>!r.blob));
   // Restore to a new device: references are valid even without the Mac folder.
   await q.t.restore(backup);assert.equal(JSON.stringify(await q.t.cartelle()),charts);let restored=await q.t.rows();assert.equal(restored.length,3);
   await assert.rejects(q.w.lumenExternalAttachments.getBlob(restored.find(r=>r.id===a.id)),/PDF conservato sul Mac/);
+  q.api.apply(person);await q.$('btnAllegatiCartella').onclick();let blankClosed=false;q.w.open=()=>({opener:null,location:{replace:()=>{}},close:()=>{blankClosed=true}});await q.$('allegatiList').querySelector('[data-open="ATT_A"]').onclick();assert.equal(blankClosed,true);q.$('allegatiClose').onclick();
   assert.equal(JSON.parse(await (await light(q)).text()).tipo,'BELTRAMI_BACKUP_LEGGERO_V2');
   // Reconnect the single folder, not one document at a time.
   await q.w.lumenExternalAttachments.migrate(q.w.lumenExternalAttachments.sourceFromFiles(files));

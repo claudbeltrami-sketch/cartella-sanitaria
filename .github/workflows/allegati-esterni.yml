@@ -1,0 +1,39 @@
+name: Verifica PDF separati e backup leggero
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'allegati-esterni.js'
+      - 'allegati-cartella.js'
+      - 'backup-stream.js'
+      - 'tests/allegati-esterni*.cjs'
+      - '.github/workflows/allegati-esterni.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installa dipendenze di test
+        run: |
+          npm install --prefix /tmp/lumen-pdf-check --no-save jsdom@26 fake-indexeddb@6 playwright@1.51.1
+          node /tmp/lumen-pdf-check/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Collauda integrità, migrazione e ripristino con dati sintetici
+        env:
+          NODE_PATH: /tmp/lumen-pdf-check/node_modules
+        run: |
+          node tests/allegati-esterni.cjs
+          node tests/allegati-esterni-directory.cjs
+          node tests/allegati-esterni-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interfaccia-pdf-separati-sintetica
+          path: tmp/allegati-esterni/
+          retention-days: 7

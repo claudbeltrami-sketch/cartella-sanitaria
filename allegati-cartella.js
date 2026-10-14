@@ -54,19 +54,27 @@
   const byId=new Map(rows.map(row=>[row.id,row]));
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
+   let opened=null;
    try{
     assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.delete,row=byId.get(id);
     if(b.dataset.delete){
      if(busy||!confirm('ELIMINARE SOLO QUESTO ALLEGATO?\n'+row.name+'\nLavoratore: '+target.name))return;
      setBusy(true);await remove(row);message('Allegato eliminato.');await render();
     }else{
-     const blob=window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):row.blob;
+     if(b.dataset.open&&!(row.blob instanceof Blob)){
+      opened=window.open('','_blank');
+      if(!opened)throw Error('Il browser ha bloccato la finestra del PDF. Usa SALVA COPIA oppure abilita le finestre per LUMEN.');
+      opened.opener=null;
+     }
+     const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
      if(!(blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
      const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
-     if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
-     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
+     if(opened){opened.location.replace(url);opened=null}else{
+      if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
+      document.body.appendChild(a);a.click();a.remove();
+     }setTimeout(()=>URL.revokeObjectURL(url),300000);
     }
-   }catch(e){message(e.message||String(e),true)}finally{setBusy(false)}
+   }catch(e){if(opened)opened.close();message(e.message||String(e),true)}finally{setBusy(false)}
   });
  }
  async function remove(row){
