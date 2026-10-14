@@ -24,17 +24,17 @@ async function flags(p,rec){const result=await p.w.lumenArchiveReferti.statuses(
   assert.equal(rowA.querySelector('[data-referto="drug"]').textContent,'SÌ');assert.equal(rowB.querySelector('[data-referto="drug"]').textContent,'NO');
   // Replacing/removing a file is reflected on the next archive render, without a stale cache.
   await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB'}));
-  await p.t.renderArchive('OMONIMO');assert.deepEqual(await flags(p,ra),expected('SÌ','NO'));
+  await p.t.renderArchive('OMONIMO');assert.deepEqual(await flags(p,ra),expected('SÌ','DA VERIFICARE'));
   await put(p,attachment(p,'current',a,{name:'DRUG_TEST_NEGATIVO.pdf'}));
-  assert.deepEqual(await flags(p,ra),expected('NO','SÌ'),'negative result still means the report exists');
+  assert.deepEqual(await flags(p,ra),expected('DA VERIFICARE','SÌ'),'negative result still means the report exists; a filename cannot exclude laboratory results');
   await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB — DRUG TEST NON PRESENTE'}));
-  assert.deepEqual(await flags(p,ra),expected('SÌ','NO'),'absence annotation is not a positive drug marker');
-  await put(p,attachment(p,'current',a,{note:'ANALISI TOSSICOLOGICHE'}));assert.deepEqual(await flags(p,ra),expected('NO','SÌ'));
+  assert.deepEqual(await flags(p,ra),expected('SÌ','DA VERIFICARE'),'absence annotation is not a positive drug marker and does not replace a saved manual confirmation');
+  await put(p,attachment(p,'current',a,{note:'ANALISI TOSSICOLOGICHE'}));assert.deepEqual(await flags(p,ra),expected('DA VERIFICARE','SÌ'));
   await put(p,attachment(p,'current',a));assert.deepEqual(await flags(p,ra),expected('DA VERIFICARE','DA VERIFICARE'));
   await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB — DRUG TEST PRESENTE',blob:null}));assert.deepEqual(await flags(p,ra),expected('DA VERIFICARE','DA VERIFICARE'));
   await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB — DRUG TEST PRESENTE',visit:''}));assert.deepEqual(await flags(p,ra),expected('DA VERIFICARE','DA VERIFICARE'));
   await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB — DRUG TEST PRESENTE',workerCf:b.codice_fiscale}));assert.deepEqual(await flags(p,ra),expected('NO','NO'),'conflicting CF is rejected despite key');assert.deepEqual(await flags(p,rb),expected('NO','NO'),'conflicting metadata cannot be moved to the other worker');
-  await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB',workerKey:'LEGACY_KEY'}));assert.deepEqual(await flags(p,ra),expected('SÌ','NO'),'exact CF supports legacy attachment keys');
+  await put(p,attachment(p,'current',a,{note:'ANALISI SERMOLAB',workerKey:'LEGACY_KEY'}));assert.deepEqual(await flags(p,ra),expected('SÌ','DA VERIFICARE'),'exact CF supports legacy attachment keys');
   const attachments=await p.t.rows(),snapshot=JSON.stringify(attachments.map(({blob,...r})=>({...r,bytes:blob?.size})));
   const list=p.w.lumenAllegatiStorage.list;p.w.lumenAllegatiStorage.list=async()=>{throw Error('Test read failure')};
   assert.equal((await flags(p,ra)).error,true);await p.t.renderArchive('OMONIMO');assert.match(p.$('archiveResults').textContent,/DA VERIFICARE/);
