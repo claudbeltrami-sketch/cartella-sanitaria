@@ -26,7 +26,7 @@
   if(!isTest)throw Error('Azzeramento disponibile solo in modalità prova.');
   connections.forEach(c=>c.close());connections.clear();
   // Explicit allowlist: never delete the production databases.
-  for(const name of ['beltrami_cartelle_db_v1','beltrami_lumen_files_v1','beltrami_consensi_cartacei_v1','beltrami_firme_trasferimento_v1']){
+  for(const name of ['beltrami_cartelle_db_v1','beltrami_lumen_files_v1','beltrami_consensi_cartacei_v1','beltrami_firme_trasferimento_v1','beltrami_allegati_mac_v1']){
    await new Promise((resolve,reject)=>{const r=window.indexedDB.deleteDatabase(prefix+name);r.onsuccess=resolve;r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('Chiudi le altre schede di PROVA FANTASMA e riprova.'))});
   }
   scoped(window.localStorage).clear();scoped(window.sessionStorage).clear();

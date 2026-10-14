@@ -21,18 +21,26 @@
    reader.readAsDataURL(blob);
   });
  }
- async function build({packet, name, openDb, store, progress = () => {}}) {
+ async function build({packet, name, openDb, store, mode = 'full', progress = () => {}}) {
   const db = await openDb(), parts = [];
   const append = value => parts.push(new Blob([value]));
   try {
    const keys = await read(db, store, 'getAllKeys');
    const {contenuto, ...header} = packet;
+   if(mode==='light'){header.tipo='BELTRAMI_BACKUP_LEGGERO_V2';header.versione=2;header.allegatiSeparati=true;}
    const {originali, ...data} = contenuto;
    append(JSON.stringify(header).slice(0, -1) + ',"contenuto":' + JSON.stringify(data).slice(0, -1) + ',"originali":[');
    for (let i = 0; i < keys.length; i++) {
     const row = await read(db, store, 'get', keys[i]);
     if (!row) throw Error('Un allegato è cambiato durante il backup. Riprova senza modificare l’archivio.');
-    const {blob, ...meta} = row;
+    let {blob, ...meta} = row;
+    if(mode==='light'&&row.kind==='allegato_cartella_v1'){
+     if(blob!=null||!window.lumenExternalAttachments?.valid(row.external))throw Error('Prima del backup leggero, apri ARCHIVIO PDF SUL MAC e completa la separazione/verifica degli allegati. Le copie incorporate sono conservate.');
+     window.lumenExternalAttachments.validateLightRows([row]);
+    }else if(blob==null&&row.external){
+     if(!window.lumenExternalAttachments)throw Error('Modulo archivio PDF non disponibile. Ricarica LUMEN.');
+     blob=await window.lumenExternalAttachments.getBlob(row);
+    }
     append((i ? ',' : '') + JSON.stringify(meta).slice(0, -1) + ',"blob":');
     if (blob == null) append('null');
     else {

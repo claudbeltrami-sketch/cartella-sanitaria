@@ -36,7 +36,8 @@ async function saveAttachment(rec,entry,worker){
  const hash=await sha256(bytes), workerKey=rec.id, visit=visitOf(rec);
  if(await attachmentExists(workerKey,visit,hash))return 'duplicate';
  const blob=new Blob([bytes],{type:'application/pdf'}), now=new Date().toISOString();
- const row={id:'ATT_'+crypto.randomUUID(),kind:KIND,workerKey,workerCf:rec.cf||rec.data?.codice_fiscale||'',workerLabel:displayName(rec),workerBirth:rec.dataNascita||rec.data?.data_nascita||'',visit,documentDate:'',note:'ANALISI SERMOLAB'+(worker.drug_test_presente?' — DRUG TEST PRESENTE':''),name:entry.name.split('/').pop(),type:'application/pdf',size:blob.size,savedAt:now,hash,blob};
+ let row={id:'ATT_'+crypto.randomUUID(),kind:KIND,workerKey,workerCf:rec.cf||rec.data?.codice_fiscale||'',workerLabel:displayName(rec),workerBirth:rec.dataNascita||rec.data?.data_nascita||'',visit,documentDate:'',note:'ANALISI SERMOLAB'+(worker.drug_test_presente?' — DRUG TEST PRESENTE':''),name:entry.name.split('/').pop(),type:'application/pdf',size:blob.size,savedAt:now,hash,blob};
+ if(window.lumenExternalAttachments)[row]=await window.lumenExternalAttachments.stageNew([row]);
  const db=await storage.open();
  try{await new Promise((resolve,reject)=>{const tx=db.transaction(storage.store,'readwrite');tx.objectStore(storage.store).put(row);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('Allegato non salvato'));tx.onerror=()=>{}})}finally{db.close()}
  return 'added';

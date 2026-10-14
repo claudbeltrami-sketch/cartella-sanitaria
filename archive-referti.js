@@ -34,7 +34,7 @@
    for(const row of rows){
     if(code&&cf(row.workerCf)&&code!==cf(row.workerCf))continue;
     const rv=date(row.visit);if(visit&&rv&&visit!==rv)continue;
-    if(!visit||!rv||!(row.blob instanceof Blob)||!row.blob.size){uncertainAnalisi=true;uncertainDrug=true;continue}
+    if(!visit||!rv||(!(row.blob instanceof Blob&&row.blob.size)&&!window.lumenExternalAttachments?.valid(row.external))){uncertainAnalisi=true;uncertainDrug=true;continue}
     const scanned=scans.get(scanId(row));
     if(scanned?.version===SCAN_VERSION&&scanned.fingerprint===fingerprint(row)){
      analisi=analisi||scanned.analisi==='SÌ';drug=drug||scanned.drug==='SÌ';
@@ -176,6 +176,7 @@
   }finally{activeReject=null}
  }
  async function scanPdf(row){
+  if(!(row.blob instanceof Blob)&&row.external)row={...row,blob:await window.lumenExternalAttachments.getBlob(row)};
   if(!(row.blob instanceof Blob)||!row.blob.size)throw Error('File non disponibile');
   const isPdf=/\.pdf$/i.test(row.name||'')||row.blob.type==='application/pdf'||row.type==='application/pdf';
   if(!isPdf){

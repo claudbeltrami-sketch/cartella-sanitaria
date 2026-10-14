@@ -16,7 +16,7 @@ async function app(factory=new idb.IDBFactory(),query='',seed={}){
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
  w.HTMLElement.prototype.scrollIntoView=()=>{};w.scrollTo=()=>{};w.matchMedia=()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}});w.alert=t=>errors.push('ALERT: '+t);w.confirm=()=>true;w.fetch=async()=>{throw Error('Network disabled in test')};
  w.URL.createObjectURL=b=>{const u='blob:test-'+urls.size;urls.set(u,b);return u};w.URL.revokeObjectURL=()=>{};
- w.HTMLAnchorElement.prototype.click=function(){downloads.push({name:this.download,blob:urls.get(this.href)})};
+ w.HTMLAnchorElement.prototype.click=function(){downloads.push({name:this.download,blob:urls.get(this.getAttribute('href'))})};
  const setTimer=w.setTimeout.bind(w);w.setTimeout=(f,ms,...args)=>ms>=1000?0:setTimer(f,ms,...args);
  const sources=[...w.document.scripts].map(s=>s.src?(s.getAttribute('src').startsWith('http')||s.getAttribute('src').startsWith('vendor/')?'':fs.readFileSync(path.join(root,s.getAttribute('src').split('?')[0]),'utf8')):s.textContent);
  const main=sources.findIndex(s=>s.includes('window.lumenBatchCertApi='));

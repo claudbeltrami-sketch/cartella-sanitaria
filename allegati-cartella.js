@@ -25,7 +25,7 @@
  <div class="allegati-fields"><label for="allegatiDate">DATA DOCUMENTO (facoltativa)<input id="allegatiDate" type="date"></label><label for="allegatiNote">DESCRIZIONE (facoltativa)<input id="allegatiNote" maxlength="200" placeholder="ES. ANALISI SERMOLAB"></label></div>
  <div id="allegatiPending"></div><button type="button" id="allegatiSave" class="success" disabled>SALVA ALLEGATI</button>
  <div id="allegatiMessage" role="status" aria-live="polite"></div>
- <p class="archive-note">I file restano su questo dispositivo e sono inclusi in CREA BACKUP. Il PDF e il JSON della singola cartella non includono i file allegati. Massimo 25 MB per file e 100 MB per selezione.</p>
+ <p class="archive-note">I PDF separati restano nella cartella del Mac: il backup leggero conserva i collegamenti. I nuovi file ancora incorporati richiedono ARCHIVIO PDF SUL MAC prima del backup leggero. Il PDF e il JSON della singola cartella non includono gli allegati. Massimo 25 MB per file e 100 MB per selezione.</p>
  <h4>DOCUMENTI DEL LAVORATORE</h4><div id="allegatiList" class="consent-list"></div>`;
  document.body.appendChild(dialog);
  const $=id=>document.getElementById(id);
@@ -60,8 +60,9 @@
      if(busy||!confirm('ELIMINARE SOLO QUESTO ALLEGATO?\n'+row.name+'\nLavoratore: '+target.name))return;
      setBusy(true);await remove(row);message('Allegato eliminato.');await render();
     }else{
-     if(!(row.blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
-     const url=URL.createObjectURL(row.blob),a=document.createElement('a');a.href=url;
+     const blob=window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):row.blob;
+     if(!(blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
+     const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
      if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
      document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
     }
@@ -92,6 +93,7 @@
   return rows;
  }
  async function persist(rows){
+  if(window.lumenExternalAttachments)rows=await window.lumenExternalAttachments.stageNew(rows);
   const db=await storage.open();try{
    assertTarget();
    return await new Promise((resolve,reject)=>{
@@ -123,7 +125,7 @@
    assertTarget();const rows=await prepare(pending,target,{date:$('allegatiDate').value,note:$('allegatiNote').value.trim()});
    const result=await persist(rows);pending=[];$('allegatiFiles').value='';$('allegatiPending').textContent='';
    message(result.added+' ALLEGATI SALVATI PER '+target.name+(result.skipped?'\n'+result.skipped+' FILE GIÀ PRESENTI: NON DUPLICATI.':''));
-   api.setStatus('ALLEGATI ARCHIVIATI LOCALMENTE PER '+target.name+'. INCLUSI NEL BACKUP COMPLETO.');
+   api.setStatus('ALLEGATI ARCHIVIATI LOCALMENTE PER '+target.name+'. PER IL BACKUP LEGGERO, COMPLETARE ARCHIVIO PDF SUL MAC.');
    try{await render()}catch(e){message('ALLEGATI SALVATI. Impossibile aggiornare l’elenco: chiudi e riapri ALLEGATI CARTELLA.',true)}
   }catch(e){message('ALLEGATI NON SALVATI: '+(e.message||String(e)),true)}finally{setBusy(false)}
  };

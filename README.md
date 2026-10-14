@@ -1,5 +1,61 @@
 # cartella-sanitaria
 
+## Backup leggero e PDF separati sul Mac — 14 ottobre 2026
+
+`ARCHIVIO PDF SUL MAC`, visibile nel pannello backup, salva tutti gli allegati
+nella cartella `LUMEN_ALLEGATI`. Nei browser con File System Access il pulsante
+sceglie una sola destinazione, scrive i file e li rilegge. Negli altri browser
+si scarica uno ZIP senza compressione, si estrae nel Finder e si seleziona la
+cartella estratta con il controllo di selezione cartella. Nessun file è inviato
+in rete. I nomi sul disco comprendono SHA-256 e nome originale normalizzato;
+il nome originale, il lavoratore e la visita restano nei metadati.
+
+Solo quando **tutti** i file sono stati riletti e confrontati per dimensione e
+SHA-256, una transazione sostituisce i Blob con riferimenti. File mancanti,
+alterati, scritture fallite, modifiche concorrenti o errori della transazione
+lasciano le copie incorporate intatte. Un file già esistente ma diverso non
+viene sovrascritto. Gli indici JSON sono aggiunti senza sostituire gli indici
+precedenti. La funzione non cancella mai file dalla cartella del Mac.
+
+Il backup ordinario dall'interfaccia è `BELTRAMI_BACKUP_LEGGERO_V2`: include
+cartelle, storico, firme, liste, risultati OCR e riferimenti, senza i documenti
+clinici già separati. La cartella PDF deve essere copiata separatamente sulla
+chiavetta. I file sorgente delle liste restano inclusi. Il backup leggero è
+bloccato se ci sono ancora documenti clinici incorporati o collegamenti non
+validi: non omette silenziosamente file non trasferiti. I browser con cartella
+scrivibile già autorizzata salvano lì anche i nuovi allegati; negli altri casi
+li conservano incorporati finché si completa nuovamente la separazione.
+
+Il ripristino V2 richiede questa versione di LUMEN: le versioni precedenti lo
+rifiutano, evitando di trattarlo come un backup completo. È utilizzabile senza
+la cartella PDF collegata, anche su un altro dispositivo. Non elimina eventuali
+file ancora incorporati sul dispositivo di destinazione; eventuali conflitti
+bloccano il ripristino prima delle modifiche. Per aprire o rileggere i PDF si
+ricollega la stessa cartella. I browser compatibili conservano il permesso in
+un database locale separato; il permesso può essere revocato o scadere e non
+viene incluso nei backup. La modalità PROVA usa un database distinto.
+
+`BACKUP COMPLETO CON PDF` nel pannello rimane disponibile: richiede accesso ai
+PDF esterni e produce il formato V1 precedente completo. Il vecchio esportatore
+`backup-locale.html` si ferma se incontra collegamenti esterni e indirizza al
+pannello LUMEN; non produce un falso backup completo senza PDF. Il marcatore
+`lumen-external-pdf-build` identifica la funzione. Il marcatore di ricaricamento
+automatico preesistente resta invariato per non interrompere cartelle aperte.
+
+Collaudi con dati sintetici: `tests/allegati-esterni.cjs` verifica ZIP/CRC,
+integrità, migrazione, modifiche concorrenti, errore di transazione e rollback,
+conservazione di cartelle/storico/OCR, ripristino senza cartella collegata,
+ricollegamento, copia completa e riferimenti malevoli. Il test
+`tests/allegati-esterni-directory.cjs` simula la capacità di accesso alla cartella,
+scritture fallite, permesso revocato, nuovi allegati e isolamento PROVA.
+`tests/allegati-dom.cjs` e `tests/backup-stream.cjs` verificano la compatibilità
+precedente, comprese copie oltre 64 MiB. Il test browser è disponibile in
+`tests/allegati-esterni-browser.cjs`, ma non è stato eseguito con successo in
+questo ambiente perché Chromium non può aprire socket. Selezione nativa,
+Safari e dispositivi fisici richiedono verifica sul dispositivo; la migrazione
+non parte automaticamente e conserva i file sorgente in caso di errore.
+
+
 ## Certificato PDF unico A4 — 13 ottobre 2026
 
 Il certificato non viene più fotografato dalla pagina responsive e stirato

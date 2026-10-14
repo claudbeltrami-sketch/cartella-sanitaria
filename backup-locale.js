@@ -42,6 +42,7 @@
    for(let i=0;i<keys.length;i++){
     status.textContent='Cartelle: '+cartelle.length+'\nPreparazione allegato '+(i+1)+' di '+keys.length+'…';
     const row=await read(filesDb,'originali','get',keys[i]);if(!row)throw Error('Un allegato è cambiato durante la lettura. Riprova senza modificare LUMEN nel frattempo.');
+    if(row.external)throw Error('Questo archivio usa PDF separati sul Mac. Torna a LUMEN e usa CREA BACKUP LEGGERO oppure BACKUP COMPLETO CON PDF in ARCHIVIO PDF SUL MAC.');
     // Serialize and release each attachment separately, rather than holding all base64 strings.
     const text=JSON.stringify({...row,blob:row.blob?await dataURL(row.blob):null});parts.push(new Blob([(i?',':''),text]));
     await new Promise(resolve=>setTimeout(resolve,0));

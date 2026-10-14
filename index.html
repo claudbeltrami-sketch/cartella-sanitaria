@@ -8,8 +8,9 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
+<meta name="lumen-external-pdf-build" content="20261014-mac-1">
 <meta name="lumen-build" content="20261014-referti-ocr-v2">
-<script src="prova-storage.js?v=20260929-1"></script>
+<script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
 /* Riceve una lista trasferita da importa-lista-iphone.html anche quando il
@@ -366,9 +367,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 </head>
 <body>
 <section id="lumenBackupOverlay" aria-labelledby="lumenBackupTitle" style="position:relative;z-index:21;max-width:980px;margin:0 auto 12px;padding:16px;border:3px solid #287a46;border-radius:14px;background:white;color:#222">
- <h2 id="lumenBackupTitle" style="margin:0 0 12px;font-size:20px;font-style:normal">BACKUP — V18</h2>
- <p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Prepara una copia delle cartelle, delle firme e degli allegati presenti in questo browser. Poi salvala su File.</p>
- <button type="button" id="btnBackupInPagina" class="success" style="width:100%;margin:8px 0">1 · PREPARA BACKUP</button>
+ <h2 id="lumenBackupTitle" style="margin:0 0 12px;font-size:20px;font-style:normal">BACKUP LEGGERO — PDF SUL MAC</h2>
+ <p id="lumenBackupMessage" role="status" aria-live="polite" style="white-space:pre-line;overflow-wrap:anywhere">Il backup leggero conserva cartelle, firme, storico e collegamenti. Prima separa i PDF con ARCHIVIO PDF SUL MAC; conserva anche una copia della cartella PDF sulla chiavetta.</p>
+ <button type="button" id="btnBackupInPagina" class="success" style="width:100%;margin:8px 0">1 · PREPARA BACKUP LEGGERO</button>
  <button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0;display:none">2 · SALVA SU FILE / CONDIVIDI</button>
  <a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a>
  <p style="margin:8px 0 0;font-size:14px">Questo riquadro rimane nella pagina. Preparare il backup non significa averlo già salvato.</p>
@@ -409,7 +410,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
    <label class="file-label">IMPORTA REFERTI ZIP<input type="file" id="fileImportaRefertiZip" accept=".zip,application/zip,application/x-zip-compressed"></label>
    <label class="file-label">ACQUISISCI CONSENSO CARTACEO<input type="file" id="fileConsensoCartaceo" accept="image/*,application/pdf,.pdf" capture="environment" multiple></label>
    <button type="button" id="btnArchivioConsensi">ARCHIVIO CONSENSI</button>
-   <button type="button" id="btnBackupCompleto">CREA BACKUP</button>
+   <button type="button" id="btnBackupCompleto">CREA BACKUP LEGGERO</button>
    <label class="file-label">RIPRISTINA BACKUP<input type="file" id="fileRipristinaBackup" accept="application/json,.json"></label>
   </div>
  </section>
@@ -1342,24 +1343,24 @@ function blobToBackupData(blob){return new Promise((resolve,reject)=>{const r=ne
 function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^;,]*)(?:;base64)?,(.*)$/);if(!m)throw new Error('Contenuto di un file originale non valido.');const mime=m[1]||type||'application/octet-stream',raw=atob(m[2]),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return new Blob([a],{type:mime})}
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
-function openBackupSaveDialog(){
+function openBackupSaveDialog(mode){
  const overlay=document.getElementById('lumenBackupOverlay'),dialog=overlay;
- overlay.dataset.active='true';
+ overlay.dataset.active='true';overlay.dataset.mode=mode;
  document.getElementById('mainToolbar').style.position='relative';
  const prepare=document.getElementById('btnBackupInPagina');prepare.disabled=true;prepare.textContent='PREPARAZIONE IN CORSO…';
  overlay.scrollIntoView({block:'start'});
  const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload');
  let url=overlay._backupUrl||null,preparing=true;
  if(url){URL.revokeObjectURL(url);overlay._backupUrl=null}
- title.textContent='PREPARAZIONE BACKUP…';message.textContent='Sto raccogliendo cartelle, firme e allegati. Attendi.';share.style.display='none';download.style.display='none';share.onclick=null;download.onclick=null;download.removeAttribute('href');
+ title.textContent='PREPARAZIONE BACKUP…';message.textContent=mode==='light'?'Sto raccogliendo cartelle, firme e collegamenti ai PDF. Attendi.':'Sto raccogliendo cartelle, firme e tutti i PDF. Attendi.';share.style.display='none';download.style.display='none';share.onclick=null;download.onclick=null;download.removeAttribute('href');
  const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
- function finish(){preparing=false;clearTimeout(slow);prepare.disabled=false;prepare.textContent='1 · PREPARA NUOVO BACKUP'}
+ function finish(){preparing=false;clearTimeout(slow);prepare.disabled=false;prepare.textContent=mode==='light'?'PREPARA NUOVO BACKUP LEGGERO':'PREPARA NUOVO BACKUP COMPLETO'}
  return {
   progress(current,total,percent){message.textContent='Preparazione allegato '+current+' di '+total+' — '+percent+'%.\nIl backup non è ancora salvato.'},
   ready(file,cartelle,originali){
    finish();url=URL.createObjectURL(file);overlay._backupUrl=url;download.href=url;download.download=file.name;download.style.display='block';
-   const details='Nome: '+file.name+'\nDimensione: '+(file.size/1024/1024).toFixed(2)+' MB\nCartelle: '+cartelle+' — File originali: '+originali;
-   title.textContent='BACKUP PRONTO DA SALVARE';
+   const details='Nome: '+file.name+'\nDimensione: '+(file.size/1024/1024).toFixed(2)+' MB\nCartelle: '+cartelle+' — Voci archivio documenti: '+originali+(mode==='light'?'\nPDF separati: il ripristino dei dati mantiene i collegamenti; per consultare i PDF occorre la cartella LUMEN_ALLEGATI sul Mac. Copia anche quella cartella sulla chiavetta.':'\nBackup completo: PDF inclusi.');
+   title.textContent=mode==='light'?'BACKUP LEGGERO PRONTO DA SALVARE':'BACKUP COMPLETO PRONTO DA SALVARE';
    let canShare=false;try{canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(_){}
    share.style.display=canShare?'inline-flex':'none';
    message.textContent=details+'\n\n'+(canShare?'Tocca SALVA SU FILE / CONDIVIDI, poi scegli “Salva su File” e conferma “Salva”.':'Tocca SCARICA BACKUP e completa il salvataggio proposto dal browser.')+'\nIl file è preparato, ma non ancora salvato.';
@@ -1378,8 +1379,8 @@ function openBackupSaveDialog(){
   error(e){finish();title.textContent='BACKUP NON CREATO';message.textContent='Non è stato preparato alcun file.\n'+(e.message||String(e));}
  };
 }
-async function creaBackupCompleto(){
- const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog();btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+async function creaBackupCompleto(mode='full'){
+ const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog(mode);btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
  try{
   lumenStorage.session.setItem('lumen_backup_in_corso','1');
   await new Promise(resolve=>setTimeout(resolve,0));
@@ -1387,33 +1388,38 @@ async function creaBackupCompleto(){
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE);
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
   const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,firme_da_trasferire,cartella_visibile:collect()}};
-  const name='BACKUP_LUMEN_'+backupStamp()+'.json';
-  const result=await window.lumenBackupStream.build({packet,name,openDb:openOriginalDb,store:ORIGINAL_STORE,progress:view.progress});
+  const name=(mode==='light'?'BACKUP_LEGGERO_LUMEN_':'BACKUP_LUMEN_')+backupStamp()+'.json';
+  const result=await window.lumenBackupStream.build({packet,name,mode,openDb:openOriginalDb,store:ORIGINAL_STORE,progress:view.progress});
   view.ready(result.file,cartelle.length,result.originals);setStatus('BACKUP PRONTO: COMPLETARE IL SALVATAGGIO NEL PANNELLO IN CIMA ALLA PAGINA.');
  }catch(e){view.error(e);setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{lumenStorage.session.removeItem('lumen_backup_in_corso');btn.disabled=false;btn.textContent=old}
 }
 async function ripristinaBackupCompleto(file){
- const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||packet.tipo!=='BELTRAMI_BACKUP_COMPLETO_V1'||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
+ const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||!['BELTRAMI_BACKUP_COMPLETO_V1','BELTRAMI_BACKUP_LEGGERO_V2'].includes(packet.tipo)||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
  lumenStorage.checkPacket(packet);
+ const light=packet.tipo==='BELTRAMI_BACKUP_LEGGERO_V2';
+ if(light&&(packet.versione!==2||packet.allegatiSeparati!==true))throw Error('Formato del backup leggero non valido.');
  const c=packet.contenuto,cartelle=Array.isArray(c.cartelle)?c.cartelle:[],originali=Array.isArray(c.originali)?c.originali:[];
+ if(light&&(!Array.isArray(c.originali)||!Array.isArray(c.cartelle)))throw Error('Backup leggero incompleto. Ripristino non eseguito.');
  cartelle.forEach(r=>lumenStorage.checkData(r.data));if(c.cartella_visibile)lumenStorage.checkData(c.cartella_visibile);
  if(c.firme_da_trasferire!==undefined&&(!Array.isArray(c.firme_da_trasferire)||c.firme_da_trasferire.some(r=>!window.lumenFirmaOffline.valid(r))))throw Error('Firme del backup non valide.');
- const originaliRipristinati=originali.map(r=>({...r,blob:r.blob instanceof Blob?r.blob:(r.blob?backupDataToBlob(r.blob,r.type):null)}));
- if(!confirm('RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
+ let originaliRipristinati=originali.map(r=>({...r,blob:r.blob instanceof Blob?r.blob:(r.blob?backupDataToBlob(r.blob,r.type):null)}));
+ if(light)originaliRipristinati=await window.lumenExternalAttachments.preserveLocalFiles(originaliRipristinati);
+ if(!confirm((light?'BACKUP LEGGERO: i PDF restano nella cartella del Mac e vanno ricollegati per consultarli.\n\n':'')+'RIPRISTINARE LA COPIA DEL '+new Date(packet.creato).toLocaleString('it-IT')+'?\n\nI dati locali attuali verranno sostituiti con quelli contenuti nella copia.'))return;
  const keys=[];for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_'))keys.push(k)}keys.forEach(k=>lumenStorage.local.removeItem(k));Object.entries(c.localStorage||{}).forEach(([k,v])=>{if(k.startsWith('beltrami_')&&!k.startsWith('beltrami_firma_pending_v1_')&&typeof v==='string')lumenStorage.local.setItem(k,v)});
  await replaceAllInDb(openCartelleDb,CARTELLE_STORE,cartelle);
  await replaceAllInDb(openOriginalDb,ORIGINAL_STORE,originaliRipristinati);
  if(c.firme_da_trasferire)await window.lumenFirmaOffline.restore(c.firme_da_trasferire);
  if(c.cartella_visibile)apply(c.cartella_visibile);
- showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nFile originali ripristinati: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
+ showSaveInfo('ok','✓ COPIA RIPRISTINATA','File: '+file.name+'\nCartelle ripristinate: '+cartelle.length+'\nVoci archivio documenti ripristinate: '+originali.length+'\nOra: '+clock());setStatus('RIPRISTINO COMPLETATO. LA PAGINA VERRÀ RICARICATA.');setTimeout(()=>location.reload(),1200)
 }
 if(lumenStorage.session.getItem('lumen_backup_in_corso')){
  document.getElementById('lumenBackupTitle').textContent='BACKUP INTERROTTO';
  document.getElementById('lumenBackupMessage').textContent='La pagina è stata ricaricata durante la preparazione. Nessun backup è pronto da salvare. L’archivio è ancora sul dispositivo.';
  lumenStorage.session.removeItem('lumen_backup_in_corso');
 }
-document.getElementById('btnBackupInPagina').onclick=()=>creaBackupCompleto();
-document.getElementById('btnBackupCompleto').onclick=e=>{e.preventDefault();e.stopPropagation();const toggle=document.getElementById('btnAltriComandi');if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();creaBackupCompleto()};
+window.lumenBackupActions={light:()=>creaBackupCompleto('light'),full:()=>creaBackupCompleto('full')};
+document.getElementById('btnBackupInPagina').onclick=()=>creaBackupCompleto(document.getElementById('lumenBackupOverlay').dataset.mode||'light');
+document.getElementById('btnBackupCompleto').onclick=e=>{e.preventDefault();e.stopPropagation();const toggle=document.getElementById('btnAltriComandi');if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();creaBackupCompleto('light')};
 document.getElementById('btnRipristinaDaArchivio').onclick=()=>document.getElementById('fileRipristinaBackup').click();
 document.getElementById('fileRipristinaBackup').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await ripristinaBackupCompleto(f)}catch(err){showSaveInfo('error','RIPRISTINO NON ESEGUITO',err.message||String(err));setStatus('COPIA NON VALIDA O DANNEGGIATA.')}finally{e.target.value=''}};
 const workersBody=document.getElementById('workersBody'),workersSummary=document.getElementById('workersSummary');
@@ -2271,11 +2277,12 @@ input.addEventListener('change',async e=>{
 <script src="prova-fantasma.js?v=20261004-visiotest-1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="importa-cartelle.js?v=20261002-1"></script>
-<script src="importa-referti.js?v=20261002-1"></script>
+<script src="importa-referti.js?v=20261014-mac-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
-<script src="backup-stream.js?v=20261010-18"></script>
-<script src="allegati-cartella.js?v=20260930-1"></script>
-<script src="archive-referti.js?v=20261014-ocr-2"></script>
+<script src="backup-stream.js?v=20261014-mac-1"></script>
+<script src="allegati-esterni.js?v=20261014-mac-1"></script>
+<script src="allegati-cartella.js?v=20261014-mac-1"></script>
+<script src="archive-referti.js?v=20261014-mac-1"></script>
 <script src="visite-archivio.js?v=20261007-ruoli"></script>
 <script src="scadenzario.js?v=20261013-5"></script>
 <script src="conteggio-automatico.js?v=20261007-ruoli"></script>
