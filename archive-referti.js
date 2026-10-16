@@ -96,13 +96,13 @@
  const archive=document.getElementById('archiveResults');if(archive)new MutationObserver(addControls).observe(archive,{childList:true,subtree:true});
 
  
- const SCAN_VERSION=2;
+ const SCAN_VERSION=3;
  const scanId=row=>'REFERTI_SCAN_'+row.id;
  const fingerprint=row=>JSON.stringify([row.hash||'',row.size||row.blob?.size||0,row.savedAt||'',row.name||'']);
  function inspectPage(page){
   const text=norm(page);
   // Require results, not an examination ordered in a protocol or a certificate.
-  const labTerms=['EMOCROMO','EMOGLOBINA|HGB','EMATOCRITO|HCT','ERITROCITI|RBC','LEUCOCITI|WBC','PIASTRINE|PLT','GLICEMIA|GLUCOSIO','CREATININA','COLESTEROLO','TRIGLICERIDI','TRANSAMINASI','AST|GOT','ALT|GPT','GAMMA GT|GGT','AZOTEMIA|UREA'];
+  const labTerms=['EMOCROMO|EMOCROMOCITOMETRICO','EMOGLOBINA|HGB','EMATOCRITO|HCT','ERITROCITI|RBC','LEUCOCITI|WBC','PIASTRINE|PLT','GLICEMIA|GLUCOSIO','CREATININA|CREATININEMIA','COLESTEROLO','TRIGLICERIDI','TRANSAMINASI','AST|GOT','ALT|GPT','GAMMA GT|GGT','AZOTEMIA|UREA'];
   const excluded=/(?:NON ESEGUIT|NON EFFETTUAT|DA ESEGUIRE|RICHIEST|PRESCRITT|PREVIST|NON PRESENT)/;
   const resultValue=/\b(?:NEGATIV[OAIE]|POSITIV[OAIE]|ASSENT[EI]|PRESENT[EI]|NON RILEVAT[OAIE]|[0-9]+(?: [0-9]+)?)\b/;
   function resultNear(term){
@@ -111,15 +111,15 @@
    return false;
   }
   const labCount=labTerms.filter(term=>resultNear(term)).length;
-  const substances=['CANNABINOIDI|CANNABIS|THC','COCAINA|COCAINE|BENZOILECGONINA','OPPIACEI|OPIATES|MORFINA','ANFETAMINE|AMFETAMINE|AMPHETAMINE','METANFETAMINE|METHAMPHETAMINE','METADONE|METHADONE','BENZODIAZEPINE','BUPRENORFINA','BARBITURICI','MDMA|ECSTASY'];
+  const substances=['CANNABINOIDI|CANNABIS|THC','COCAINA|COCAINE|BENZOILECGONINA','OPPIACEI|OPIATES|MORFINA','ANFETAMINA|ANFETAMINE|AMFETAMINA|AMFETAMINE|AMPHETAMINE','METANFETAMINA|METANFETAMINE|METAMFETAMINA|METAMFETAMINE|METHAMPHETAMINE','METADONE|METHADONE','BENZODIAZEPINE','BUPRENORFINA','BARBITURICI','MDMA|ECSTASY'];
   const drugCount=substances.filter(resultNear).length;
   const drugHeading=/\b(?:MULTI ?DRUG|DRUG TEST|DRUG SCREEN|ESAMI TOSSICOLOGICI|ANALISI TOSSICOLOGICHE|SCREENING STUPEFACENTI)\b/.test(text);
-  const reportHeader=/\b(?:REFERTO|RISULTAT[OI]|ESIT[OI]|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text);
-  const orderedOnly=/\b(?:PROTOCOLLO SANITARIO|RICHIESTA ESAMI|CERTIFICATO DI IDONEITA)\b/.test(text)&&!(/\b(?:RISULTAT[OI]|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text));
+  const reportHeader=/\b(?:REFERTO|RISULTAT[OI]|ESIT[OI]|VALORI NORMALI|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text);
+  const orderedOnly=/\b(?:PROTOCOLLO SANITARIO|RICHIESTA ESAMI|CERTIFICATO DI IDONEITA)\b/.test(text)&&!(/\b(?:RISULTAT[OI]|VALORI NORMALI|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text));
   const drug=reportHeader&&!orderedOnly&&(drugCount>=2||(drugHeading&&drugCount>=1));
   const analisi=reportHeader&&!orderedOnly&&labCount>=2;
   const readable=text.length>=60;
-  const clinicalReport=(analisi||drug)&&/\b(?:REFERTO|RISULTAT[OI]|ESIT[OI]|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text);
+  const clinicalReport=(analisi||drug)&&/\b(?:REFERTO|RISULTAT[OI]|ESIT[OI]|VALORI NORMALI|VALORI DI RIFERIMENTO|INTERVALL[OI] DI RIFERIMENTO)\b/.test(text);
   return {analisi:analisi?'SÌ':readable&&clinicalReport?'NO':'DA VERIFICARE',drug:drug?'SÌ':readable&&clinicalReport?'NO':'DA VERIFICARE',readable,reason:readable?'Riconoscimento del testo del referto':'Documento senza testo completo: verifica manuale necessaria'};
  }
  function combinePages(pages){
