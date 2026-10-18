@@ -262,3 +262,24 @@ Test: `tests/scadenzario.cjs` (logica e integrazione IndexedDB, backup, PDF) e
 `tests/scadenzario-browser.cjs` (Chromium/WebKit, desktop/mobile, data sul
 certificato identica in byte). La suite `tests/certificato-pdf.cjs` verifica anche
 che i certificati senza prossima visita restino identici alla versione precedente.
+
+
+### Consultazione DVR e protocolli (18 ottobre 2026)
+
+Il riquadro DVR e protocollo appare nella cartella ma è escluso dalla stampa
+e dalle acquisizioni html2canvas. I PDF sono locali, senza richieste a Gmail.
+L'abbinamento DVR usa datore e sede di lavoro esatti; il protocollo richiede
+anche la mansione esatta e la conferma di validazione del medico. Le versioni
+precedenti rimangono consultabili. Nessun accertamento, periodicità o dato
+clinico viene compilato o modificato da questo modulo. Non si usano
+committente o sede di visita al posto di datore e sede di lavoro.
+
+Il database indipendente `LUMEN_DVR_LOCALE_V1` è isolato in PROVA FANTASMA.
+Il pulsante BACKUP DOCUMENTI E COLLEGAMENTI esporta PDF e abbinamenti;
+l'importazione ne controlla SHA-256 e struttura prima di una transazione
+atomica, integrando i documenti senza cancellare quelli presenti. Questo
+archivio non è incluso nel backup ordinario delle cartelle: va esportato
+separatamente, anche per trasferirlo fra Mac e iPhone. Nessun trasferimento
+è automatico. L'aggancio operativo iniziale è di consultazione: snapshot
+del protocollo per visita, validità temporale e confronto accertamenti
+richiedono una successiva integrazione clinica.
