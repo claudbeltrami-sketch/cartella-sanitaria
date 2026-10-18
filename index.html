@@ -543,6 +543,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <script>document.getElementById('listPanel').parentNode.insertBefore(document.getElementById('v9Panel'),document.getElementById('listPanel'));</script>
 
 <form id="cartellaForm" class="cartella" autocomplete="off">
+<input type="hidden" id="lumen_protocollo_snapshot">
 <section class="page anagrafica-page">
 <h1>CARTELLA SANITARIA E DI RISCHIO</h1><h2>Decreto Legislativo 81/08 e s.m.i Decreto Legislativo 106/09</h2>
 <div class="row">
@@ -979,6 +980,8 @@ function apply(source){
  // An explicitly empty signature must not fall back to an older visit's signature.
  const firma=Object.prototype.hasOwnProperty.call(d,'firma_lavoratore_png')?d.firma_lavoratore_png:(workerSignatureStore()[workerSignatureIdentity(d)]||'');
  useWorkerSignature(firma);
+ window.lumenProtocolloSourcePresent=Object.prototype.hasOwnProperty.call(d,'protocollo')||['periodicita','periodicita_altro','periodicita_protocollo','periodicita_protocollo_altro'].some(id=>Object.prototype.hasOwnProperty.call(d,id));
+ document.dispatchEvent(new CustomEvent('lumen:cartella-applied',{detail:d}));
 }
 
 function filename(prefix,ext){const cognome=(text('cognome')||'SENZA_COGNOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');const nome=(text('nome')||'SENZA_NOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');return prefix+'_'+cognome+'_'+nome+'_'+today()+'.'+ext}
@@ -2649,5 +2652,6 @@ input.addEventListener('change',async e=>{
 })();
 </script>
 <script src="lumen-dvr.js?v=20261018-1"></script>
+<script src="lumen-protocolli-auto.js?v=20261018-1"></script>
 </body></html>
 
