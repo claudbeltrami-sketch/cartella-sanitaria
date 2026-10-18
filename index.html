@@ -1828,8 +1828,7 @@ function exportList(preparazione=true){
  // dell'intera pagina può selezionare il documento sanitario invece del report.
  const report=$('v9ExportArea').querySelector('.page').innerHTML;
  const css='@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#111;margin:12px}.page{width:275mm;max-width:none}.v9-report-head{border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px}h1{font-size:18px;margin:0 0 5px}h2{font-size:12px;margin:0}.v9-report-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:12px}.v9-report-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;line-height:1.25}.v9-report-table th,.v9-report-table td{border:1px solid #777;padding:5px 4px;overflow-wrap:anywhere;vertical-align:top}.v9-report-table th:nth-child(1){width:4%}.v9-report-table th:nth-child(2),.v9-report-table th:nth-child(3){width:14%}.v9-report-table th:nth-child(4){width:19%}.v9-report-table th:nth-child(5){width:17%}.v9-report-table th:nth-child(6){width:8%}.v9-report-table th:nth-child(7),.v9-report-table th:nth-child(8){width:12%}.v9-report-table thead{display:table-header-group}.v9-report-table tr{break-inside:avoid;page-break-inside:avoid}.v9-report-table th{background:#eee}.v9-report-summary{margin-top:12px;border:2px solid #333;padding:9px;font-weight:bold}.v9-report-sign{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:30px;text-align:center}.v9-report-line{border-bottom:1px solid #333;margin-top:35px}.stampa{padding:12px 20px;background:#174d7b;color:#fff;border:0;border-radius:8px;font-size:17px;margin:10px 0 20px}@media print{.stampa{display:none}body{margin:0}.page{width:100%}}';
- const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF LISTA LAVORATORI</title><style>'+css+'</style></head><body><button class="stampa" onclick="window.print()">STAMPA / SALVA PDF</button><main class="page">'+report+'</main><script src="lumen-dvr.js?v=20261017-1"></script>
-</body></html>';
+ const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF LISTA LAVORATORI</title><style>'+css+'</style></head><body><button class="stampa" onclick="window.print()">STAMPA / SALVA PDF</button><main class="page">'+report+'</main></body></html>';
  // Documento HTML indipendente: impedisce a Safari iPhone di stampare la cartella madre.
  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
  const url=URL.createObjectURL(blob);
@@ -2649,5 +2648,6 @@ input.addEventListener('change',async e=>{
  }).observe(el,{attributes:true,attributeFilter:['class']}));
 })();
 </script>
+<script src="lumen-dvr.js?v=20261018-1"></script>
 </body></html>
 
