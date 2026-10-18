@@ -283,3 +283,29 @@ separatamente, anche per trasferirlo fra Mac e iPhone. Nessun trasferimento
 è automatico. L'aggancio operativo iniziale è di consultazione: snapshot
 del protocollo per visita, validità temporale e confronto accertamenti
 richiedono una successiva integrazione clinica.
+
+### Compilazione da protocollo validato (18 ottobre 2026)
+
+Il riquadro DVR permette di registrare una configurazione aziendale validata
+acquisendo esclusivamente le caselle del protocollo e le due periodicità,
+compresi i rispettivi campi ALTRO. La registrazione richiede datore, sede di
+lavoro, mansione, riferimento/revisione, decorrenza e conferma del medico.
+Non registra anagrafica o risultati clinici. Le configurazioni non vengono
+ricavate automaticamente dai modelli generici o dal testo dei PDF.
+
+Le nuove cartelle vuote ricevono la versione con decorrenza più recente non
+successiva alla visita, solo con abbinamento esatto. Le cartelle caricate con
+campi protocollo o periodicità già presenti, anche vuoti, sono preservate.
+Una copia della configurazione applicata viene conservata nel campo nascosto
+`lumen_protocollo_snapshot`, incluso nei normali salvataggi e nello storico.
+Aggiornamenti dell'archivio non sostituiscono il protocollo di una visita.
+Accertamenti e periodicità restano sempre modificabili dal medico: riapertura
+e aggiornamento del riquadro mantengono le correzioni manuali. La versione di
+origine resta nei metadati, mentre i campi clinici conservano il dato effettivo.
+Le variazioni di azienda/sede/mansione dopo l'applicazione richiedono verifica;
+non si sostituiscono automaticamente i valori precedentemente compilati.
+
+Il registro `beltrami_protocolli_validati_v1` è incluso nel backup ordinario ed
+è isolato in PROVA FANTASMA. Riferimenti, registrazione e stato sono esclusi da
+stampa e PDF; restano stampabili solo i normali campi sanitari della cartella.
+Test: `tests/protocolli-auto-dom.cjs` e `tests/protocolli-auto-browser.cjs`.

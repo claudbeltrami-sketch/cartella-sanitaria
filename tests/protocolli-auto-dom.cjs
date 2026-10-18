@@ -1,0 +1,21 @@
+const {app}=require('./allegati-dom.cjs');const assert=require('node:assert/strict');
+const ghost={cognome:'PROVA',nome:'FANTASMA',lumen_prova:true,codice_fiscale:'',data_nascita:'',datore_lavoro:'AZIENDA TEST',sede_lavoro:'SEDE TEST',mansione:'MANSIONE TEST',data_cartella:'2026-10-18',data_giudizio:'2026-10-18'};
+const key='beltrami_protocolli_validati_v1';
+(async()=>{const p=await app(undefined,'?prova=fantasma');try{
+const w=p.w,panel=p.$('lumenDvrPanel'),sel=q=>panel.querySelector(q);p.api.apply(ghost);
+p.$('periodicita').value='ANNUALE';p.$('periodicita_protocollo').value='BIENNALE';w.document.querySelector('#protocollo input[value="VISITA MEDICA"]').checked=true;
+sel('[data-auto-reference]').value='DVR TEST rev.1';sel('[data-auto-date]').value='2026-10-01';sel('[data-auto-save]').click();
+assert.match(sel('[data-auto-status]').textContent,/registrato/);const registry=JSON.parse(w.lumenStorage.local.getItem(key));assert.equal(registry.length,1);assert.equal(registry[0].plan.protocollo.length,1);assert.equal('cognome' in registry[0],false);
+p.api.apply(ghost);let d=p.api.collect();assert.deepEqual(Array.from(d.protocollo),['VISITA MEDICA']);assert.equal(d.periodicita,'ANNUALE');assert.equal(d.periodicita_protocollo,'BIENNALE');assert.ok(d.lumen_protocollo_snapshot);assert.equal(d.audiometria_esito,'');const first=JSON.stringify(d);
+ p.$('periodicita').value='QUINQUENNALE';w.document.querySelector('#protocollo input[value="AUDIOMETRIA"]').checked=true;p.$('periodicita').dispatchEvent(new w.Event('change'));sel('[data-auto-apply]').click();assert.equal(p.api.collect().periodicita,'QUINQUENNALE');assert.ok(p.api.collect().protocollo.includes('AUDIOMETRIA'));assert.equal(p.api.collect().lumen_protocollo_snapshot,d.lumen_protocollo_snapshot);const edited=p.api.collect();p.api.apply(edited);assert.equal(p.api.collect().periodicita,'QUINQUENNALE');p.api.apply(d);
+const newer={...registry[0],id:'revision-2',reference:'DVR TEST rev.2',validFrom:'2026-10-15',plan:{...registry[0].plan,periodicita:'BIENNALE'}};w.lumenStorage.local.setItem(key,JSON.stringify([...registry,newer]));
+p.api.apply(d);assert.equal(JSON.stringify(p.api.collect()),first);p.api.apply(ghost);assert.equal(p.api.collect().periodicita,'BIENNALE');
+p.api.apply({...ghost,data_giudizio:'2026-10-10'});assert.equal(p.api.collect().periodicita,'ANNUALE');
+p.api.apply({...ghost,data_giudizio:'2026-09-01'});assert.equal(p.api.collect().periodicita,'');
+p.api.apply({...ghost,mansione:'ALTRA'});assert.equal(p.api.collect().periodicita,'');
+p.api.apply({...ghost,protocollo:[],periodicita:''});assert.equal(p.api.collect().periodicita,'');assert.match(sel('[data-auto-status]').textContent,/conservati/);
+p.api.apply({...ghost,protocollo:['ANALISI EMATOCHIMICHE'],periodicita:'QUINQUENNALE'});assert.deepEqual(Array.from(p.api.collect().protocollo),['ANALISI EMATOCHIMICHE']);assert.equal(p.api.collect().periodicita,'QUINQUENNALE');
+p.api.apply(ghost);const snapshot=p.api.collect().lumen_protocollo_snapshot;p.$('datore_lavoro').value='ALTRO';sel('[data-auto-apply]').click();assert.equal(p.api.collect().lumen_protocollo_snapshot,snapshot);assert.match(sel('[data-auto-status]').textContent,/cambiate/);
+await p.api.saveToLocalArchive(p.api.collect());await p.t.backup();p.$('lumenBackupDownload').click();const backup=JSON.parse(await p.downloads.at(-1).blob.text());assert.ok(backup.contenuto.localStorage[key]);assert.ok(backup.contenuto.cartelle.some(r=>r.data.lumen_protocollo_snapshot));
+assert.deepEqual(p.errors,[]);console.log('PASS: validated plan capture without patient data; automatic new-record fill; no clinical results; exact context and effective date; immutable visit snapshot; existing empty and populated records preserved; context-change warning.');
+}finally{p.dom.window.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
