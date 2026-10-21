@@ -82,7 +82,36 @@ function precedenti(rows,data){
  const visit=data.data_giudizio||data.data_cartella;
  return candidates.filter(r=>(!cf||!r.workerCf||norm(r.workerCf)===cf)&&date(r.visit)&&(!date(visit)||r.visit<visit)).sort((a,b)=>b.visit.localeCompare(a.visit));
 }
-const core={FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti};
+
+async function replaceOriginal(row,file,{storage,stage=async r=>r,pdfLib=root.PDFLib,now=new Date().toISOString()}){
+ if(row?.storicoCartaceo?.tipo!==FLAG)throw Error('Seleziona una cartella storica.');
+ if(!file||! /\.pdf$/i.test(file.name)||!file.size||file.size>MAX_PDF)throw Error('Scegli un PDF non vuoto fino a 25 MB.');
+ const bytes=new Uint8Array(await file.arrayBuffer());
+ if(String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('Il file non è un PDF.');
+ if(!pdfLib?.PDFDocument)throw Error('Verifica PDF non disponibile. Riapri LUMEN.');
+ const pdf=await pdfLib.PDFDocument.load(bytes);
+ const pages=pdf.getPageCount();
+ if(pages!==row.storicoCartaceo.pagine)throw Error('Numero pagine diverso: attese '+row.storicoCartaceo.pagine+', trovate '+pages+'. Nessuna sostituzione.');
+ const sha=await hash(bytes);if(sha===row.hash)throw Error('Questo PDF è già quello presente.');
+ const changed={...row,name:file.name,hash:sha,size:bytes.length,blob:new Blob([bytes],{type:'application/pdf'}),external:undefined,savedAt:now,
+  note:'CARTELLA STORICA - PDF SOSTITUITO: '+row.storicoCartaceo.azienda,
+  storicoCartaceo:{...row.storicoCartaceo,note:'PDF sostituito dopo verifica manuale; versione precedente conservata negli allegati.',sostituitoIl:now}};
+ const staged=await stage([changed]);if(staged.length!==1||staged[0].id!==row.id||staged[0].hash!==sha)throw Error('Preparazione PDF incompleta.');
+ const db=await storage.open();
+ try{await new Promise((resolve,reject)=>{
+  const tx=db.transaction(storage.store,'readwrite'),st=tx.objectStore(storage.store);let reason;
+  const req=st.get(row.id);req.onsuccess=()=>{try{
+   const current=req.result;
+   if(!current||stamp([current])!==stamp([row]))throw Error('Documento cambiato. Chiudi e riapri lo storico.');
+   const previous={...current,id:'STORICO_PRECEDENTE_'+root.crypto.randomUUID(),note:'VERSIONE PRECEDENTE CONSERVATA - '+current.workerLabel+' - '+current.visit,storicoCartaceo:undefined,storicoVersionePrecedente:{originalId:row.id,conservataIl:now,metadati:current.storicoCartaceo}};
+   st.add(previous);st.put(staged[0]);
+  }catch(e){reason=e;tx.abort()}};
+  tx.oncomplete=resolve;tx.onabort=()=>reject(reason||tx.error||Error('Sostituzione non eseguita.'));tx.onerror=()=>{};
+ })}finally{db.close()}
+ return changed;
+}
+
+const core={replaceOriginal,FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.lumenStoricoCartaceo=core;
 if(!root.document||!root.lumenAllegatiStorage||!root.lumenImportCartelle)return;
@@ -95,7 +124,7 @@ const css=doc.createElement('style');css.textContent='#storicoCartaceoDialog{ove
 doc.body.appendChild(dialog);
 const $=id=>doc.getElementById(id);let pending=null,busy=false;
 function message(t){$('storicoCartaceoMessage').textContent=t}
-function locked(v){busy=v;for(const id of ['storicoCartaceoFile','storicoCartaceoQuery','storicoCartaceoConfirm','storicoCartaceoClose'])$(id).disabled=v}
+function locked(v){busy=v;dialog.querySelectorAll('#storicoCartaceoList button,input').forEach(e=>e.disabled=v);for(const id of ['storicoCartaceoFile','storicoCartaceoQuery','storicoCartaceoConfirm','storicoCartaceoClose'])$(id).disabled=v}
 function line(row,status){
  const e=doc.createElement('article');e.style.cssText='border:1px solid #ccc;padding:12px;margin:10px 0;overflow-wrap:anywhere';
  const title=doc.createElement('strong');title.textContent=row.workerLabel+' · '+row.visit.split('-').reverse().join('/');e.appendChild(title);
@@ -105,7 +134,17 @@ async function openOriginal(row,report){let opened=null;try{if(!(row.blob instan
 async function render(){
  const q=$('storicoCartaceoQuery').value.trim().toUpperCase(),list=$('storicoCartaceoList');list.replaceChildren();
  const rows=(await storage.list()).filter(r=>r.storicoCartaceo?.tipo===FLAG).filter(r=>[r.workerLabel,r.workerCf,r.visit,r.storicoCartaceo.azienda].join(' ').toUpperCase().includes(q)).sort((a,b)=>b.visit.localeCompare(a.visit)||a.workerLabel.localeCompare(b.workerLabel));
- for(const row of rows){const e=line(row),b=doc.createElement('button');b.type='button';b.textContent='APRI PDF';b.onclick=()=>openOriginal(row,message);e.appendChild(b);list.appendChild(e)}
+ for(const row of rows){const e=line(row),b=doc.createElement('button');b.type='button';b.textContent='APRI PDF';b.onclick=()=>openOriginal(row,message);e.appendChild(b);
+ const label=doc.createElement('label'),input=doc.createElement('input');
+ label.textContent='SOSTITUISCI PDF';input.type='file';input.accept='.pdf,application/pdf';label.appendChild(input);
+ input.onchange=async()=>{
+  const file=input.files[0];input.value='';if(!file||busy)return;
+  if(!root.confirm('Sostituire il PDF di '+row.workerLabel+' · '+row.visit+' con '+file.name+'? Controlla che appartenga allo stesso lavoratore e alla stessa visita. La versione precedente sarà conservata negli allegati.'))return;
+  locked(true);pending=null;$('storicoCartaceoConfirm').hidden=true;message('Verifica e sostituzione PDF…');
+  try{await replaceOriginal(row,file,{storage,stage:r=>root.lumenExternalAttachments.stageNew(r)});await render();message('PDF SOSTITUITO per '+row.workerLabel+'. Versione precedente conservata in ALLEGATI CARTELLA. Crea un backup aggiornato con i PDF.')}
+  catch(err){message('SOSTITUZIONE NON ESEGUITA: '+err.message)}finally{locked(false)}
+ };
+ e.appendChild(label);list.appendChild(e)}
  message(rows.length+' cartelle storiche originali trovate.');
 }
 const api=root.lumenBatchCertApi,form=doc.getElementById('cartellaForm');
