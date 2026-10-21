@@ -72,7 +72,17 @@ async function commit(rows,before,{storage,readCharts,stage=async r=>r,now=new D
   tx.onabort=()=>reject(reason||tx.error||Error('Importazione annullata: nessun PDF salvato.'));tx.onerror=()=>{};
  })}finally{db.close()}
 }
-const core={FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash};
+// Match only verified full identity; conflicting fiscal codes never cross-link.
+function precedenti(rows,data){
+ const surname=norm(data.cognome),name=norm(data.nome),birth=data.data_nascita,cf=norm(data.codice_fiscale);
+ if(!surname||!name||!date(birth))return [];
+ const candidates=rows.filter(r=>r.kind==='allegato_cartella_v1'&&r.storicoCartaceo?.tipo===FLAG&&r.storicoCartaceo.identitaVerificata===true&&norm(r.storicoCartaceo.cognome)===surname&&norm(r.storicoCartaceo.nome)===name&&r.workerBirth===birth);
+ const codes=new Set(candidates.map(r=>norm(r.workerCf)).filter(Boolean));
+ if(!cf&&codes.size>1)return [];
+ const visit=data.data_giudizio||data.data_cartella;
+ return candidates.filter(r=>(!cf||!r.workerCf||norm(r.workerCf)===cf)&&date(r.visit)&&(!date(visit)||r.visit<visit)).sort((a,b)=>b.visit.localeCompare(a.visit));
+}
+const core={FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.lumenStoricoCartaceo=core;
 if(!root.document||!root.lumenAllegatiStorage||!root.lumenImportCartelle)return;
@@ -91,11 +101,40 @@ function line(row,status){
  const title=doc.createElement('strong');title.textContent=row.workerLabel+' · '+row.visit.split('-').reverse().join('/');e.appendChild(title);
  const p=doc.createElement('p');p.textContent=(row.storicoCartaceo?.azienda||'')+' · '+(row.storicoCartaceo?.pagine||'?')+' pagine'+(row.storicoCartaceo?.note?' · '+row.storicoCartaceo.note:'')+(status?' · '+status:'');e.appendChild(p);return e;
 }
+async function openOriginal(row,report){let opened=null;try{if(!(row.blob instanceof Blob)){opened=root.open('','_blank');if(!opened)throw Error('Consenti l’apertura del PDF nel browser.');opened.opener=null}const blob=await root.lumenExternalAttachments.getBlob(row);if(await hash(await blob.arrayBuffer())!==row.hash)throw Error('Il PDF non coincide con l’originale.');const url=URL.createObjectURL(blob);if(opened)opened.location.replace(url);else{const a=doc.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click()}setTimeout(()=>URL.revokeObjectURL(url),300000)}catch(e){if(opened)opened.close();report(e.message)}}
 async function render(){
  const q=$('storicoCartaceoQuery').value.trim().toUpperCase(),list=$('storicoCartaceoList');list.replaceChildren();
  const rows=(await storage.list()).filter(r=>r.storicoCartaceo?.tipo===FLAG).filter(r=>[r.workerLabel,r.workerCf,r.visit,r.storicoCartaceo.azienda].join(' ').toUpperCase().includes(q)).sort((a,b)=>b.visit.localeCompare(a.visit)||a.workerLabel.localeCompare(b.workerLabel));
- for(const row of rows){const e=line(row),b=doc.createElement('button');b.type='button';b.textContent='APRI PDF';b.onclick=async()=>{let opened=null;try{if(!(row.blob instanceof Blob)){opened=root.open('','_blank');if(!opened)throw Error('Consenti l’apertura del PDF nel browser.');opened.opener=null}const blob=await root.lumenExternalAttachments.getBlob(row);if(await hash(await blob.arrayBuffer())!==row.hash)throw Error('Il PDF non coincide con l’originale.');const url=URL.createObjectURL(blob);if(opened)opened.location.replace(url);else{const a=doc.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click()}setTimeout(()=>URL.revokeObjectURL(url),300000)}catch(e){if(opened)opened.close();message(e.message)}};e.appendChild(b);list.appendChild(e)}
+ for(const row of rows){const e=line(row),b=doc.createElement('button');b.type='button';b.textContent='APRI PDF';b.onclick=()=>openOriginal(row,message);e.appendChild(b);list.appendChild(e)}
  message(rows.length+' cartelle storiche originali trovate.');
+}
+const api=root.lumenBatchCertApi,form=doc.getElementById('cartellaForm');
+if(api&&form){
+ const panel=doc.createElement('aside');panel.id='lumenPrecedenti';panel.hidden=true;panel.setAttribute('aria-live','polite');panel.style.cssText='border:2px solid #287a46;background:#edf7ee;padding:12px;margin:12px 0';
+ form.querySelector('h2').insertAdjacentElement('afterend',panel);
+ css.textContent+=' #lumenPrecedenti[hidden]{display:none!important} #lumenPrecedenti button{min-height:44px;margin:6px} @media print{#lumenPrecedenti{display:none!important}}';
+ let generation=0;
+ const identity=()=>JSON.stringify([api.collect().cognome,api.collect().nome,api.collect().data_nascita,api.collect().codice_fiscale,api.collect().data_giudizio,api.collect().data_cartella,api.selectionVersion()]);
+ async function refresh(){
+  const current=++generation,key=identity();panel.hidden=true;panel.replaceChildren();
+  try{
+   const rows=precedenti(await storage.list(),api.collect());
+   if(current!==generation||key!==identity())return;
+   for(const row of rows){
+    const entry=doc.createElement('div'),label=doc.createElement('strong'),button=doc.createElement('button');
+    label.textContent='Precedente '+row.visit.slice(0,4)+' disponibile · '+row.visit.split('-').reverse().join('/');
+    button.type='button';button.textContent='APRI ORIGINALE PDF';
+    button.onclick=()=>{if(key!==identity()){refresh();return}openOriginal(row,t=>{if(key===identity()){const error=doc.createElement('p');error.setAttribute('role','alert');error.textContent=t;entry.appendChild(error)}})};
+    entry.append(label,button);panel.appendChild(entry);
+   }
+   panel.hidden=!rows.length;
+  }catch(e){if(current===generation&&key===identity()){panel.textContent='Verifica precedenti non disponibile. Riapri la cartella per riprovare.';panel.hidden=false}}
+ }
+ doc.addEventListener('lumen:cartella-applied',refresh);
+ const edited=e=>{if(['cognome','nome','data_nascita','codice_fiscale','data_giudizio','data_cartella'].includes(e.target.id))refresh()};
+ form.addEventListener('input',edited);form.addEventListener('change',edited);form.addEventListener('reset',()=>{panel.hidden=true;setTimeout(refresh,0)});
+ root.addEventListener('focus',refresh);dialog.addEventListener('close',refresh);
+ refresh();
 }
 trigger.onclick=async()=>{if(busy)return;pending=null;$('storicoCartaceoConfirm').hidden=true;$('storicoCartaceoFile').value='';dialog.showModal();try{await render()}catch(e){message(e.message)}};
 $('storicoCartaceoClose').onclick=()=>{if(!busy){pending=null;dialog.close()}};
