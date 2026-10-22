@@ -634,7 +634,9 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <label class="check"><input type="checkbox" value="VISITA MEDICA">Visita medica</label><label class="check"><input type="checkbox" value="AUDIOMETRIA">Audiometria</label><label class="check"><input type="checkbox" value="SPIROMETRIA BASALE">Spirometria basale</label><label class="check"><input type="checkbox" value="ELETTROCARDIOGRAMMA">Elettrocardiogramma</label><label class="check"><input type="checkbox" value="ESAME FUNZIONALE DEL RACHIDE">Esame funzionale del rachide</label><label class="check"><input type="checkbox" value="ANALISI EMATOCHIMICHE">Analisi ematochimiche</label><label class="check"><input type="checkbox" value="VISIOTEST">Visiotest</label><label class="check"><input type="checkbox" value="ESAMI TOSSICOLOGICI">Esami tossicologici</label>
 </div>
 <div class="exams-heading"><div class="section-title">Esiti degli accertamenti</div>
-<div class="section-title">Audiometria — soglie in dB HL</div></div>
+</div>
+<div class="lumen-exam" data-exam="audio" data-protocol="AUDIOMETRIA"><button type="button" class="lumen-exam-toggle" aria-expanded="false" aria-controls="lumenAudioFields">AUDIOMETRIA <span></span></button><div id="lumenAudioFields" class="lumen-exam-fields" hidden>
+<div class="section-title">Audiometria — soglie in dB HL</div>
 <div class="audiometry-grid">
   <div class="audiometry-row audiometry-head"><span></span><span>500 Hz</span><span>1000 Hz</span><span>2000 Hz</span><span>4000 Hz</span></div>
   <div class="audiometry-row"><label>DX</label><input id="audio_dx_500" type="number" step="5" placeholder="20" aria-label="Orecchio destro 500 Hz"><input id="audio_dx_1000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 1000 Hz"><input id="audio_dx_2000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 2000 Hz"><input id="audio_dx_4000" type="number" step="5" placeholder="20" aria-label="Orecchio destro 4000 Hz"></div>
@@ -644,6 +646,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="row"><div class="field"><label>Esito audiometria</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>
 <div class="field full audiometry-interpretation"><label>Interpretazione automatica (modificabile dal medico)</label><textarea id="audiometria_interpretazione" data-upper placeholder="COMPILARE LE SOGLIE DX E SX PER OTTENERE L’INTERPRETAZIONE."></textarea></div>
 <div class="small">Supporto orientativo basato sulle soglie inserite. La valutazione clinica e l’eventuale attribuzione professionale restano di competenza del medico.</div>
+</div></div>
+<div class="lumen-exam" data-exam="spiro" data-protocol="SPIROMETRIA BASALE"><button type="button" class="lumen-exam-toggle" aria-expanded="false" aria-controls="lumenSpiroFields">SPIROMETRIA <span></span></button><div id="lumenSpiroFields" class="lumen-exam-fields" hidden>
 <div class="small spirometry-controls" style="margin:5px 0">FVC e FEV1 in litri · PEF <select id="spirometria_pef_unita" aria-label="Unità del PEF"><option>L/s</option><option>L/min</option></select> <button type="button" id="spirometria_ricalcola" style="min-height:28px;padding:4px 8px;font-size:11px" title="Sostituisce le tre percentuali con il calcolo ERS/ECSC">RICALCOLA LE TRE %</button></div>
 <div id="spirometria_prova_controls" class="spirometry-controls" hidden style="margin:6px 0;padding:8px;border:1px solid #864b00;border-radius:6px;background:#fff3cf">
  <label for="spirometria_eta_prova">Età di prova (anni)</label> <input id="spirometria_eta_prova" type="number" min="18" max="100" step="1" inputmode="numeric" style="width:85px">
@@ -660,6 +664,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div id="spirometryCharts" class="spirometry-charts hidden"><div class="spirometry-chart"><div class="spirometry-chart-title">CURVA VOLUME–TEMPO INDICATIVA</div><svg id="spirometryVolumeTimeSvg" viewBox="0 0 330 220" role="img" aria-label="Ricostruzione indicativa della curva volume tempo"></svg></div><div class="spirometry-chart"><div class="spirometry-chart-title">CURVA FLUSSO–VOLUME INDICATIVA</div><svg id="spirometryFlowVolumeSvg" viewBox="0 0 330 220" role="img" aria-label="Ricostruzione indicativa della curva flusso volume"></svg></div><div id="spirometryGraphSummary" class="spirometry-graph-summary"></div><div class="spirometry-graph-warning">RICOSTRUZIONE INDICATIVA DAI VALORI INSERITI — NON È IL TRACCIATO REALE DELLO SPIROMETRO</div></div>
 <div id="spirometryGraphStatus" class="spirometry-graph-status hidden" role="status" aria-live="polite"></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
+</div></div>
 <div class="row"><div class="field"><label>Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select></div><div class="field"><label>Correzione / indicazioni</label><input id="visiotest_note" data-upper></div></div>
 <div class="field"><label>Altri accertamenti</label><input id="altri_accertamenti" data-upper></div>
 <div class="row"><div class="field"><label>Periodicità protocollo</label><select id="periodicita_protocollo"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_protocollo_altro" data-upper></div></div>
@@ -2948,6 +2953,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 
 </script>
+<script src="esami-compatti.js?v=20261022-1"></script>
 </body></html>
 
 
