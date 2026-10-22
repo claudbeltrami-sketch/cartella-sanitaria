@@ -2906,7 +2906,7 @@ dialog.querySelector('[data-remove]').onclick=()=>{
  value.value='';value.dispatchEvent(new Event('change',{bubbles:true}));render();close();
 };
 document.addEventListener('lumen:cartella-applied',()=>{close();render()});
-form.addEventListener('reset',()=>{close();setTimeout(render,0)});
+form.addEventListener('reset',()=>{value.value='';close();setTimeout(render,0)});
 form.addEventListener('input',e=>{if(['cognome','nome','data_nascita','codice_fiscale','data_cartella','data_giudizio'].includes(e.target.id)){close();render()}});
 window.addEventListener('beforeprint',render);
 const css=document.createElement('style');css.textContent='#lumenAuditControls{grid-column:1/-1;margin:10px 0;padding:10px;border:1px solid #aabecd;border-radius:8px}#lumenAuditDialog{width:min(760px,95vw);max-height:90vh;overflow:auto;padding:22px;border:2px solid #1f5f99;border-radius:12px}#lumenAuditDialog::backdrop{background:#0009}#lumenAuditDialog label{display:block;margin:16px 0;font-weight:700}#lumenAuditDialog select,#lumenAuditDialog textarea{display:block;width:100%;padding:10px;font:inherit;margin-top:7px}#lumenAuditDialog input[type=checkbox]{width:20px;height:20px}#lumenAuditDialog [data-error]{color:#a23b3b;font-weight:bold}.audit-actions{display:flex;flex-wrap:wrap;gap:8px}.lumen-audit-print{display:none!important}.lumen-audit-print p{white-space:pre-wrap;line-height:1.45}@media print{#lumenAuditControls,#lumenAuditDialog{display:none!important}body.print-cartella .lumen-audit-print:not([hidden]){display:block!important}body.print-cartella .lumen-audit-print{break-before:page}}';document.head.append(css);
