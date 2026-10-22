@@ -2832,6 +2832,90 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+
+<script>
+/* AUDIT-C: optional visit questionnaire, stored with ordinary clinical chart fields. */
+(function(){
+'use strict';
+function boot(){
+const form=document.getElementById('cartellaForm');
+if(!form||document.getElementById('lumenAuditValue'))return;
+const questions=[
+'Con quale frequenza consuma bevande contenenti alcol?',
+'Quanti bicchieri standard di bevande alcoliche consuma in media nel giorno in cui beve?',
+'Con quale frequenza le è capitato di bere 6 o più bicchieri di bevande alcoliche in un’unica occasione?'
+];
+const frequency=['Mai','Una volta al mese o meno','2–4 volte al mese','2–3 volte alla settimana','4 o più volte alla settimana'];
+const choices=[frequency,['1 o 2','3 o 4','5 o 6','7–9','10 o più'],frequency];
+const value=document.createElement('input');value.type='hidden';value.id='lumenAuditValue';form.append(value);
+const controls=document.createElement('section');controls.id='lumenAuditControls';controls.className='no-print';controls.innerHTML='<button type="button">AUDIT-C · ALCOL</button><span role="status" style="margin-left:10px"></span>';
+const anchor=document.getElementById('mansione')?.closest('.field');
+if(anchor)anchor.after(controls);else form.prepend(controls);
+const button=controls.querySelector('button'),status=controls.querySelector('span');
+const page=document.createElement('section');page.className='page lumen-audit-print';page.hidden=true;form.append(page);
+const dialog=document.createElement('dialog');dialog.id='lumenAuditDialog';dialog.setAttribute('aria-label','Questionario AUDIT-C');
+dialog.innerHTML='<h2>AUDIT-C · Questionario sul consumo di alcol</h2><p data-identity></p><p>Compila quando previsto per la mansione e il protocollo sanitario. Punteggio secondo il modello fornito; esito a cura del medico.</p><div data-questions></div><p data-score role="status"></p><label>Esito / valutazione del medico<textarea data-outcome rows="3"></textarea></label><label><input type="checkbox" data-informed> Il lavoratore è stato informato sui rischi per la salute e la sicurezza connessi con il consumo a rischio e dannoso di alcol.</label><p data-error role="alert"></p><div class="audit-actions"><button type="button" data-save>APPLICA ALLA CARTELLA</button><button type="button" data-cancel>ANNULLA</button><button type="button" data-remove>RIMUOVI AUDIT-C</button></div><p>Per conservare le risposte usa anche SALVA CARTELLA.</p>';
+document.body.append(dialog);
+questions.forEach((q,i)=>{
+ const label=document.createElement('label');label.textContent=(i+1)+'. '+q;
+ const select=document.createElement('select');select.dataset.question=String(i);select.add(new Option('— Seleziona una risposta —',''));
+ choices[i].forEach((text,score)=>select.add(new Option(text+' ('+score+' punti)',String(score))));
+ label.append(select);dialog.querySelector('[data-questions]').append(label);
+});
+const selects=[...dialog.querySelectorAll('select')],outcome=dialog.querySelector('[data-outcome]'),informed=dialog.querySelector('[data-informed]'),error=dialog.querySelector('[data-error]');
+const read=id=>(document.getElementById(id)?.value||'').trim();
+const identity=()=>JSON.stringify(['cognome','nome','data_nascita','codice_fiscale','data_cartella','data_giudizio'].map(read));
+const label=()=>[read('cognome'),read('nome')].filter(Boolean).join(' ');
+let openedIdentity='';
+function parse(){
+ if(!value.value)return null;
+ try{const d=JSON.parse(value.value);if(d.version!==1||!Array.isArray(d.answers)||d.answers.length!==3||d.answers.some(n=>!Number.isInteger(n)||n<0||n>4)||typeof d.outcome!=='string'||typeof d.informed!=='boolean')throw Error();return d;}catch(_){return false;}
+}
+function scoreDraft(){const answers=selects.map(s=>s.value);dialog.querySelector('[data-score]').textContent=answers.every(a=>a!=='')?'Punteggio: '+answers.reduce((sum,n)=>sum+Number(n),0)+' / 12':'Rispondere a tutte e tre le domande per calcolare il punteggio.';}
+function render(){
+ const d=parse();page.replaceChildren();page.hidden=!d;
+ status.textContent=d?'Compilato · '+d.answers.reduce((sum,n)=>sum+n,0)+'/12':d===false?'Dati AUDIT-C non leggibili: verificare prima della stampa.':'Non compilato · escluso dalla stampa';
+ if(!d)return;
+ const add=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;page.append(e)};
+ add('h1','AUDIT-C');add('h2','Questionario sul consumo di alcol');
+ add('p','Lavoratore: '+label()+' · Data di nascita: '+read('data_nascita'));
+ add('p','Datore di lavoro: '+read('datore_lavoro')+' · Visita: '+(read('data_giudizio')||read('data_cartella')));
+ questions.forEach((q,i)=>{add('p',(i+1)+'. '+q);add('p','Risposta: '+choices[i][d.answers[i]]+' · '+d.answers[i]+' punti')});
+ add('p','Punteggio totale: '+d.answers.reduce((sum,n)=>sum+n,0)+' / 12');
+ if(d.outcome.trim())add('p','Esito / valutazione del medico: '+d.outcome);
+ if(d.informed)add('p','Il lavoratore è stato informato sui rischi per la salute e la sicurezza connessi con il consumo a rischio e dannoso di alcol.');
+}
+function close(){if(dialog.open)dialog.close();error.textContent='';}
+button.onclick=()=>{
+ if(!label()){alert('Apri o compila prima la cartella di un lavoratore.');return;}
+ const d=parse();if(d===false){alert('Dati AUDIT-C non leggibili. Nessun dato modificato.');return;}
+ openedIdentity=identity();dialog.querySelector('[data-identity]').textContent='Lavoratore: '+label()+' · Visita: '+(read('data_giudizio')||read('data_cartella'));
+ selects.forEach((s,i)=>s.value=d?String(d.answers[i]):'');outcome.value=d?.outcome||'';informed.checked=d?.informed===true;error.textContent='';scoreDraft();dialog.showModal();
+};
+selects.forEach(s=>s.onchange=scoreDraft);
+dialog.querySelector('[data-save]').onclick=()=>{
+ if(openedIdentity!==identity()){close();alert('Lavoratore o visita cambiati: riapri AUDIT-C.');return;}
+ if(selects.some(s=>s.value==='')){error.textContent='Completa tutte e tre le risposte. Nessun questionario applicato.';return;}
+ value.value=JSON.stringify({version:1,model:'modello-utente-ISS-frequenze',answers:selects.map(s=>Number(s.value)),outcome:outcome.value.trim(),informed:informed.checked});
+ value.dispatchEvent(new Event('input',{bubbles:true}));value.dispatchEvent(new Event('change',{bubbles:true}));render();close();
+};
+dialog.querySelector('[data-cancel]').onclick=close;
+dialog.querySelector('[data-remove]').onclick=()=>{
+ if(openedIdentity!==identity()){close();return;}
+ if(value.value&&!confirm('Rimuovere il questionario AUDIT-C dalla cartella a video? Usa SALVA CARTELLA per conservare la rimozione.'))return;
+ value.value='';value.dispatchEvent(new Event('change',{bubbles:true}));render();close();
+};
+document.addEventListener('lumen:cartella-applied',()=>{close();render()});
+form.addEventListener('reset',()=>{close();setTimeout(render,0)});
+form.addEventListener('input',e=>{if(['cognome','nome','data_nascita','codice_fiscale','data_cartella','data_giudizio'].includes(e.target.id)){close();render()}});
+window.addEventListener('beforeprint',render);
+const css=document.createElement('style');css.textContent='#lumenAuditControls{grid-column:1/-1;margin:10px 0;padding:10px;border:1px solid #aabecd;border-radius:8px}#lumenAuditDialog{width:min(760px,95vw);max-height:90vh;overflow:auto;padding:22px;border:2px solid #1f5f99;border-radius:12px}#lumenAuditDialog::backdrop{background:#0009}#lumenAuditDialog label{display:block;margin:16px 0;font-weight:700}#lumenAuditDialog select,#lumenAuditDialog textarea{display:block;width:100%;padding:10px;font:inherit;margin-top:7px}#lumenAuditDialog input[type=checkbox]{width:20px;height:20px}#lumenAuditDialog [data-error]{color:#a23b3b;font-weight:bold}.audit-actions{display:flex;flex-wrap:wrap;gap:8px}.lumen-audit-print{display:none!important}.lumen-audit-print p{white-space:pre-wrap;line-height:1.45}@media print{#lumenAuditControls,#lumenAuditDialog{display:none!important}body.print-cartella .lumen-audit-print:not([hidden]){display:block!important}body.print-cartella .lumen-audit-print{break-before:page}}';document.head.append(css);
+render();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script>
 </body></html>
 
 
