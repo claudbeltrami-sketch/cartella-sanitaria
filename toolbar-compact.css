@@ -82,3 +82,28 @@
     html { scroll-padding-top: 220px; }
   }
 }
+
+/* 20261022: compact command bar and one secondary group at a time. */
+@media screen {
+ #mainToolbar {padding:5px}
+ #mainToolbar .toolbar-primary {grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+ #mainToolbar .toolbar-primary>button,#mainToolbar .toolbar-primary>.file-label {min-height:38px;padding:6px;font-size:12px;line-height:1.15}
+ #mainToolbar #toolbarExtra {grid-template-columns:1fr;gap:5px;max-height:35vh;max-height:35dvh;padding:6px}
+ #mainToolbar #toolbarExtra[hidden] {display:none}
+ #toolbarExtra .tool-group {padding:0;border-width:1px;border-radius:7px}
+ #toolbarExtra .tool-group-title {margin:0;padding:0;border:0}
+ #toolbarExtra .lumen-group-toggle {width:100%;min-height:36px;padding:7px 10px;font-size:13px;justify-content:space-between;border-radius:6px;background:#eef3f7;color:#173f61;text-align:left}
+ #toolbarExtra .lumen-group-toggle::after {content:'+';font-size:18px}
+ #toolbarExtra .lumen-group-toggle[aria-expanded="true"]::after {content:'−'}
+ #toolbarExtra .tool-buttons {display:flex;gap:5px;padding:6px}
+ #toolbarExtra .tool-buttons[hidden] {display:none!important}
+ #toolbarExtra .tool-buttons>button,#toolbarExtra .tool-buttons>.file-label {flex:1 1 150px;min-height:36px;font-size:12px;padding:7px}
+ #toolbarExtra .thermal-choice {font-size:12px}
+ html {scroll-padding-top:110px}
+ @media(max-width:650px){
+  #mainToolbar .toolbar-primary {grid-template-columns:repeat(3,minmax(0,1fr))}
+  #mainToolbar .toolbar-primary>button {min-height:42px;font-size:12px}
+  #mainToolbar #toolbarExtra {max-height:40vh;max-height:40dvh}
+  html {scroll-padding-top:160px}
+ }
+}
