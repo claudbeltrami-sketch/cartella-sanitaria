@@ -346,6 +346,15 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .lumen-panel-heading h3 {margin:0;font-size:16px;flex:1 1 180px;}
  .lumen-panel-heading button {min-height:40px;padding:7px 10px;font-size:13px;}
  .lumen-panel-summary {flex:1 1 100%;font-size:14px;line-height:1.35;overflow-wrap:anywhere;}
+ #lumenSessionHeading {display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:6px 8px;}
+ #lumenSessionHeading h3 {grid-column:1;grid-row:1;font-size:14px;white-space:nowrap;}
+ #lumenSessionSummary {grid-column:2;grid-row:1;font-size:12px;min-width:0;}
+ #lumenSessionHeading button {grid-column:3;grid-row:1;font-size:12px;white-space:nowrap;}
+ @media(max-width:650px) {
+  #lumenSessionHeading {grid-template-columns:minmax(0,1fr) max-content;}
+  #lumenSessionHeading button {grid-column:2;}
+  #lumenSessionSummary {grid-column:1/-1;grid-row:2;}
+ }
  #workersSummary {margin:6px 0 0;font-size:14px;line-height:1.35;overflow-wrap:anywhere;}
  #lumenSessionDetails,#lumenListManage,#lumenListContents {margin-top:10px;}
  #lumenListContents .list-search {display:block;}
