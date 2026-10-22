@@ -2854,7 +2854,7 @@ if(anchor)anchor.after(controls);else form.prepend(controls);
 const button=controls.querySelector('button'),status=controls.querySelector('span');
 const page=document.createElement('section');page.className='page lumen-audit-print';page.hidden=true;form.append(page);
 const dialog=document.createElement('dialog');dialog.id='lumenAuditDialog';dialog.setAttribute('aria-label','Questionario AUDIT-C');
-dialog.innerHTML='<h2>AUDIT-C · Questionario sul consumo di alcol</h2><p data-identity></p><p>Compila quando previsto per la mansione e il protocollo sanitario. Punteggio secondo il modello fornito; esito a cura del medico.</p><div data-questions></div><p data-score role="status"></p><label>Esito / valutazione del medico<textarea data-outcome rows="3"></textarea></label><label><input type="checkbox" data-informed> Il lavoratore è stato informato sui rischi per la salute e la sicurezza connessi con il consumo a rischio e dannoso di alcol.</label><p data-error role="alert"></p><div class="audit-actions"><button type="button" data-save>APPLICA ALLA CARTELLA</button><button type="button" data-cancel>ANNULLA</button><button type="button" data-remove>RIMUOVI AUDIT-C</button></div><p>Per conservare le risposte usa anche SALVA CARTELLA.</p>';
+dialog.innerHTML='<h2>AUDIT-C · Questionario sul consumo di alcol</h2><p data-identity></p><p>Compila quando previsto per la mansione e il protocollo sanitario. Punteggio secondo il modello fornito; esito a cura del medico.</p><div data-questions></div><p data-score role="status"></p><p data-suggestion role="status"></p><p>Indicazione di screening secondo il modello ISS: non costituisce diagnosi di dipendenza né giudizio di idoneità. <a href="https://www.epicentro.iss.it/alcol/materiali/opuscoli/opuscolo_guida_utile.pdf" target="_blank" rel="noopener">Fonte ISS, AUDIT-C</a></p><button type="button" data-use-suggestion hidden>USA INDICAZIONE NELL’ESITO</button><label>Esito / valutazione del medico<textarea data-outcome rows="3"></textarea></label><label><input type="checkbox" data-informed> Il lavoratore è stato informato sui rischi per la salute e la sicurezza connessi con il consumo a rischio e dannoso di alcol.</label><p data-error role="alert"></p><div class="audit-actions"><button type="button" data-save>APPLICA ALLA CARTELLA</button><button type="button" data-cancel>ANNULLA</button><button type="button" data-remove>RIMUOVI AUDIT-C</button></div><p>Per conservare le risposte usa anche SALVA CARTELLA.</p>';
 document.body.append(dialog);
 questions.forEach((q,i)=>{
  const label=document.createElement('label');label.textContent=(i+1)+'. '+q;
@@ -2871,7 +2871,22 @@ function parse(){
  if(!value.value)return null;
  try{const d=JSON.parse(value.value);if(d.version!==1||!Array.isArray(d.answers)||d.answers.length!==3||d.answers.some(n=>!Number.isInteger(n)||n<0||n>4)||typeof d.outcome!=='string'||typeof d.informed!=='boolean')throw Error();return d;}catch(_){return false;}
 }
-function scoreDraft(){const answers=selects.map(s=>s.value);dialog.querySelector('[data-score]').textContent=answers.every(a=>a!=='')?'Punteggio: '+answers.reduce((sum,n)=>sum+Number(n),0)+' / 12':'Rispondere a tutte e tre le domande per calcolare il punteggio.';}
+
+function auditSuggestion(total,sex){
+ const threshold=sex==='M'?5:sex==='F'?4:null;
+ if(threshold===null){if(total<4)return 'Punteggio sotto entrambe le soglie del modello ISS: consumo a basso rischio secondo lo screening.';if(total>=5)return 'Punteggio pari o superiore a entrambe le soglie del modello ISS: consumo a maggior rischio; indicato approfondimento clinico.';return 'Punteggio 4: sotto soglia per gli uomini e alla soglia per le donne. Completa il campo Sesso per interpretare lo screening.';}
+ return total<threshold?'Punteggio sotto la soglia del modello ISS: consumo a basso rischio secondo lo screening.':'Punteggio pari o superiore alla soglia del modello ISS: consumo a maggior rischio; indicato approfondimento clinico.';
+}
+
+function scoreDraft(){
+ const answers=selects.map(s=>s.value),complete=answers.every(a=>a!=='');
+ const total=answers.reduce((sum,n)=>sum+Number(n),0);
+ dialog.querySelector('[data-score]').textContent=complete?'Punteggio: '+total+' / 12':'Rispondere a tutte e tre le domande per calcolare il punteggio.';
+ const text=complete?auditSuggestion(total,read('sesso').toUpperCase()):'';
+ dialog.querySelector('[data-suggestion]').textContent=text;
+ dialog.querySelector('[data-use-suggestion]').hidden=!complete||(!['M','F'].includes(read('sesso').toUpperCase())&&total===4);
+}
+
 function render(){
  const d=parse();page.replaceChildren();page.hidden=!d;
  status.textContent=d?'Compilato · '+d.answers.reduce((sum,n)=>sum+n,0)+'/12':d===false?'Dati AUDIT-C non leggibili: verificare prima della stampa.':'Non compilato · escluso dalla stampa';
@@ -2893,6 +2908,7 @@ button.onclick=()=>{
  selects.forEach((s,i)=>s.value=d?String(d.answers[i]):'');outcome.value=d?.outcome||'';informed.checked=d?.informed===true;error.textContent='';scoreDraft();dialog.showModal();
 };
 selects.forEach(s=>s.onchange=scoreDraft);
+dialog.querySelector('[data-use-suggestion]').onclick=()=>{if(outcome.value.trim()&&!confirm('Sostituire la valutazione già scritta con l’indicazione suggerita?'))return;outcome.value=dialog.querySelector('[data-suggestion]').textContent;};
 dialog.querySelector('[data-save]').onclick=()=>{
  if(openedIdentity!==identity()){close();alert('Lavoratore o visita cambiati: riapri AUDIT-C.');return;}
  if(selects.some(s=>s.value==='')){error.textContent='Completa tutte e tre le risposte. Nessun questionario applicato.';return;}
