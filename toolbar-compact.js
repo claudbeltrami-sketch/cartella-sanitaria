@@ -73,3 +73,42 @@
     }
   });
 })();
+
+/* Keep backup controls beside the count status without recreating their handlers. */
+(function () {
+  'use strict';
+  function install() {
+    const count = document.getElementById('conteggioAutoPanel');
+    const backup = document.getElementById('lumenBackupOverlay');
+    const details = document.getElementById('lumenBackupDetails');
+    if (!count || !backup || !details || document.getElementById('btnBackupArchivio')) return false;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'btnBackupArchivio';
+    button.textContent = 'BACKUP E ARCHIVIO PDF';
+    button.setAttribute('aria-controls', backup.id);
+    count.append(button);
+    count.after(backup);
+    const summary = details.querySelector('summary');
+    if (summary) summary.hidden = true;
+    function sync() {
+      backup.hidden = !details.open;
+      button.setAttribute('aria-expanded', String(details.open));
+    }
+    button.addEventListener('click', function () {
+      details.open = !details.open;
+      sync();
+    });
+    details.addEventListener('toggle', sync);
+    const style = document.createElement('style');
+    style.textContent = '#lumenBackupOverlay[hidden]{display:none!important}#lumenBackupDetails>summary[hidden]{display:none!important}@media screen{#conteggioAutoPanel #btnBackupArchivio{margin-left:auto;min-height:38px;padding:8px 12px;font-size:12px;background:#287a46}#conteggioAutoPanel>p{flex:1 1 160px}#lumenBackupOverlay{padding-top:12px!important}}';
+    document.head.append(style);
+    sync();
+    return true;
+  }
+  if (!install()) {
+    const observer = new MutationObserver(function () { if (install()) observer.disconnect(); });
+    observer.observe(document.body, {childList:true,subtree:true});
+    window.addEventListener('load', function () {install();observer.disconnect();}, {once:true});
+  }
+})();
