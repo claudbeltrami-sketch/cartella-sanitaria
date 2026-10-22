@@ -1,6 +1,6 @@
 /* LUMEN: program files only; clinical records remain in local storage/IndexedDB. */
 'use strict';
-const VERSION='20261022-offline-1';
+const VERSION='20261022-offline-2';
 const CACHE='lumen-program-'+VERSION;
 const ASSETS=["Relazione_sopralluogo.pdf","allegati-cartella.js","allegati-esterni.js","archive-referti.js","backup-io.js","backup-locale.html","backup-locale.js","backup-stream.js","cambia-lista.js","certificato-pdf.js","conteggio-automatico.js","conteggio-visite.html","conteggio-visite/index.html","esami-compatti.js","firma-offline.js","firma-recupero.js","importa-cartelle.js","importa-firma.html","importa-lista-iphone.html","importa-lista.html","importa-referti.js","index.html","liste.html","lumen-dvr.js","lumen-protocolli-auto.js","lumen-urgente.html","protocolli-demo.html","protocolli/index.html","prova-fantasma.js","prova-storage.js","recupera-firme.html","recupera-verifiche.js","ruoli-azienda.js","scadenzario.js","sopralluogo-fields.js","sopralluogo-modello.pdf","sopralluogo.html","sopralluogo.js","spirometria-percentuali.js","storico-cartaceo.js","thermal-print.js","toolbar-compact.css","toolbar-compact.js","vendor/pdf-lib.min.js","vendor/peerjs-1.5.4.min.js","vendor/qr.js","visite-archivio.js"];
 const ROOT=new URL('./',self.location.href);
@@ -34,13 +34,16 @@ self.addEventListener('fetch',event=>{
  if(!ASSETS.includes(path))return;
  event.respondWith((async()=>{
   const cache=await caches.open(CACHE);
+  // Scripts and styles must be available immediately, even when a disconnected
+  // network hangs instead of rejecting fetch. Navigation can still check updates.
+  const cached=await cache.match(new URL(path,ROOT).href);
+  if(request.mode!=='navigate'&&cached)return cached;
   // Query strings used by existing build/version checks resolve to the same file offline.
   try{
    const response=await fetch(request);
    if(!response.ok)throw Error('HTTP '+response.status);
    return response;
   }catch(error){
-   const cached=await cache.match(new URL(path,ROOT).href);
    if(cached)return cached;
    throw error;
   }
