@@ -385,6 +385,12 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <button type="button" id="lumenBackupShare" style="width:100%;margin:8px 0;display:none">2 · SALVA SU FILE / CONDIVIDI</button>
  <a id="lumenBackupDownload" style="display:none;background:#1f5f99;color:white;border-radius:8px;padding:14px;text-align:center;margin:8px 0;font-weight:bold">SCARICA BACKUP</a>
  <p style="margin:8px 0 0;font-size:14px">Preparare il backup non significa averlo già salvato.</p>
+ <div id="lumenBackupCheckBox" style="margin:12px 0 0;padding:10px;border:1px solid #bbc9c0;border-radius:8px" data-html2canvas-ignore="true">
+  <p id="lumenBackupUltimoVerificato" style="margin:0 0 8px;font-size:14px">Ultimo backup verificato: nessuno.</p>
+  <button type="button" id="lumenBackupVerificaFile" class="secondary">VERIFICA BACKUP GIÀ SALVATO</button>
+  <input type="file" id="lumenBackupFileDaVerificare" accept=".json,application/json" hidden>
+  <p id="lumenBackupVerificaMessage" role="status" aria-live="polite" style="white-space:pre-line;font-size:13px;margin:8px 0 0">La verifica legge un file scelto da te, senza ripristinarlo o modificare le cartelle. La data resta solo su questo dispositivo; non è una verifica del backup dell'altro dispositivo.</p>
+ </div>
  </div>
  </details>
 </section>
@@ -439,6 +445,15 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  </section>
  </div>
 </div>
+<style>
+ #lumenMiniAids{margin:8px auto;max-width:980px;padding:10px 12px;box-sizing:border-box;border:1px solid #afc9b8;border-radius:8px;background:#f5faf6;color:#205239;font-size:14px}
+ #lumenMiniAids button{min-height:34px;padding:5px 10px;font-size:13px;margin-left:8px}
+ #lumenMiniControllo{margin:0 auto 8px;max-width:980px;padding:10px;box-sizing:border-box;border:1px solid #ad7b2c;border-radius:8px;background:#fff8e8;color:#5c3d15;white-space:pre-line;font-size:14px}
+ #lumenMiniControllo[hidden]{display:none!important}
+ @media print{#lumenMiniAids,#lumenMiniControllo,#lumenBackupCheckBox{display:none!important}}
+ </style>
+ <div id="lumenMiniAids" class="no-print" data-html2canvas-ignore="true"><span id="lumenMiniScadenzeText">Scadenze: aggiornamento in corso…</span><button type="button" id="lumenMiniScadenzeAggiorna">AGGIORNA</button></div>
+ <div id="lumenMiniControllo" class="no-print" data-html2canvas-ignore="true" role="status" aria-live="polite" hidden></div>
 <div class="status" id="status">PRONTA. I DATI RESTANO SU QUESTO DISPOSITIVO E NON VENGONO INVIATI SU INTERNET.</div>
 <div class="save-info" id="saveInfo"><div class="save-title" id="saveTitle"></div><div class="save-detail" id="saveDetail"></div><div class="mini-actions" id="saveActions"></div></div>
 <div class="archive-modal" id="archiveModal" aria-hidden="true"><div class="archive-box">
@@ -3129,6 +3144,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 <script src="esami-compatti.js?v=20261022-1"></script>
 <script src="lumen-offline.js?v=20261022-1"></script>
+<script src="lumen-migliorie-prova.js?v=20261023-prova-1"></script>
 </body></html>
 
 
