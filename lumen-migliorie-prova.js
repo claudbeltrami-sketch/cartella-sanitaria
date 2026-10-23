@@ -51,6 +51,7 @@
  root.document.addEventListener('lumen:cartella-applied',()=>{alertBox.hidden=true;alertBox.textContent=''});
  async function updateScadenze(){
   refresh.disabled=true;badge.textContent='Scadenze: lettura archivio locale…';
+  if(root.lumenStorage?.isTest){badge.textContent='Scadenze — PROVA FANTASMA: le visite reali non vengono conteggiate (archivio separato).';refresh.disabled=false;return;}
   try{
    if(!root.lumenArchiveVisitsApi?.list||!root.lumenScadenzario?.build)throw Error('scadenzario non disponibile');
    const source=await root.lumenArchiveVisitsApi.list();
