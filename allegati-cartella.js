@@ -14,6 +14,10 @@
  #allegatiDialog input[type=file]{width:100%;background:#f3fbf5}#allegatiDialog .consent-current{white-space:pre-line}
  #allegatiDialog .consent-item-title{overflow-wrap:anywhere}#allegatiMessage{white-space:pre-line;margin:12px 0;font-weight:bold}
  #allegatiMessage[data-error=true]{color:#a51c1c}#allegatiPending{overflow-wrap:anywhere;white-space:pre-line;margin:10px 0}
+ #allegatiDialog .allegati-stato{font-size:14px;font-weight:700;padding:5px 0}
+ #allegatiDialog .allegati-stato[data-stato="locale"]{color:#14743b}
+ #allegatiDialog .allegati-stato[data-stato="esterno"]{color:#926200}
+ #allegatiDialog .allegati-stato[data-stato="errore"]{color:#ad2626}
  @media print{#allegatiDialog{display:none!important}}
  `;
  document.head.appendChild(css);
@@ -26,6 +30,7 @@
  <div id="allegatiPending"></div><button type="button" id="allegatiSave" class="success" disabled>SALVA ALLEGATI</button>
  <div id="allegatiMessage" role="status" aria-live="polite"></div>
  <p class="archive-note">I PDF separati restano nella cartella del Mac: il backup leggero conserva i collegamenti. I nuovi file ancora incorporati richiedono ARCHIVIO PDF SUL MAC prima del backup leggero. Il PDF e il JSON della singola cartella non includono gli allegati. Massimo 25 MB per file e 100 MB per selezione.</p>
+ <p class="archive-note">Il semaforo segnala dove si trova il file, non se il visualizzatore dell'iPhone riesce a mostrarlo. Se APRI non funziona, prova SALVA COPIA.</p>
  <h4>DOCUMENTI DEL LAVORATORE</h4><div id="allegatiList" class="consent-list"></div>`;
  document.body.appendChild(dialog);
  const $=id=>document.getElementById(id);
@@ -45,22 +50,43 @@
  function setBusy(value){busy=value;for(const id of ['allegatiFiles','allegatiDate','allegatiNote','allegatiClose'])$(id).disabled=value;$('allegatiSave').disabled=value||!pending.length;dialog.querySelectorAll('#allegatiList button').forEach(b=>b.disabled=value)}
  function size(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.ceil(n/1024)+' KB'}
  function isMatch(row,person){return row.kind===kind&&row.workerKey===person.key}
+ function stato(row){
+  if(row.blob instanceof Blob)return row.blob.size>0&&row.blob.size===row.size?{key:'locale',label:'🟢 FILE PRESENTE SU QUESTO DISPOSITIVO'}:{key:'errore',label:'🔴 FILE DA VERIFICARE'};
+  if(row.external&&window.lumenExternalAttachments?.valid?.(row.external))return {key:'esterno',label:'🟡 SOLO COLLEGAMENTO · PDF SUL MAC'};
+  return {key:'errore',label:'🔴 FILE O COLLEGAMENTO DA VERIFICARE'};
+ }
+ function mostraStato(button,st){
+  const label=button.closest('article')?.querySelector('.allegati-stato');
+  if(label){label.dataset.stato=st.key;label.textContent=st.label}
+ }
+ function statoErrore(error){
+  const reason=String(error?.message||error||'');
+  if(/PDF conservato sul Mac|collega la cartella|browser ha bloccato|permission|notallowed|securityerror|accesso negato/i.test(reason))return {key:'esterno',label:'🟡 NON ACCESSIBILE QUI · USA SALVA COPIA O COLLEGA IL MAC'};
+  return {key:'errore',label:'🔴 LETTURA FALLITA · VERIFICARE IL FILE'};
+ }
  async function list(person){return (await storage.list()).filter(row=>isMatch(row,person)).sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)))}
  async function render(){
   const version=++renderVersion,person=target;
   $('allegatiList').textContent='LETTURA ALLEGATI…';
   const rows=await list(person);if(version!==renderVersion||person!==target)return;
-  $('allegatiList').innerHTML=rows.length?rows.map(row=>`<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="consent-meta">${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button><button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
+  $('allegatiList').innerHTML=rows.length?rows.map(row=>{const st=stato(row);return `<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="allegati-stato" data-stato="${st.key}">${escape(st.label)}</div><div class="consent-meta">${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button>${st.key==='esterno'?'<button type="button" class="secondary" data-verify="'+escape(row.id)+'">VERIFICA</button>':''}<button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`}).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
   const byId=new Map(rows.map(row=>[row.id,row]));
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
    let opened=null;
    try{
-    assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.delete,row=byId.get(id);
+    assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.verify||b.dataset.delete,row=byId.get(id);
     if(b.dataset.delete){
      if(busy||!confirm('ELIMINARE SOLO QUESTO ALLEGATO?\n'+row.name+'\nLavoratore: '+target.name))return;
      setBusy(true);await remove(row);message('Allegato eliminato.');await render();
     }else{
+     if(b.dataset.verify){
+      setBusy(true);
+      const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
+      if(!(blob instanceof Blob)||blob.size!==row.size)throw Error('Il file non è accessibile o ha una dimensione diversa.');
+      mostraStato(b,{key:'locale',label:'🟢 FILE VERIFICATO SU QUESTO DISPOSITIVO'});
+      message('Verifica riuscita: '+row.name+' è accessibile qui.');
+     }else{
      if(b.dataset.open&&!(row.blob instanceof Blob)){
       opened=window.open('','_blank');
       if(!opened)throw Error('Il browser ha bloccato la finestra del PDF. Usa SALVA COPIA oppure abilita le finestre per LUMEN.');
@@ -73,8 +99,10 @@
       if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
       document.body.appendChild(a);a.click();a.remove();
      }setTimeout(()=>URL.revokeObjectURL(url),300000);
+     mostraStato(b,{key:'locale',label:'🟢 FILE DISPONIBILE QUI'});
+     }
     }
-   }catch(e){if(opened)opened.close();message(e.message||String(e),true)}finally{setBusy(false)}
+   }catch(e){if(opened)opened.close();if(b.dataset.open||b.dataset.download||b.dataset.verify)mostraStato(b,statoErrore(e));message(e.message||String(e),true)}finally{setBusy(false)}
   });
  }
  async function remove(row){
