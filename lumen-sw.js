@@ -1,10 +1,11 @@
 /* LUMEN: program files only; clinical records remain in local storage/IndexedDB. */
 'use strict';
-const VERSION='20261022-offline-3';
+const VERSION='20261023-migliorie-prova-2';
 const CACHE='lumen-program-'+VERSION;
 const ASSETS=["Relazione_sopralluogo.pdf","allegati-cartella.js","allegati-esterni.js","archive-referti.js","backup-io.js","backup-locale.html","backup-locale.js","backup-stream.js","cambia-lista.js","certificato-pdf.js","conteggio-automatico.js","conteggio-visite.html","conteggio-visite/index.html","esami-compatti.js","firma-offline.js","firma-recupero.js","importa-cartelle.js","importa-firma.html","importa-lista-iphone.html","importa-lista.html","importa-referti.js","index.html","liste.html","lumen-dvr.js","lumen-protocolli-auto.js","lumen-urgente.html","protocolli-demo.html","protocolli/index.html","prova-fantasma.js","prova-storage.js","recupera-firme.html","recupera-verifiche.js","ruoli-azienda.js","scadenzario.js","sopralluogo-fields.js","sopralluogo-modello.pdf","sopralluogo.html","sopralluogo.js","spirometria-percentuali.js","storico-cartaceo.js","thermal-print.js","toolbar-compact.css","toolbar-compact.js","vendor/pdf-lib.min.js","vendor/peerjs-1.5.4.min.js","vendor/qr.js","visite-archivio.js"];
 const ROOT=new URL('./',self.location.href);
 ASSETS.push('lumen-offline.js');
+ASSETS.push('lumen-migliorie-prova.js');
 const EXTERNAL=["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js","https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js","https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
