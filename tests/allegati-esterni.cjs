@@ -11,7 +11,7 @@ async function light(p){await p.w.lumenBackupActions.light();if(p.$('lumenBackup
  try{
   await p.api.saveToLocalArchive(person);await p.api.saveToLocalArchive({...person,mansione:'SECONDA VERSIONE'});p.api.apply(person);
   const a=row('ATT_A',Buffer.from('%PDF SYNTHETIC ONE')),b=row('ATT_B',Buffer.from('%PDF SYNTHETIC TWO'));
-  const scan={id:'REFERTI_SCAN_'+a.id,kind:'referti_scan_v1',attachmentId:a.id,version:2,fingerprint:JSON.stringify([a.hash,a.size,a.savedAt,a.name]),analisi:'SÌ',drug:'NO'};
+  const scan={id:'REFERTI_SCAN_'+a.id,kind:'referti_scan_v1',attachmentId:a.id,version:3,fingerprint:JSON.stringify([a.hash,a.size,a.savedAt,a.name]),analisi:'SÌ',drug:'NO'};
   await put(p,[a,b,scan]);const charts=JSON.stringify(await p.t.cartelle());
   await assert.rejects(light(p),/ARCHIVIO PDF SUL MAC/);assert((await p.t.rows()).filter(x=>x.blob).length===2);
   const api=p.w.lumenExternalAttachments,zip=await api.exportZip();fs.writeFileSync(path.join(temp,'export.zip'),Buffer.from(await zip.arrayBuffer()));

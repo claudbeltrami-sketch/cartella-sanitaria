@@ -9,7 +9,7 @@ const cache={
 const self={location:{href:'https://example.test/cartella-sanitaria/lumen-sw.js'},addEventListener:(name,handler)=>events[name]=handler,skipWaiting:async()=>skipped=true,clients:{claim:async()=>claimed=true}};
 vm.runInNewContext(source,{self,URL,Request,caches:{open:async()=>cache},fetch:async request=>{if(offline)throw Error('offline');return new Response('online:'+request.url)}});
 async function lifecycle(name){let done;events[name]({waitUntil:p=>done=p});await done}
-async function request(url,method='GET'){let response;events.fetch({request:new Request(url,{method}),respondWith:p=>response=p});return response}
+async function request(url,method='GET'){let response;const request=new Request(url,{method});if(url.endsWith('/cartella-sanitaria/'))Object.defineProperty(request,'mode',{value:'navigate'});events.fetch({request,respondWith:p=>response=p});return response}
 (async()=>{
  await lifecycle('install');await lifecycle('activate');assert.ok(skipped&&claimed);
  assert.match(await (await request('https://example.test/cartella-sanitaria/')).text(),/^online:/);

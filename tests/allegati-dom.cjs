@@ -24,6 +24,7 @@ async function app(factory=new idb.IDBFactory(),query='',seed={}){
  for(const [k,v]of Object.entries(seed.session||{}))w.sessionStorage.setItem(k,JSON.stringify(v));
  for(const [k,v]of Object.entries(seed.local||{}))w.localStorage.setItem(k,JSON.stringify(v));
  w.eval(sources.join('\n;\n'));await new Promise(r=>setTimeout(r,60));
+ if(w.lumenStorage.isTest){for(let n=0;n<100&&w.lumenBatchCertApi.selectionVersion()===0;n++)await new Promise(r=>setTimeout(r,10));assert.ok(w.lumenBatchCertApi.selectionVersion()>0,'test record load completed before interaction');}
  return {w,dom,errors,downloads,$:id=>w.document.getElementById(id),api:w.lumenBatchCertApi,t:w.testApi};
 }
 const a={cognome:'SINTETICO',nome:'ALFA',codice_fiscale:'SNTLFA80A01H501X',data_nascita:'1980-01-01',data_giudizio:'2026-09-30',mansione:'COLLAUDO',firma_lavoratore_png:''};
