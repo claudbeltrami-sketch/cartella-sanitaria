@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261018-standard-mansione-v7">
+<meta name="lumen-build" content="20261024-stato-allegati-v1">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -35,7 +35,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261018-standard-mansione-v7';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261024-stato-allegati-v1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V18 Backup progressivo</title>
 <style>
 #v9SediSalvateBox[hidden]{display:none}
@@ -2356,11 +2356,12 @@ input.addEventListener('change',async e=>{
  function size(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.ceil(n/1024)+' KB'}
  function isMatch(row,person){return row.kind===kind&&row.workerKey===person.key}
  async function list(person){return (await storage.list()).filter(row=>isMatch(row,person)).sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)))}
+ function availabilityLabel(row){if(row.blob instanceof Blob)return 'DISPONIBILE OFFLINE';if(row.external)return 'PDF ESTERNO — RICHIEDE CARTELLA COLLEGATA';return 'FILE NON DISPONIBILE SU QUESTO DISPOSITIVO'}
  async function render(){
   const version=++renderVersion,person=target;
   $('allegatiList').textContent='LETTURA ALLEGATI…';
   const rows=await list(person);if(version!==renderVersion||person!==target)return;
-  $('allegatiList').innerHTML=rows.length?rows.map(row=>`<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="consent-meta">${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button><button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
+  $('allegatiList').innerHTML=rows.length?rows.map(row=>`<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="consent-meta"><strong>${escape(availabilityLabel(row))}</strong><br>${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button><button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
   const byId=new Map(rows.map(row=>[row.id,row]));
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
