@@ -46,11 +46,12 @@
  function size(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.ceil(n/1024)+' KB'}
  function isMatch(row,person){return row.kind===kind&&row.workerKey===person.key}
  async function list(person){return (await storage.list()).filter(row=>isMatch(row,person)).sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)))}
+ function availabilityLabel(row){if(row.blob instanceof Blob)return 'DISPONIBILE OFFLINE';if(row.external)return 'PDF ESTERNO — RICHIEDE CARTELLA COLLEGATA';return 'FILE NON DISPONIBILE SU QUESTO DISPOSITIVO'}
  async function render(){
   const version=++renderVersion,person=target;
   $('allegatiList').textContent='LETTURA ALLEGATI…';
   const rows=await list(person);if(version!==renderVersion||person!==target)return;
-  $('allegatiList').innerHTML=rows.length?rows.map(row=>`<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="consent-meta">${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button><button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
+  $('allegatiList').innerHTML=rows.length?rows.map(row=>`<article class="consent-item"><div class="consent-item-title">${escape(row.name)}</div><div class="consent-meta"><strong>${escape(availabilityLabel(row))}</strong><br>${escape(size(row.size))} — VISITA: ${escape(fmt(row.visit)||'NON INDICATA')}${row.documentDate?' — DOCUMENTO: '+escape(fmt(row.documentDate)):''}<br>AGGIUNTO: ${escape(new Date(row.savedAt).toLocaleString('it-IT'))}${row.note?'<br>'+escape(row.note):''}</div><div class="consent-actions"><button type="button" class="success" data-open="${escape(row.id)}">APRI</button><button type="button" class="secondary" data-download="${escape(row.id)}">SALVA COPIA</button><button type="button" class="danger" data-delete="${escape(row.id)}">ELIMINA</button></div></article>`).join(''):'NESSUN ALLEGATO PER QUESTO LAVORATORE.';
   const byId=new Map(rows.map(row=>[row.id,row]));
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
