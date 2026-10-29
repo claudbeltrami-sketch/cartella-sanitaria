@@ -42,7 +42,7 @@ function boot(){
   // Without an exact CF, surname, name and date of birth must all agree.
   return !!(cognome&&nome&&current.nascita&&nascita&&cognome===current.cognome&&nome===current.nome&&current.nascita===nascita);
  };
- function previous(records,current){
+ function previous(records,current,originals=[]){
   if(!current.visita||!current.cognome||!current.nome||(!current.cf&&!current.nascita))return null;
   const candidates=[];
   for(const rec of records){
@@ -53,25 +53,52 @@ function boot(){
     if(!d||!samePerson(rec,d,current))continue;
     const visit=date(d.data_giudizio||d.data_cartella);
     if(!visit||visit>=current.visita||!allowed.has(String(d.giudizio||'')))continue;
-    candidates.push({data:d,visit,savedAt:String(v.savedAt||'')});
+    candidates.push({data:d,visit,savedAt:String(v.savedAt||''),source:'cartella'});
    }
   }
-  candidates.sort((a,b)=>b.visit.localeCompare(a.visit)||b.savedAt.localeCompare(a.savedAt));
+  // Include only historical PDF judgments explicitly transcribed and verified by a doctor.
+  const historic=window.lumenStoricoCartaceo;
+  for(const row of originals){
+   if(!historic?.verifiedJudgment||!row||!date(row.visit)||row.visit>=current.visita)continue;
+   const j=historic.verifiedJudgment(row);
+   if(!j||!allowed.has(j.giudizio))continue;
+   candidates.push({
+    data:{...j,datore_lavoro:row.storicoCartaceo?.azienda||'',mansione:''},
+    visit:row.visit,savedAt:j.verificatoIl,source:'pdf',sourceId:row.id,sourceHash:row.hash
+   });
+  }
+  candidates.sort((a,b)=>b.visit.localeCompare(a.visit)||
+    (a.source==='cartella'?-1:1)-(b.source==='cartella'?-1:1)||
+    b.savedAt.localeCompare(a.savedAt));
   return candidates[0]||null;
+ }
+ async function findPrevious(current){
+  const records=await api.list();
+  let originals=[];
+  const historic=window.lumenStoricoCartaceo,store=window.lumenAllegatiStorage;
+  if(historic?.precedenti&&store?.list){
+   try{
+    originals=historic.precedenti(await store.list(),{
+     cognome:current.cognome,nome:current.nome,data_nascita:current.nascita,
+     codice_fiscale:current.cf,data_giudizio:current.visita
+    });
+   }catch(_){ /* Keep existing structured-chart judgment discovery available. */ }
+  }
+  return previous(records,current,originals);
  }
  let candidate=null,request=0,timer=0;
  function show(c){
   candidate=c;
   wrap.hidden=!c;
-  status.textContent=c?'Giudizio del '+c.visit.split('-').reverse().join('/')+' disponibile. Il medico deve verificarlo prima del salvataggio.':'';
+  status.textContent=c?'Giudizio del '+c.visit.split('-').reverse().join('/')+(c.source==='pdf'?' · trascritto e verificato dal PDF originale':'')+' disponibile. Il medico deve rivalutarlo prima del salvataggio.':'';
  }
  async function refresh(){
   const token=++request,initial=identity();
   if(!initial.visita||!initial.cognome||!initial.nome||(!initial.cf&&!initial.nascita)){show(null);return;}
   try{
-   const records=await api.list();
+   const found=await findPrevious(initial);
    if(token!==request||stamp(initial)!==stamp(identity()))return;
-   show(previous(records,initial));
+   show(found);
   }catch(_){if(token===request){show(null);}}
  }
  function schedule(){clearTimeout(timer);show(null);timer=setTimeout(refresh,250);}
@@ -83,10 +110,9 @@ function boot(){
   button.disabled=true;
   try{
    // Re-read the source immediately before copying: never trust a stale selection.
-   const recs=await api.list();
+   const current=await findPrevious(start);
    if(stamp(start)!==stamp(identity()))throw Error('Lavoratore o visita cambiati. Riprova.');
-   const current=previous(recs,start);
-   if(!current||current.visit!==c.visit||stamp(current.data)!==stamp(c.data))throw Error('Il giudizio precedente è cambiato. Riprova.');
+   if(!current||current.visit!==c.visit||current.source!==c.source||current.sourceId!==c.sourceId||current.sourceHash!==c.sourceHash||stamp(current.data)!==stamp(c.data))throw Error('Il giudizio precedente è cambiato. Riprova.');
    const d=current.data;
    const period=String(d.periodicita||''),other=String(d.periodicita_altro||'');
    if(period&&![...$('periodicita').options].some(x=>x.value===period))throw Error('Periodicità storica non riconosciuta: controllare la vecchia cartella.');
@@ -94,8 +120,8 @@ function boot(){
    const old={giudizio:document.querySelector('input[name="giudizio"]:checked')?.value||'',prescrizioni:read('prescrizioni'),periodicita:read('periodicita'),periodicita_altro:read('periodicita_altro')};
    const changed=Object.keys(old).some(k=>old[k]!==next[k]);
    const conflicts=Object.values(old).some(v=>!!v)&&changed;
-   const differentJob=norm(d.mansione)!==start.mansione||norm(d.datore_lavoro)!==start.azienda;
-   const preview='GIUDIZIO DEL '+current.visit.split('-').reverse().join('/')+'\n\n'+next.giudizio+
+   const differentJob=!!(d.mansione&&norm(d.mansione)!==start.mansione||d.datore_lavoro&&norm(d.datore_lavoro)!==start.azienda);
+   const preview='GIUDIZIO DEL '+current.visit.split('-').reverse().join('/')+(current.source==='pdf'?' (TRASCRITTO DA PDF STORICO)':'')+'\n\n'+next.giudizio+
     '\nPrescrizioni / limitazioni: '+(next.prescrizioni||'NESSUNA')+
     '\nPeriodicità: '+(next.periodicita||'NON INDICATA')+(other?' — '+other:'')+
     (differentJob?'\n\nATTENZIONE: datore di lavoro o mansione diversi dalla visita attuale.':'')+
@@ -117,6 +143,7 @@ function boot(){
   const field=$(id);if(field){field.addEventListener('input',schedule);field.addEventListener('change',schedule);}
  }
  document.addEventListener('lumen:cartella-applied',schedule);
+ document.addEventListener('lumen:giudizio-storico-verificato',schedule);
  form.addEventListener('reset',()=>setTimeout(schedule,0));
  schedule();
 }
