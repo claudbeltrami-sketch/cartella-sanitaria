@@ -124,7 +124,7 @@ function plan(charts,records,now){
      if(old.data)record.history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});
      record.data=clone(d);record.cognome=d.cognome;record.nome=d.nome;record.dataNascita=d.data_nascita;record.cf=identity.cf;record.nomeKey=identity.nomeKey;
     }else record.history.push({savedAt:now,data:clone(d)});
-    status='newVisit';detail='NUOVA VISITA; PRECEDENTI CONSERVATE';
+    status='newVisit';detail=visit(d)<visit(old.data||{})?'PRECEDENTE ELETTRONICO INTEGRATO AUTOMATICAMENTE':'NUOVA VISITA; PRECEDENTI CONSERVATE';
    }
   }else{
    record={id,cf:identity.cf,cognome:d.cognome,nome:d.nome,dataNascita:d.data_nascita,nomeKey:identity.nomeKey,createdAt:now,updatedAt:now,data:clone(d),history:[]};
@@ -195,6 +195,9 @@ confirmButton.onclick=async()=>{
   message.textContent='IMPORTAZIONE COMPLETATA\n'+result.added+' CARTELLE / VISITE SALVATE · '+result.duplicates+' GIÀ PRESENTI · '+result.conflicts+' DA VERIFICARE'+(result.conflicts?'\nLe righe da verificare non sono state importate.':'');
   window.lumenBatchCertApi?.setStatus(message.textContent.replace(/\n/g,' — '));
   archiveButton.hidden=false;
+  // The earlier visit was already attached transactionally to the same worker record.
+  // Re-read previous judgments and original PDFs immediately, without reopening the chart.
+  document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
   // No clinical data are sent by this importer; existing counting runs after commit.
   window.lumenConteggio?.wake();
  }catch(e){message.textContent='IMPORTAZIONE NON ESEGUITA\n'+(e.message||String(e))+'\nNessuna cartella del pacchetto è stata salvata.'}
