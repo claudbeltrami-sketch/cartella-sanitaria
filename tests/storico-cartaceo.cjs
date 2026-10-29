@@ -28,6 +28,21 @@ async function run(){
  let before=api.stamp(await list()),p=api.plan(rows,await list(),charts);assert.equal(p.added.length,1);assert(p.items[0].linked);assert.equal((await list()).length,1);
  let r=await api.commit(rows,before,opts);assert.equal(r.added,1);assert.equal((await list()).length,2);assert.equal(JSON.stringify(charts),clinicalBefore);
  assert.deepEqual((await list()).find(x=>x.id==='KEEP'),sentinel);assert.equal(await (await list()).find(x=>x.id===rows[0].id).blob.text(),pdf.toString());
+ // A PDF alone must never make its judgment eligible for copying.
+ const original=(await list()).find(x=>x.id===rows[0].id);
+ assert.equal(api.verifiedJudgment(original),null);
+ await assert.rejects(api.saveJudgment(original,{giudizio:'IDONEO CON LIMITAZIONI',periodicita:'ANNUALE'},{storage}),/prescrizioni o limitazioni/);
+ await assert.rejects(api.saveJudgment(original,{giudizio:'IDONEO',periodicita:'ALTRO'},{storage}),/ALTRO/);
+ const recorded=await api.saveJudgment(original,{
+  giudizio:'IDONEO CON LIMITAZIONI',prescrizioni:'NON SOLLEVARE CARICHI OLTRE 5 KG',periodicita:'ANNUALE'
+ },{storage,now:'2026-10-29T08:00:00.000Z'});
+ assert.equal(api.verifiedJudgment(recorded).giudizio,'IDONEO CON LIMITAZIONI');
+ assert.equal(recorded.hash,original.hash);
+ assert.equal(await recorded.blob.text(),pdf.toString());
+ assert.equal(api.verifiedJudgment({...recorded,hash:'f'.repeat(64)}),null);
+ await assert.rejects(api.saveJudgment({...original,hash:'0'.repeat(64)},{giudizio:'IDONEO',periodicita:'ANNUALE'},{storage}),/PDF o l’identità sono cambiati/);
+ assert.deepEqual((await list()).find(x=>x.id==='KEEP'),sentinel);
+
  r=await api.commit(rows,api.stamp(await list()),opts);assert.equal(r.added,0);assert.equal(r.duplicates,1);
  const bad={...rows[0],workerKey:'CF_OTHER'};assert.equal(api.plan([bad],await list(),charts).conflicts.length,1);
  const variant={...rows[0],id:'different',hash:'f'.repeat(64)};assert.equal(api.plan([variant],await list(),charts).conflicts.length,1);
@@ -42,7 +57,7 @@ async function run(){
  // Backup encoding/reopening must preserve the complete source bytes and metadata.
  const saved=(await list()).find(x=>x.id===rows[0].id);const encoded={...saved,blob:Buffer.from(await saved.blob.arrayBuffer()).toString('base64')};const restored=JSON.parse(JSON.stringify(encoded));
  assert.equal(await api.hash(Buffer.from(restored.blob,'base64')),saved.hash);assert.deepEqual(restored.storicoCartaceo,saved.storicoCartaceo);
- console.log('PASS: format/identity/date/CF/hash validation, read-only preview, duplicate/conflict protection, exact PDFs, existing clinical data/counts untouched, reopen, stale preview, atomic rollback, backup round trip.');
+ console.log('PASS: doctor-verified PDF judgment, source hash binding, stale document blocked, format/identity/date/CF/hash validation, read-only preview, duplicate/conflict protection, exact PDFs, existing clinical data/counts untouched, reopen, stale preview, atomic rollback, backup round trip.');
  if(process.env.LUMEN_HISTORICAL_PACKAGE){
   const privateFile=new File([fs.readFileSync(process.env.LUMEN_HISTORICAL_PACKAGE)],'private.json');const actual=await api.parse(privateFile);
   const backup=JSON.parse(fs.readFileSync(process.env.LUMEN_REFERENCE_BACKUP,'utf8')).contenuto;
