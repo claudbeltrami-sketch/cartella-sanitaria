@@ -1254,6 +1254,7 @@ async function deleteArchiveRecord(id){
  const db=await openCartelleDb();
  try{await new Promise((resolve,reject)=>{const q=db.transaction(CARTELLE_STORE,'readwrite').objectStore(CARTELLE_STORE).delete(id);q.onsuccess=()=>resolve();q.onerror=()=>reject(q.error)})}finally{db.close()}
  await renderArchive(document.getElementById('archiveQuery').value);
+ document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
  setStatus('CARTELLA DI '+nome+' ELIMINATA DALL’ARCHIVIO LOCALE.');
 }
 async function restoreArchiveVersion(id,idx){const r=await getCartellaRecord(id);if(!r||!Array.isArray(r.history)||!r.history[idx])return;const h=r.history[idx];if(!confirm('Ripristinare questa versione del '+fmtArchiveDate(h.savedAt)+' nella schermata? Non verrà sovrascritto l’archivio finché non premi SALVA DATI CARTELLA.'))return;apply(lumenRuoliAzienda.forRecord(r,h.data||{}));document.getElementById('archiveModal').classList.remove('show');setStatus('VERSIONE STORICA CARICATA NELLA SCHERMATA. SALVARE PER RENDERLA CORRENTE.')}
