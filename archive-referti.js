@@ -90,7 +90,7 @@
    const rec=recordsById.get(open.dataset.archiveId),cell=open.parentElement;
    if(!rec||cell.querySelector('[data-verifica-referti]'))return;
    const button=document.createElement('button');button.type='button';button.className='secondary';button.dataset.verificaReferti='true';button.textContent='VERIFICA REFERTI';button.style.marginLeft='5px';
-   button.onclick=()=>editVerification(rec,button).catch(e=>alert('Impossibile aprire la verifica: '+e.message));cell.append(button);
+   button.onclick=()=>editVerification(rec,button).catch(e=>alert('Impossibile aprire la verifica: '+e.message));(cell.querySelector('.archive-action-commands')||cell).append(button);
   });
  }
  const archive=document.getElementById('archiveResults');if(archive)new MutationObserver(addControls).observe(archive,{childList:true,subtree:true});
