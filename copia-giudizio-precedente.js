@@ -26,6 +26,7 @@ function boot(){
   review.disabled=true;
   try{
    const current=identity();
+   if(typeof window.lumenStoricoCartaceo?.reviewPrevious!=='function')throw Error('Il modulo storico non è aggiornato. Ricarica LUMEN con la connessione attiva e riprova.');
    await window.lumenStoricoCartaceo.reviewPrevious({cognome:current.cognome,nome:current.nome,data_nascita:current.nascita,codice_fiscale:current.cf,data_giudizio:current.visita});
   }catch(e){window.alert(e.message||String(e))}finally{review.disabled=false}
  });

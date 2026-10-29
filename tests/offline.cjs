@@ -13,7 +13,12 @@ async function request(url,method='GET'){let response;const request=new Request(
 (async()=>{
  await lifecycle('install');await lifecycle('activate');assert.ok(skipped&&claimed);
  assert.match(await (await request('https://example.test/cartella-sanitaria/')).text(),/^online:/);
+ // An installed unversioned copy must not mask a newer requested script.
+ const script='https://example.test/cartella-sanitaria/storico-cartaceo.js?v=nuova';
+ assert.equal(await (await request(script)).text(),'online:'+script);
  offline=true;
+ assert.equal(await (await request(script)).text(),'online:'+script);
+
  assert.equal(await (await request('https://example.test/cartella-sanitaria/?prova=fantasma')).text(),'/cartella-sanitaria/index.html');
  assert.equal(await (await request('https://example.test/cartella-sanitaria/esami-compatti.js?v=1')).text(),'/cartella-sanitaria/esami-compatti.js');
  assert.equal(await (await request('https://example.test/cartella-sanitaria/lumen-offline.js?v=1')).text(),'/cartella-sanitaria/lumen-offline.js');
