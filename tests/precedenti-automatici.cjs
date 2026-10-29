@@ -48,6 +48,13 @@ async function main(){
  assert(wrap,'Judgment section not created');
  assert(!wrap.hidden,'PDF-only predecessor should be visible as status');
  assert(button.hidden,'PDF-only must NEVER enable copy');
+ const review=wrap.querySelectorAll('button')[1];
+ assert(!review.hidden,'PDF-only must offer direct recovery');
+ let reviewed=null;historic.reviewPrevious=async data=>{reviewed=data};
+ review.click();await tick();
+ assert.equal(reviewed.codice_fiscale,cf);assert.equal(reviewed.data_giudizio,'2026-06-08');
+ assert.match(doc.head.textContent,/button\[hidden\]\{display:none!important/);
+
  assert.match(status.textContent,/PDF della visita precedente collegato automaticamente/);
  // Simulate an electronic previous visit added after the current page is open.
  archive=[{...chart,history:[{savedAt:'2026-10-29T08:00:00Z',data:{
@@ -57,6 +64,7 @@ async function main(){
   datore_lavoro:'AZIENDA DI PROVA'
  }}]}];
  doc.dispatchEvent(new window.Event('lumen:precedenti-aggiornati'));await tick();
+ assert(review.hidden,'Recovery action hides when copy is ready');
  assert(!button.hidden,'Structured previous judgment should be available without reopening current chart');
  assert.match(status.textContent,/visita elettronica collegata automaticamente/);
  button.click();await tick();

@@ -21,10 +21,18 @@ function boot(){
  const status=document.createElement('span');
  status.setAttribute('role','status');
  status.style.cssText='display:block;margin-top:6px;color:#364a5e;font-size:12px';
- wrap.append(button,status);
+ const review=document.createElement('button');review.type='button';review.textContent='RECUPERA GIUDIZIO DAL PDF PRECEDENTE';review.hidden=true;
+ review.addEventListener('click',async()=>{
+  review.disabled=true;
+  try{
+   const current=identity();
+   await window.lumenStoricoCartaceo.reviewPrevious({cognome:current.cognome,nome:current.nome,data_nascita:current.nascita,codice_fiscale:current.cf,data_giudizio:current.visita});
+  }catch(e){window.alert(e.message||String(e))}finally{review.disabled=false}
+ });
+ wrap.append(button,review,status);
  if(anchor&&anchor.classList.contains('section-title'))anchor.after(wrap);else section.before(wrap);
  const css=document.createElement('style');
- css.textContent='#lumenCopiaGiudizio{margin:8px 0 12px;padding:10px;border:1px solid #9bb0c4;border-radius:8px;background:#eef5fa}#lumenCopiaGiudizio[hidden]{display:none!important}#lumenCopiaGiudizio button{width:100%;max-width:450px;min-height:43px}@media print{#lumenCopiaGiudizio{display:none!important}}';
+ css.textContent='#lumenCopiaGiudizio{margin:8px 0 12px;padding:10px;border:1px solid #9bb0c4;border-radius:8px;background:#eef5fa}#lumenCopiaGiudizio button[hidden]{display:none!important}#lumenCopiaGiudizio[hidden]{display:none!important}#lumenCopiaGiudizio button{width:100%;max-width:450px;min-height:43px}@media print{#lumenCopiaGiudizio{display:none!important}}';
  document.head.append(css);
  const $=id=>document.getElementById(id);
  const read=id=>String($(id)?.value||'').trim();
@@ -91,10 +99,11 @@ function boot(){
   candidate=c;
   wrap.hidden=!c&&!hasPdf;
   button.hidden=!c;
+  review.hidden=!hasPdf||!!c;
   status.textContent=c?'Precedente del '+c.visit.split('-').reverse().join('/')+
     (c.source==='pdf'?' · giudizio verificato e collegato al PDF':' · visita elettronica collegata automaticamente')+
     '. Il medico deve rivalutarlo prima del salvataggio.':
-    hasPdf?'PDF della visita precedente collegato automaticamente. Il giudizio è nel documento originale ma non è ancora disponibile come dato clinico strutturato e verificato. Nessuna copia automatica.':'';
+    hasPdf?'PDF della visita precedente collegato automaticamente. Premi RECUPERA GIUDIZIO DAL PDF PRECEDENTE per consultarlo e registrarlo una sola volta; poi potrai copiarlo nei campi modificabili.':'';
  }
  async function refresh(){
   const token=++request,initial=identity();

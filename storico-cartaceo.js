@@ -184,6 +184,22 @@ function line(row,status){
 }
 async function openOriginal(row,report){let opened=null;try{if(!(row.blob instanceof Blob)){opened=root.open('','_blank');if(!opened)throw Error('Consenti l’apertura del PDF nel browser.');opened.opener=null}const blob=await root.lumenExternalAttachments.getBlob(row);if(await hash(await blob.arrayBuffer())!==row.hash)throw Error('Il PDF non coincide con l’originale.');const url=URL.createObjectURL(blob);if(opened)opened.location.replace(url);else{const a=doc.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click()}setTimeout(()=>URL.revokeObjectURL(url),300000)}catch(e){if(opened)opened.close();report(e.message)}}
 
+// Open the exact matched source directly from the current judgment section.
+core.reviewPrevious=async function(data){
+ if(busy)return;
+ const rows=precedenti(await storage.list(),data);
+ if(!rows.length)throw Error('Nessun PDF precedente associato a questo lavoratore.');
+ pending=null;$('storicoCartaceoConfirm').hidden=true;
+ $('storicoCartaceoQuery').value='';dialog.showModal();
+ const list=$('storicoCartaceoList');list.replaceChildren();
+ for(const row of rows){
+  const article=line(row),open=doc.createElement('button');
+  open.type='button';open.textContent='APRI PDF ORIGINALE';open.onclick=()=>openOriginal(row,message);
+  article.append(open);
+  const editor=judgmentEditor(row);editor.open=true;article.append(editor);list.append(article);
+ }
+ message('Precedenti dello stesso lavoratore, dal più recente. Registra il giudizio una sola volta: sarà disponibile per le visite successive.');
+};
 function judgmentEditor(row){
  const details=doc.createElement('details'),summary=doc.createElement('summary'),saved=verifiedJudgment(row);
  details.style.cssText='border:1px solid #9bb0c4;padding:10px;margin:12px 0';
@@ -193,6 +209,47 @@ function judgmentEditor(row){
  const notice=doc.createElement('p');
  notice.textContent='Apri il PDF originale e trascrivi soltanto ciò che è effettivamente riportato nel giudizio. Non viene creato un nuovo giudizio medico né alterato il PDF.';
  details.appendChild(notice);
+ const readPdf=doc.createElement('button');readPdf.type='button';readPdf.textContent='LEGGI PDF QUI';
+ const source=doc.createElement('div');source.style.cssText='max-height:60vh;overflow:auto;background:white';
+ readPdf.onclick=async()=>{
+  if(readPdf.disabled)return;readPdf.disabled=true;
+  let pdf=null;
+  try{
+   source.replaceChildren();
+   const blob=await root.lumenExternalAttachments.getBlob(row);
+   const bytes=await blob.arrayBuffer();
+   if(await hash(bytes)!==row.hash)throw Error('Il PDF non coincide con l’originale.');
+   if(!root.pdfjsLib)throw Error('Lettore PDF non disponibile: ricarica LUMEN con connessione.');
+   root.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+   pdf=await root.pdfjsLib.getDocument({data:new Uint8Array(bytes),isEvalSupported:false}).promise;
+   // Read one page at a time so large scans do not exhaust phone memory.
+   // Preserve handwriting and checkbox marks instead of guessing from OCR.
+   const reader=pdf;
+   let pageNumber=reader.numPages,rendering=false;
+   const nav=doc.createElement('div'),back=doc.createElement('button'),forward=doc.createElement('button'),label=doc.createElement('p'),canvas=doc.createElement('canvas');
+   back.type=forward.type='button';back.textContent='PAGINA PRECEDENTE';forward.textContent='PAGINA SUCCESSIVA';
+   canvas.style.cssText='width:100%;height:auto;display:block';nav.append(back,forward);source.append(nav,label,canvas);
+   const renderPage=async()=>{
+    if(rendering)return;rendering=true;back.disabled=forward.disabled=true;
+    try{
+     const page=await reader.getPage(pageNumber),viewport=page.getViewport({scale:1.4});
+     canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+     await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+     label.textContent='Pagina '+pageNumber+' / '+reader.numPages+' · '+row.workerLabel+' · '+row.visit;page.cleanup();
+    }catch(e){message('PAGINA NON LETTA: '+e.message)}
+    finally{rendering=false;back.disabled=pageNumber<=1;forward.disabled=pageNumber>=reader.numPages}
+   };
+   back.onclick=()=>{if(!rendering&&pageNumber>1){pageNumber--;renderPage()}};
+   forward.onclick=()=>{if(!rendering&&pageNumber<reader.numPages){pageNumber++;renderPage()}};
+   await renderPage();
+   // Keep this reader alive while the dialog is open; free it when closed.
+   dialog.addEventListener('close',()=>reader.destroy(),{once:true});pdf=null;
+   readPdf.textContent='PDF ORIGINALE VISIBILE QUI SOTTO';
+  }catch(e){message('PDF NON LETTO: '+e.message);readPdf.textContent='RIPROVA LETTURA PDF'}
+  finally{if(pdf)await pdf.destroy();readPdf.disabled=false}
+ };
+ details.append(readPdf,source);
+
  const line=(title,input)=>{const label=doc.createElement('label');label.textContent=title;label.appendChild(input);details.appendChild(label);return input};
  const verdict=doc.createElement('select');verdict.style.width='100%';
  verdict.appendChild(new Option('SELEZIONA DAL PDF',''));
