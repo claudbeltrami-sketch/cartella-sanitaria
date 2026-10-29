@@ -47,7 +47,9 @@ async function worker(){
  return workerPromise;
 }
 async function extract(row){
- const key=[row.id,row.hash,row.visit].join('|');
+ const stored=root.lumenStoricoCartaceo.extractedJudgment?.(row);
+ if(stored)return stored;
+ const key=[row.id,row.hash,row.visit,row.workerKey,row.workerBirth,row.workerCf].join('|');
  if(cache.has(key))return cache.get(key);
  const task=queue.then(async()=>{
   let pdf;
@@ -76,7 +78,10 @@ async function extract(row){
     page.cleanup();
    }
    if(proposals.length!==1)return {ok:false,reason:proposals.length?'Più pagine contengono un giudizio: verifica necessaria.':'Giudizio non riconosciuto con sufficiente certezza. Nessun campo copiato.'};
-   return {...proposals[0],evidence};
+   const result={...proposals[0],evidence};
+   if(root.lumenStoricoCartaceo.saveExtraction&&root.lumenAllegatiStorage)
+    await root.lumenStoricoCartaceo.saveExtraction(row,result,{storage:root.lumenAllegatiStorage});
+   return result;
   }finally{if(pdf)await pdf.destroy();if(workerPromise){const old=workerPromise;workerPromise=null;old.then(w=>w.terminate()).catch(()=>{})}}
  });
  queue=task.catch(()=>{});if(cache.size>=50)cache.delete(cache.keys().next().value);cache.set(key,task);
