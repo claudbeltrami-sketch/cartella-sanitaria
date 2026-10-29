@@ -8,6 +8,7 @@ on:
       - 'lumen-sw.js'
       - 'copia-giudizio-precedente.js'
       - 'tests/storico-cartaceo.cjs'
+      - 'tests/precedenti-automatici.cjs'
       - '.github/workflows/verifica-giudizi-pdf-storici.yml'
   workflow_dispatch:
 jobs:
@@ -27,3 +28,5 @@ jobs:
       - run: node --check importa-cartelle.js
       - run: node --check lumen-sw.js
       - run: npm run test:storico
+      - run: npm install --no-save --ignore-scripts linkedom@0.18.12
+      - run: node tests/precedenti-automatici.cjs
