@@ -6,7 +6,7 @@ let scriptCount=0;
 for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))if(m[1].trim())new vm.Script(m[1],{filename:`inline-${++scriptCount}`});
 const fields=[],nodes=new Map(),store=new Map(),groups={rischi:[],protocollo:[],giudizio:[]};
 function classes(value=''){const s=new Set(value.split(/\s+/));return {contains:x=>s.has(x),add:x=>s.add(x),remove:x=>s.delete(x),toggle:(x,on)=>on?s.add(x):s.delete(x)}}
-function node(id,attrs={}){return {id,type:attrs.type||'text',value:'',checked:false,textContent:'',style:{},classList:classes(attrs.class),hasAttribute:k=>k in attrs,setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},scrollIntoView(){},focus(){}}}
+function node(id,attrs={}){return {id,type:attrs.type||'text',value:'',checked:false,textContent:'',style:{},parentElement:{hidden:false},classList:classes(attrs.class),hasAttribute:k=>k in attrs,setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},scrollIntoView(){},focus(){}}}
 const formHTML=html.slice(html.indexOf('<form'),html.indexOf('</form>'));
 for(const m of formHTML.matchAll(/<(input|select|textarea)\b([^>]*)>/g)){
  const a={};for(const v of m[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g))a[v[1]]=v[2]??'';
@@ -20,9 +20,9 @@ function queryAll(sel){
  return sel.includes(':checked')?groups[key].filter(x=>x.checked):groups[key];
 }
 let outputUpdate=()=>{};
-const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(type){this.type=type}},
+const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(type){this.type=type}},CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail}},
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},sessionStorage:{removeItem:k=>store.delete(k)},
- document:{getElementById:get,querySelectorAll:queryAll,querySelector:sel=>sel==='.cartella'?get('cartella'):null,body:get('body')},
+ document:{getElementById:get,querySelectorAll:queryAll,querySelector:sel=>sel==='.cartella'?get('cartella'):null,body:get('body'),dispatchEvent(){}},
  form:{querySelectorAll:()=>fields,reset(){for(const x of fields){x.value='';x.checked=false}Object.values(groups).flat().forEach(x=>x.checked=false)}},
  today:()=> '2026-09-08',rememberMansione(){},syncCFBarcode(){},convertiAltezzaInCm(){},aggiornaInvalidita(){},
  renderWorkers(){},setStatus(v){c.lastStatus=v},showSaveInfo(){},fmt:v=>v,getCartellaRecord:async()=>null,listCartelleArchive:async()=>[],workers:[],currentWorkerIndex:-1};
@@ -30,6 +30,8 @@ c.window={dispatchEvent(){outputUpdate()},scrollTo(){}};
 c.location={search:''};c.URLSearchParams=URLSearchParams;
 c.window.localStorage=c.localStorage;c.window.sessionStorage=c.sessionStorage;
 vm.createContext(c);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../ruoli-azienda.js'),'utf8'),c);
+c.lumenRuoliAzienda=c.window.lumenRuoliAzienda;
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../prova-storage.js'),'utf8'),c);
 c.lumenStorage=c.window.lumenStorage;
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
@@ -38,6 +40,8 @@ vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);
 vm.runInContext(html.slice(html.indexOf('const workerDrafts='),html.indexOf('\nfunction moveWorker(')),c);
+// Isolate archive-read and signature checks from autosave writes.
+c.autosaveCurrentCartella=async()=>({saved:false,skipped:'test isolation'});
 vm.runInContext(line('checkedValues'),c);
 vm.runInContext(html.match(/^const fmt=v=>.+/m)[0],c);
 vm.runInContext(html.slice(html.indexOf('function luogoVisitaSessione('),html.indexOf("document.getElementById('btnTorna').onclick")),c);
@@ -67,9 +71,9 @@ async function run(){
  c.getCartellaRecord=async()=>({data:{...D,data_giudizio:'2026-01-01',farmaci:'OLD'}});await c.selectWorker(3);assert.equal(c.collect().farmaci,'');signatureIs('');
  // A slow archive response must not overwrite a later choice or typed data.
  const E={...B,cognome:'TESTCINQUE',nome:'EPSILON',codice_fiscale:'TEST_WORKER_E'};c.workers.push(E);
- let resolve;c.getCartellaRecord=()=>new Promise(r=>resolve=r);const pending=c.selectWorker(4);c.apply(A);resolve({data:{...E,farmaci:'STALE'}});await pending;assert.equal(c.collect().codice_fiscale,'TEST_WORKER_A');
+ let resolve;c.getCartellaRecord=()=>new Promise(r=>resolve=r);const pending=c.selectWorker(4);await new Promise(setImmediate);c.apply(A);resolve({data:{...E,farmaci:'STALE'}});await pending;assert.equal(c.collect().codice_fiscale,'TEST_WORKER_A');
  const F={...B,cognome:'TESTSEI',nome:'ZETA',codice_fiscale:'TEST_WORKER_F'};c.workers.push(F);
- const typing=c.selectWorker(5);get('farmaci').value='TYPED';resolve({data:{...F,farmaci:'STALE'}});await typing;assert.equal(c.collect().farmaci,'TYPED');
+ const typing=c.selectWorker(5);await new Promise(setImmediate);get('farmaci').value='TYPED';resolve({data:{...F,farmaci:'STALE'}});await typing;assert.equal(c.collect().farmaci,'TYPED');
  assert.equal(JSON.parse(store.get('beltrami_firme_lavoratori_v1')).TEST_WORKER_A,'OLD_SIGNATURE_A');
  // Archived visits retain their own place even without a session or with a different one open.
  get('v9Sede').value='';get('v9Data').value='';
@@ -82,12 +86,12 @@ async function run(){
  // An unrelated session, workplace or birthplace must not become the visit location.
  c.apply({...B,sede_lavoro:'SEDE AZIENDA',luogo_nascita:'COMUNE NASCITA'});
  assert.equal(c.collect().luogo_visita,'');signatureIs('');
- c.prompt=()=>null;get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
- c.prompt=()=> '  ';get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
- c.prompt=()=> ' Roma Collatina ';get('btnCert').onclick();
+ c.prompt=()=>null;await get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
+ c.prompt=()=> '  ';await get('btnCert').onclick();assert.equal(get('certificate').style.display,'none');
+ c.prompt=()=> ' Roma Collatina ';await get('btnCert').onclick();
  assert.equal(get('c_luogo_data').textContent,'ROMA COLLATINA, 08/09/2026');
  assert.equal(c.collect().luogo_visita,'ROMA COLLATINA');
- c.prompt=()=>{throw new Error('A known visit location must not prompt again')};get('btnCert').onclick();
+ c.prompt=()=>{throw new Error('A known visit location must not prompt again')};await get('btnCert').onclick();
  // Same-day session locations initialize a new record and survive its export/reopening.
  get('v9Data').value='2026-09-08';get('v9Sede').value='COLLATINA';c.apply(B);
  assert.equal(c.collect().luogo_visita,'COLLATINA');
@@ -110,7 +114,7 @@ async function run(){
  c.listCartelleArchive=async()=>[];
  const H={...B,cognome:'TESTOTTO',nome:'THETA',codice_fiscale:'TEST_WORKER_H'};c.workers.push(H);const hi=c.workers.length-1;
  let resolveH;c.getCartellaRecord=()=>new Promise(resolve=>resolveH=resolve);
- const openingH=c.selectWorker(hi);
+ const openingH=c.selectWorker(hi);await new Promise(setImmediate);
  c.getCartellaRecord=async()=>null;await c.selectWorker(0);
  resolveH({data:{...H,farmaci:'DATI THETA',firma_lavoratore_png:'SIGNATURE_H'}});await openingH;
  c.getCartellaRecord=async()=>({data:{...H,farmaci:'DATI THETA',firma_lavoratore_png:'SIGNATURE_H'}});

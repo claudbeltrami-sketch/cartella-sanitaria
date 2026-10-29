@@ -21,9 +21,9 @@ function queryAll(sel){
  return sel.includes(':checked')?groups[key].filter(x=>x.checked):groups[key];
 }
 let outputUpdate=()=>{};
-const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(type){this.type=type}},
+const c={Map,JSON,String,Number,Array,Object,Date,Math,Event:class{constructor(type){this.type=type}},CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail}},
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},sessionStorage:{removeItem:k=>store.delete(k),getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},
- document:{getElementById:get,querySelectorAll:queryAll,querySelector:sel=>sel==='.cartella'?get('cartella'):null,body:get('body')},
+ document:{getElementById:get,querySelectorAll:queryAll,querySelector:sel=>sel==='.cartella'?get('cartella'):null,body:get('body'),dispatchEvent(){}},
  form:{querySelectorAll:()=>fields,reset(){for(const x of fields){x.value='';x.checked=false}Object.values(groups).flat().forEach(x=>x.checked=false)}},
  today:()=> '2026-09-08',rememberMansione(){},syncCFBarcode(){},convertiAltezzaInCm(){},aggiornaInvalidita(){},
  renderWorkers(){},setStatus(v){c.lastStatus=v},showSaveInfo(){},fmt:v=>v,getCartellaRecord:async()=>null,listCartelleArchive:async()=>[],workers:[],currentWorkerIndex:-1};
@@ -31,6 +31,8 @@ c.window={dispatchEvent(){outputUpdate()},scrollTo(){},addEventListener(){}};c.s
 c.location={search:''};c.URLSearchParams=URLSearchParams;
 c.window.localStorage=c.localStorage;c.window.sessionStorage=c.sessionStorage;
 vm.createContext(c);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../ruoli-azienda.js'),'utf8'),c);
+c.lumenRuoliAzienda=c.window.lumenRuoliAzienda;
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../prova-storage.js'),'utf8'),c);
 c.lumenStorage=c.window.lumenStorage;
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../firma-offline.js'),'utf8'),c);
