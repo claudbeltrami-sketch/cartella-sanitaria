@@ -53,6 +53,58 @@ function plan(rows,existing,charts=[]){
  return {items:out,added,duplicates,conflicts};
 }
 const stamp=rows=>JSON.stringify(rows.map(r=>[r.id,r.workerKey,r.visit,r.hash,r.size,r.storicoCartaceo]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
+
+/* Trascrizione medica esplicita del giudizio da PDF originale.
+ * I PDF non vengono analizzati automaticamente e la cartella clinica resta invariata.
+ * La verifica rimane legata all'impronta SHA-256 dell'esatto PDF consultato. */
+const GIUDIZIO_PDF='LUMEN_GIUDIZIO_PDF_V1';
+const tipiGiudizio=['IDONEO','IDONEO CON PRESCRIZIONI','IDONEO CON LIMITAZIONI','NON IDONEO TEMPORANEAMENTE','NON IDONEO PERMANENTEMENTE'];
+const tipiPeriodicita=['','ANNUALE','BIENNALE','QUINQUENNALE','ALTRO'];
+function judgmentFields(value){
+ const v=value||{},giudizio=String(v.giudizio||'').trim().toUpperCase(),
+       prescrizioni=String(v.prescrizioni||'').trim().toUpperCase(),
+       periodicita=String(v.periodicita||'').trim().toUpperCase(),
+       periodicita_altro=String(v.periodicita_altro||'').trim().toUpperCase();
+ if(!tipiGiudizio.includes(giudizio))throw Error('Scegli il giudizio esattamente come riportato nel PDF.');
+ if(prescrizioni.length>4000||periodicita_altro.length>150)throw Error('Testo troppo lungo per la trascrizione.');
+ if(!tipiPeriodicita.includes(periodicita))throw Error('Periodicità non riconosciuta.');
+ if(periodicita==='ALTRO'&&!periodicita_altro)throw Error('Specifica la periodicità ALTRO.');
+ if(periodicita!=='ALTRO'&&periodicita_altro)throw Error('Il testo ALTRO richiede periodicità ALTRO.');
+ if((giudizio==='IDONEO CON PRESCRIZIONI'||giudizio==='IDONEO CON LIMITAZIONI')&&!prescrizioni)
+  throw Error('Riporta integralmente le prescrizioni o limitazioni presenti nel PDF.');
+ return {giudizio,prescrizioni,periodicita,periodicita_altro};
+}
+function verifiedJudgment(row){
+ const j=row?.storicoCartaceo?.giudizioVerificato;
+ if(row?.storicoCartaceo?.tipo!==FLAG||j?.tipo!==GIUDIZIO_PDF||j.verificatoDalMedico!==true||
+    j.fonteHash!==row.hash||j.dataVisita!==row.visit||!date(row.visit)||!j.verificatoIl)return null;
+ try{return {...judgmentFields(j),verificatoIl:j.verificatoIl,fonteHash:j.fonteHash,dataVisita:j.dataVisita}}catch(_){return null}
+}
+async function saveJudgment(row,fields,{storage,now=new Date().toISOString()}){
+ if(!row||row.storicoCartaceo?.tipo!==FLAG||row.storicoCartaceo?.identitaVerificata!==true||
+    !date(row.visit)||!/^[a-f0-9]{64}$/.test(row.hash||''))throw Error('PDF storico non verificato.');
+ const values=judgmentFields(fields),db=await storage.open();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction(storage.store,'readwrite'),store=tx.objectStore(storage.store);
+  let reason,saved;
+  const req=store.get(row.id);
+  req.onsuccess=()=>{try{
+   const current=req.result;
+   if(!current||current.hash!==row.hash||current.visit!==row.visit||
+      current.workerKey!==row.workerKey||current.workerBirth!==row.workerBirth||
+      current.storicoCartaceo?.tipo!==FLAG)
+    throw Error('Il PDF o l’identità sono cambiati: riapri lo storico e verifica nuovamente.');
+   const j={tipo:GIUDIZIO_PDF,...values,fonteHash:current.hash,dataVisita:current.visit,
+       verificatoIl:now,verificatoDalMedico:true};
+   saved={...current,storicoCartaceo:{...current.storicoCartaceo,giudizioVerificato:j}};
+   store.put(saved);
+  }catch(e){reason=e;tx.abort()}};
+  tx.oncomplete=()=>resolve(saved);
+  tx.onabort=()=>reject(reason||tx.error||Error('Giudizio storico non salvato.'));
+  tx.onerror=()=>{};
+ })}finally{db.close()}
+}
+
 async function commit(rows,before,{storage,readCharts,stage=async r=>r,now=new Date().toISOString()}){
  // All PDF validation is complete before any write; originals use one transaction.
  const charts=await readCharts();let pending=plan(rows,await storage.list(),charts);
@@ -95,7 +147,7 @@ async function replaceOriginal(row,file,{storage,stage=async r=>r,pdfLib=root.PD
  const sha=await hash(bytes);if(sha===row.hash)throw Error('Questo PDF è già quello presente.');
  const changed={...row,name:file.name,hash:sha,size:bytes.length,blob:new Blob([bytes],{type:'application/pdf'}),external:undefined,savedAt:now,
   note:'CARTELLA STORICA - PDF SOSTITUITO: '+row.storicoCartaceo.azienda,
-  storicoCartaceo:{...row.storicoCartaceo,note:'PDF sostituito dopo verifica manuale; versione precedente conservata negli allegati.',sostituitoIl:now}};
+  storicoCartaceo:{...row.storicoCartaceo,giudizioVerificato:undefined,note:'PDF sostituito dopo verifica manuale; versione precedente conservata negli allegati. Trascrizione da riconfermare.',sostituitoIl:now}};
  const staged=await stage([changed]);if(staged.length!==1||staged[0].id!==row.id||staged[0].hash!==sha)throw Error('Preparazione PDF incompleta.');
  const db=await storage.open();
  try{await new Promise((resolve,reject)=>{
@@ -111,7 +163,7 @@ async function replaceOriginal(row,file,{storage,stage=async r=>r,pdfLib=root.PD
  return changed;
 }
 
-const core={replaceOriginal,FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti};
+const core={replaceOriginal,FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti,GIUDIZIO_PDF,tipiGiudizio,tipiPeriodicita,judgmentFields,verifiedJudgment,saveJudgment};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.lumenStoricoCartaceo=core;
 if(!root.document||!root.lumenAllegatiStorage||!root.lumenImportCartelle)return;
@@ -124,13 +176,55 @@ const css=doc.createElement('style');css.textContent='#storicoCartaceoDialog{ove
 doc.body.appendChild(dialog);
 const $=id=>doc.getElementById(id);let pending=null,busy=false;
 function message(t){$('storicoCartaceoMessage').textContent=t}
-function locked(v){busy=v;dialog.querySelectorAll('#storicoCartaceoList button,input').forEach(e=>e.disabled=v);for(const id of ['storicoCartaceoFile','storicoCartaceoQuery','storicoCartaceoConfirm','storicoCartaceoClose'])$(id).disabled=v}
+function locked(v){busy=v;dialog.querySelectorAll('#storicoCartaceoList button,input,select,textarea').forEach(e=>e.disabled=v);for(const id of ['storicoCartaceoFile','storicoCartaceoQuery','storicoCartaceoConfirm','storicoCartaceoClose'])$(id).disabled=v}
 function line(row,status){
  const e=doc.createElement('article');e.style.cssText='border:1px solid #ccc;padding:12px;margin:10px 0;overflow-wrap:anywhere';
  const title=doc.createElement('strong');title.textContent=row.workerLabel+' · '+row.visit.split('-').reverse().join('/');e.appendChild(title);
  const p=doc.createElement('p');p.textContent=(row.storicoCartaceo?.azienda||'')+' · '+(row.storicoCartaceo?.pagine||'?')+' pagine'+(row.storicoCartaceo?.note?' · '+row.storicoCartaceo.note:'')+(status?' · '+status:'');e.appendChild(p);return e;
 }
 async function openOriginal(row,report){let opened=null;try{if(!(row.blob instanceof Blob)){opened=root.open('','_blank');if(!opened)throw Error('Consenti l’apertura del PDF nel browser.');opened.opener=null}const blob=await root.lumenExternalAttachments.getBlob(row);if(await hash(await blob.arrayBuffer())!==row.hash)throw Error('Il PDF non coincide con l’originale.');const url=URL.createObjectURL(blob);if(opened)opened.location.replace(url);else{const a=doc.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click()}setTimeout(()=>URL.revokeObjectURL(url),300000)}catch(e){if(opened)opened.close();report(e.message)}}
+
+function judgmentEditor(row){
+ const details=doc.createElement('details'),summary=doc.createElement('summary'),saved=verifiedJudgment(row);
+ details.style.cssText='border:1px solid #9bb0c4;padding:10px;margin:12px 0';
+ summary.style.cssText='font-weight:bold;cursor:pointer';
+ summary.textContent=saved?'GIUDIZIO DEL PDF VERIFICATO · MODIFICA':'REGISTRA GIUDIZIO DAL PDF ORIGINALE';
+ details.appendChild(summary);
+ const notice=doc.createElement('p');
+ notice.textContent='Apri il PDF originale e trascrivi soltanto ciò che è effettivamente riportato nel giudizio. Non viene creato un nuovo giudizio medico né alterato il PDF.';
+ details.appendChild(notice);
+ const line=(title,input)=>{const label=doc.createElement('label');label.textContent=title;label.appendChild(input);details.appendChild(label);return input};
+ const verdict=doc.createElement('select');verdict.style.width='100%';
+ verdict.appendChild(new Option('SELEZIONA DAL PDF',''));
+ for(const name of tipiGiudizio)verdict.appendChild(new Option(name,name));
+ verdict.value=saved?.giudizio||'';line('Giudizio scritto nel PDF',verdict);
+ const notes=doc.createElement('textarea');notes.rows=3;notes.style.width='100%';
+ notes.maxLength=4000;notes.value=saved?.prescrizioni||'';line('Prescrizioni / limitazioni, testo fedele al PDF',notes);
+ const periodic=doc.createElement('select');periodic.style.width='100%';
+ for(const name of tipiPeriodicita)periodic.appendChild(new Option(name||'NON INDICATA NEL PDF',name));
+ periodic.value=saved?.periodicita||'';line('Periodicità indicata nel PDF',periodic);
+ const other=doc.createElement('input');other.type='text';other.maxLength=150;other.style.width='100%';
+ other.value=saved?.periodicita_altro||'';line('Se ALTRO, indicazione esatta',other);
+ const check=doc.createElement('input');check.type='checkbox';
+ const confirmLabel=doc.createElement('label');confirmLabel.append(check,doc.createTextNode(' Confermo di aver confrontato la trascrizione con questo PDF originale.'));
+ details.appendChild(confirmLabel);
+ const save=doc.createElement('button');save.type='button';save.className='success';save.textContent='SALVA GIUDIZIO STORICO VERIFICATO';
+ save.onclick=async()=>{
+  if(busy)return;
+  if(!check.checked){message('Conferma prima la verifica del giudizio sul PDF originale.');return}
+  if(!root.confirm('Salvare la trascrizione verificata del '+row.visit+' di '+row.workerLabel+'? Il PDF e la cartella corrente non saranno modificati.'))return;
+  locked(true);
+  try{
+   await saveJudgment(row,{giudizio:verdict.value,prescrizioni:notes.value,
+      periodicita:periodic.value,periodicita_altro:other.value},{storage});
+   await render();
+   message('GIUDIZIO STORICO SALVATO E COLLEGATO AL PDF del '+row.visit+'. Esegui un backup leggero aggiornato; la visita attuale non è stata modificata.');
+   doc.dispatchEvent(new Event('lumen:giudizio-storico-verificato'));
+  }catch(e){message('NESSUN DATO MODIFICATO: '+e.message)}finally{locked(false)}
+ };
+ details.appendChild(save);return details;
+}
+
 async function render(){
  const q=$('storicoCartaceoQuery').value.trim().toUpperCase(),list=$('storicoCartaceoList');list.replaceChildren();
  const rows=(await storage.list()).filter(r=>r.storicoCartaceo?.tipo===FLAG).filter(r=>[r.workerLabel,r.workerCf,r.visit,r.storicoCartaceo.azienda].join(' ').toUpperCase().includes(q)).sort((a,b)=>b.visit.localeCompare(a.visit)||a.workerLabel.localeCompare(b.workerLabel));
@@ -144,7 +238,7 @@ async function render(){
   try{await replaceOriginal(row,file,{storage,stage:r=>root.lumenExternalAttachments.stageNew(r)});await render();message('PDF SOSTITUITO per '+row.workerLabel+'. Versione precedente conservata in ALLEGATI CARTELLA. Crea un backup aggiornato con i PDF.')}
   catch(err){message('SOSTITUZIONE NON ESEGUITA: '+err.message)}finally{locked(false)}
  };
- e.appendChild(label);list.appendChild(e)}
+ e.appendChild(label);e.appendChild(judgmentEditor(row));list.appendChild(e)}
  message(rows.length+' cartelle storiche originali trovate.');
 }
 const api=root.lumenBatchCertApi,form=doc.getElementById('cartellaForm');
