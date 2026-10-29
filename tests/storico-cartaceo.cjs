@@ -31,6 +31,13 @@ async function run(){
  // A PDF alone must never make its judgment eligible for copying.
  const original=(await list()).find(x=>x.id===rows[0].id);
  assert.equal(api.verifiedJudgment(original),null);
+ // Match an already present PDF automatically to the visit of the same patient,
+ // while refusing other names, birth dates or a non-previous date.
+ const patient={cognome:'COLLAUDO',nome:'SINTETICO 1',data_nascita:'1980-01-01',codice_fiscale:'',data_giudizio:'2026-06-08'};
+ assert.equal(api.precedenti([original],patient).length,1);
+ assert.equal(api.precedenti([original],{...patient,nome:'ALTRA'}).length,0);
+ assert.equal(api.precedenti([original],{...patient,data_nascita:'1981-01-01'}).length,0);
+ assert.equal(api.precedenti([original],{...patient,data_giudizio:'2025-06-06'}).length,0);
  await assert.rejects(api.saveJudgment(original,{giudizio:'IDONEO CON LIMITAZIONI',periodicita:'ANNUALE'},{storage}),/prescrizioni o limitazioni/);
  await assert.rejects(api.saveJudgment(original,{giudizio:'IDONEO',periodicita:'ALTRO'},{storage}),/ALTRO/);
  const recorded=await api.saveJudgment(original,{
@@ -57,7 +64,7 @@ async function run(){
  // Backup encoding/reopening must preserve the complete source bytes and metadata.
  const saved=(await list()).find(x=>x.id===rows[0].id);const encoded={...saved,blob:Buffer.from(await saved.blob.arrayBuffer()).toString('base64')};const restored=JSON.parse(JSON.stringify(encoded));
  assert.equal(await api.hash(Buffer.from(restored.blob,'base64')),saved.hash);assert.deepEqual(restored.storicoCartaceo,saved.storicoCartaceo);
- console.log('PASS: doctor-verified PDF judgment, source hash binding, stale document blocked, format/identity/date/CF/hash validation, read-only preview, duplicate/conflict protection, exact PDFs, existing clinical data/counts untouched, reopen, stale preview, atomic rollback, backup round trip.');
+ console.log('PASS: automatic PDF precedent matching, strict patient identity, earlier-visit requirement, doctor-verified PDF judgment, source hash binding, stale document blocked, format/identity/date/CF/hash validation, read-only preview, duplicate/conflict protection, exact PDFs, existing clinical data/counts untouched, reopen, stale preview, atomic rollback, backup round trip.');
  if(process.env.LUMEN_HISTORICAL_PACKAGE){
   const privateFile=new File([fs.readFileSync(process.env.LUMEN_HISTORICAL_PACKAGE)],'private.json');const actual=await api.parse(privateFile);
   const backup=JSON.parse(fs.readFileSync(process.env.LUMEN_REFERENCE_BACKUP,'utf8')).contenuto;
