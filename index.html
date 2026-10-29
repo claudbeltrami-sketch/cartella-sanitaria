@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261029-archive-compact-1">
+<meta name="lumen-build" content="20261029-archive-floating-2">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -35,7 +35,7 @@
  }catch(e){history.replaceState(null,'',location.pathname);alert('TRASFERIMENTO DELLA LISTA NON RIUSCITO. RIAPRIRE LA PAGINA DI IMPORTAZIONE.')}
 })();
 </script>
-<script>(function(){var build='20261029-archive-compact-1';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
+<script>(function(){var build='20261029-archive-floating-2';window.addEventListener('pageshow',function(){fetch(location.pathname+'?_lumen='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){var m=html.match(/<meta name="lumen-build" content="([^"]+)"/);if(m&&m[1]!==build){if(document.getElementById('lumenBackupOverlay')?.dataset.active==='true'||document.getElementById('workerSignModal')?.classList.contains('show')||window.lumenFirmaOffline?.hasVolatile())return;location.reload();return}if(location.search&&!lumenStorage.isTest)history.replaceState(null,'',location.pathname+location.hash)}).catch(function(){})})})();</script>
 <title>Cartella Sanitaria Beltrami - V18 Backup progressivo</title>
 <style>
 #v9SediSalvateBox[hidden]{display:none}
@@ -1881,7 +1881,35 @@ function exportList(preparazione=true){
  // dell'intera pagina può selezionare il documento sanitario invece del report.
  const report=$('v9ExportArea').querySelector('.page').innerHTML;
  const css='@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#111;margin:12px}.page{width:275mm;max-width:none}.v9-report-head{border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px}h1{font-size:18px;margin:0 0 5px}h2{font-size:12px;margin:0}.v9-report-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:12px}.v9-report-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;line-height:1.25}.v9-report-table th,.v9-report-table td{border:1px solid #777;padding:5px 4px;overflow-wrap:anywhere;vertical-align:top}.v9-report-table th:nth-child(1){width:4%}.v9-report-table th:nth-child(2),.v9-report-table th:nth-child(3){width:14%}.v9-report-table th:nth-child(4){width:19%}.v9-report-table th:nth-child(5){width:17%}.v9-report-table th:nth-child(6){width:8%}.v9-report-table th:nth-child(7),.v9-report-table th:nth-child(8){width:12%}.v9-report-table thead{display:table-header-group}.v9-report-table tr{break-inside:avoid;page-break-inside:avoid}.v9-report-table th{background:#eee}.v9-report-summary{margin-top:12px;border:2px solid #333;padding:9px;font-weight:bold}.v9-report-sign{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:30px;text-align:center}.v9-report-line{border-bottom:1px solid #333;margin-top:35px}.stampa{padding:12px 20px;background:#174d7b;color:#fff;border:0;border-radius:8px;font-size:17px;margin:10px 0 20px}@media print{.stampa{display:none}body{margin:0}.page{width:100%}}';
- const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF LISTA LAVORATORI</title><style>'+css+'</style></head><body><button class="stampa" onclick="window.print()">STAMPA / SALVA PDF</button><main class="page">'+report+'</main></body></html>';
+ const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF LISTA LAVORATORI</title><style>'+css+'</style></head><body><button class="stampa" onclick="window.print()">STAMPA / SALVA PDF</button><main class="page">'+report+'</main>
+<style>
+#archiveResults .archive-action-commands{position:fixed;z-index:10020;width:180px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-y:auto;padding:6px;background:#fff;border:1px solid #aaa;border-radius:8px;box-shadow:0 6px 20px #0004}
+#archiveResults .archive-actions-menu:not([open]) .archive-action-commands{display:none}
+@media print{#archiveResults .archive-action-commands{display:none!important}}
+</style>
+<script>
+/* Floating archive commands never contribute to the table row height. */
+(function(){
+ const selector='#archiveResults .archive-actions-menu';
+ function closeAll(except){document.querySelectorAll(selector+'[open]').forEach(menu=>{if(menu!==except)menu.open=false});}
+ document.addEventListener('toggle',function(e){
+  const menu=e.target;if(!menu.matches||!menu.matches(selector)||!menu.open)return;
+  closeAll(menu);
+  const commands=menu.querySelector('.archive-action-commands'),rect=menu.querySelector('summary').getBoundingClientRect();
+  if(!commands)return;
+  commands.style.left=Math.max(8,Math.min(rect.right-180,window.innerWidth-188))+'px';
+  commands.style.top='8px';
+  const height=commands.getBoundingClientRect().height;
+  commands.style.top=Math.max(8,rect.bottom+height+8<=window.innerHeight?rect.bottom+4:rect.top-height-4)+'px';
+ },true);
+ document.addEventListener('pointerdown',function(e){if(!e.target.closest(selector))closeAll();});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape'){const menu=document.querySelector(selector+'[open]');if(menu){menu.open=false;menu.querySelector('summary').focus();}}});
+ document.addEventListener('scroll',function(e){if(e.target.closest&&e.target.closest('.archive-action-commands'))return;closeAll();},true);
+ window.addEventListener('resize',function(){closeAll();});
+})();
+</script>
+
+</body></html>';
  // Documento HTML indipendente: impedisce a Safari iPhone di stampare la cartella madre.
  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
  const url=URL.createObjectURL(blob);
@@ -2510,8 +2538,8 @@ input.addEventListener('change',async e=>{
 })();
 
 </script>
-<script src="giudizio-pdf-auto.js?v=20261029-archive-compact-1"></script>
-<script src="storico-cartaceo.js?v=20261029-archive-compact-1"></script>
+<script src="giudizio-pdf-auto.js?v=20261029-archive-floating-2"></script>
+<script src="storico-cartaceo.js?v=20261029-archive-floating-2"></script>
 <script>
 /* Local attachment presence checks: PDF text plus on-device OCR of scans.
    Only derived scan metadata is written; attachments, visits and manual confirmations are preserved. */
@@ -3161,7 +3189,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script src="esami-compatti.js?v=20261022-1"></script>
 <script src="lumen-offline.js?v=20261022-1"></script>
 <script src="lumen-migliorie-prova.js?v=20261023-prova-1"></script>
-<script src="copia-giudizio-precedente.js?v=20261029-archive-compact-1"></script>
+<script src="copia-giudizio-precedente.js?v=20261029-archive-floating-2"></script>
 </body></html>
 
 
