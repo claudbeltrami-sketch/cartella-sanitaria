@@ -219,6 +219,7 @@ function judgmentEditor(row){
       periodicita:periodic.value,periodicita_altro:other.value},{storage});
    await render();
    message('GIUDIZIO STORICO SALVATO E COLLEGATO AL PDF del '+row.visit+'. Esegui un backup leggero aggiornato; la visita attuale non è stata modificata.');
+   doc.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
    doc.dispatchEvent(new Event('lumen:giudizio-storico-verificato'));
   }catch(e){message('NESSUN DATO MODIFICATO: '+e.message)}finally{locked(false)}
  };
@@ -235,7 +236,7 @@ async function render(){
   const file=input.files[0];input.value='';if(!file||busy)return;
   if(!root.confirm('Sostituire il PDF di '+row.workerLabel+' · '+row.visit+' con '+file.name+'? Controlla che appartenga allo stesso lavoratore e alla stessa visita. La versione precedente sarà conservata negli allegati.'))return;
   locked(true);pending=null;$('storicoCartaceoConfirm').hidden=true;message('Verifica e sostituzione PDF…');
-  try{await replaceOriginal(row,file,{storage,stage:r=>root.lumenExternalAttachments.stageNew(r)});await render();message('PDF SOSTITUITO per '+row.workerLabel+'. Versione precedente conservata in ALLEGATI CARTELLA. Crea un backup aggiornato con i PDF.')}
+  try{await replaceOriginal(row,file,{storage,stage:r=>root.lumenExternalAttachments.stageNew(r)});await render();doc.dispatchEvent(new Event('lumen:precedenti-aggiornati'));message('PDF SOSTITUITO per '+row.workerLabel+'. Versione precedente conservata in ALLEGATI CARTELLA. Crea un backup aggiornato con i PDF.')}
   catch(err){message('SOSTITUZIONE NON ESEGUITA: '+err.message)}finally{locked(false)}
  };
  e.appendChild(label);e.appendChild(judgmentEditor(row));list.appendChild(e)}
@@ -264,6 +265,7 @@ if(api&&form){
   }catch(e){if(current===generation&&key===identity()){panel.textContent='Verifica precedenti non disponibile. Riapri la cartella per riprovare.';panel.hidden=false}}
  }
  doc.addEventListener('lumen:cartella-applied',refresh);
+ doc.addEventListener('lumen:precedenti-aggiornati',refresh);
  const edited=e=>{if(['cognome','nome','data_nascita','codice_fiscale','data_giudizio','data_cartella'].includes(e.target.id))refresh()};
  form.addEventListener('input',edited);form.addEventListener('change',edited);form.addEventListener('reset',()=>{panel.hidden=true;setTimeout(refresh,0)});
  root.addEventListener('focus',refresh);dialog.addEventListener('close',refresh);
@@ -284,6 +286,6 @@ $('storicoCartaceoFile').onchange=async()=>{
 };
 $('storicoCartaceoConfirm').onclick=async()=>{
  if(!pending||busy)return;locked(true);message('Salvataggio degli originali sul dispositivo…');
- try{const result=await commit(pending.rows,pending.before,{storage,readCharts,stage:r=>root.lumenExternalAttachments.stageNew(r)});pending=null;$('storicoCartaceoConfirm').hidden=true;await render();message('IMPORTAZIONE COMPLETATA: '+result.added+' originali salvati; '+result.duplicates+' già presenti.\nCartelle cliniche, firme e conteggi attuali conservati.')}catch(e){pending=null;$('storicoCartaceoConfirm').hidden=true;message('IMPORTAZIONE NON ESEGUITA\n'+e.message)}finally{locked(false)}
+ try{const result=await commit(pending.rows,pending.before,{storage,readCharts,stage:r=>root.lumenExternalAttachments.stageNew(r)});pending=null;$('storicoCartaceoConfirm').hidden=true;await render();doc.dispatchEvent(new Event('lumen:precedenti-aggiornati'));message('IMPORTAZIONE COMPLETATA: '+result.added+' originali salvati; '+result.duplicates+' già presenti.\nCartelle cliniche, firme e conteggi attuali conservati.')}catch(e){pending=null;$('storicoCartaceoConfirm').hidden=true;message('IMPORTAZIONE NON ESEGUITA\n'+e.message)}finally{locked(false)}
 };
 })(typeof window==='object'?window:globalThis);
