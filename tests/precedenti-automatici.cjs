@@ -18,6 +18,13 @@ const html=`<!doctype html><html><head></head><body>
  <input id="periodicita_altro">
 </form></body></html>`;
 const {window}=parseHTML(html),doc=window.document;
+// linkedom exposes read-only value accessors on some controls; real browsers
+// provide writable values. Model those writable browser properties explicitly.
+for(const id of ['cognome','nome','data_nascita','codice_fiscale','data_cartella',
+ 'data_giudizio','datore_lavoro','mansione','prescrizioni','periodicita','periodicita_altro']){
+ const el=doc.getElementById(id);
+ Object.defineProperty(el,'value',{writable:true,configurable:true,value:el.value||el.getAttribute('value')||''});
+}
 const original={
  id:'STORICO_PROVA',kind:'allegato_cartella_v1',hash:'a'.repeat(64),
  workerCf:cf,workerBirth:'1980-01-01',visit:'2025-06-06',
