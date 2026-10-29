@@ -72,7 +72,7 @@ function boot(){
     b.savedAt.localeCompare(a.savedAt));
   return candidates[0]||null;
  }
- async function findPrevious(current){
+ async function lookupPrevious(current){
   const records=await api.list();
   let originals=[];
   const historic=window.lumenStoricoCartaceo,store=window.lumenAllegatiStorage;
@@ -84,21 +84,25 @@ function boot(){
     });
    }catch(_){ /* Keep existing structured-chart judgment discovery available. */ }
   }
-  return previous(records,current,originals);
+  return {candidate:previous(records,current,originals),hasPdf:originals.length>0};
  }
  let candidate=null,request=0,timer=0;
- function show(c){
+ function show(c,hasPdf=false){
   candidate=c;
-  wrap.hidden=!c;
-  status.textContent=c?'Giudizio del '+c.visit.split('-').reverse().join('/')+(c.source==='pdf'?' · trascritto e verificato dal PDF originale':'')+' disponibile. Il medico deve rivalutarlo prima del salvataggio.':'';
+  wrap.hidden=!c&&!hasPdf;
+  button.hidden=!c;
+  status.textContent=c?'Precedente del '+c.visit.split('-').reverse().join('/')+
+    (c.source==='pdf'?' · giudizio verificato e collegato al PDF':' · visita elettronica collegata automaticamente')+
+    '. Il medico deve rivalutarlo prima del salvataggio.':
+    hasPdf?'PDF della visita precedente collegato automaticamente. Il giudizio è nel documento originale ma non è ancora disponibile come dato clinico strutturato e verificato. Nessuna copia automatica.':'';
  }
  async function refresh(){
   const token=++request,initial=identity();
   if(!initial.visita||!initial.cognome||!initial.nome||(!initial.cf&&!initial.nascita)){show(null);return;}
   try{
-   const found=await findPrevious(initial);
+   const found=await lookupPrevious(initial);
    if(token!==request||stamp(initial)!==stamp(identity()))return;
-   show(found);
+   show(found.candidate,found.hasPdf);
   }catch(_){if(token===request){show(null);}}
  }
  function schedule(){clearTimeout(timer);show(null);timer=setTimeout(refresh,250);}
@@ -110,7 +114,7 @@ function boot(){
   button.disabled=true;
   try{
    // Re-read the source immediately before copying: never trust a stale selection.
-   const current=await findPrevious(start);
+   const current=(await lookupPrevious(start)).candidate;
    if(stamp(start)!==stamp(identity()))throw Error('Lavoratore o visita cambiati. Riprova.');
    if(!current||current.visit!==c.visit||current.source!==c.source||current.sourceId!==c.sourceId||current.sourceHash!==c.sourceHash||stamp(current.data)!==stamp(c.data))throw Error('Il giudizio precedente è cambiato. Riprova.');
    const d=current.data;
@@ -144,6 +148,7 @@ function boot(){
  }
  document.addEventListener('lumen:cartella-applied',schedule);
  document.addEventListener('lumen:giudizio-storico-verificato',schedule);
+ document.addEventListener('lumen:precedenti-aggiornati',schedule);
  form.addEventListener('reset',()=>setTimeout(schedule,0));
  schedule();
 }
