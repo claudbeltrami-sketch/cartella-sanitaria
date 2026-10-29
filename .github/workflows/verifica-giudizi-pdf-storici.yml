@@ -1,0 +1,24 @@
+name: Verifica giudizi PDF storici
+on:
+  pull_request:
+    paths:
+      - 'storico-cartaceo.js'
+      - 'copia-giudizio-precedente.js'
+      - 'tests/storico-cartaceo.cjs'
+      - '.github/workflows/verifica-giudizi-pdf-storici.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --check storico-cartaceo.js
+      - run: node --check copia-giudizio-precedente.js
+      - run: npm run test:storico
