@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'storico-cartaceo.js'
+      - 'importa-cartelle.js'
+      - 'index.html'
+      - 'lumen-sw.js'
       - 'copia-giudizio-precedente.js'
       - 'tests/storico-cartaceo.cjs'
       - '.github/workflows/verifica-giudizi-pdf-storici.yml'
@@ -21,4 +24,6 @@ jobs:
       - run: npm ci
       - run: node --check storico-cartaceo.js
       - run: node --check copia-giudizio-precedente.js
+      - run: node --check importa-cartelle.js
+      - run: node --check lumen-sw.js
       - run: npm run test:storico
