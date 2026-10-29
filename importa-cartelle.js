@@ -145,7 +145,8 @@ function fingerprint(records){return JSON.stringify(records.slice().sort((a,b)=>
 async function readRecords(){const db=await storage.open();try{return await new Promise((resolve,reject)=>{const req=db.transaction(storage.store,'readonly').objectStore(storage.store).getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}finally{db.close()}}
 async function commit(charts,before,now){
  const db=await storage.open();
- try{return await new Promise((resolve,reject)=>{
+ let committed;
+ try{committed=await new Promise((resolve,reject)=>{
   const tx=db.transaction(storage.store,'readwrite'),store=tx.objectStore(storage.store),request=store.getAll();let result,reason;
   request.onsuccess=()=>{try{
    if(fingerprint(request.result)!==before)throw Error('ARCHIVIO CAMBIATO. Riapri il file per aggiornare il controllo prima di importare.');
@@ -155,6 +156,10 @@ async function commit(charts,before,now){
   tx.oncomplete=()=>resolve(result);
   tx.onabort=tx.onerror=()=>reject(reason||tx.error||Error('Salvataggio non riuscito. Nessuna cartella del pacchetto è stata importata.'));
  })}finally{db.close()}
+ // Do not depend on the import dialog: any caller that adds an older visit
+ // automatically refreshes the same patient's preceding judgment and PDF badges.
+ if(committed.added)document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
+ return committed;
 }
 const css=document.createElement('style');css.textContent=`
 .chart-import-modal{position:fixed;inset:0;z-index:100100;background:#0009;padding:16px;display:flex;align-items:center;justify-content:center}.chart-import-modal[hidden]{display:none}.chart-import-card{background:#fff;color:#172b3a;border-radius:12px;padding:20px;width:min(850px,100%);max-height:90vh;overflow:auto;box-sizing:border-box}.chart-import-card h2{font-style:normal;text-align:left}.chart-import-list{max-height:45vh;overflow:auto;border:1px solid #ddd;margin:12px 0}.chart-import-row{padding:10px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}.chart-import-row strong,.chart-import-row span{display:block}.chart-import-row[data-status=conflict]{background:#fff0dc}.chart-import-row[data-status=duplicate]{background:#f1f4f6}.chart-import-actions{display:flex;gap:10px;flex-wrap:wrap}.chart-import-actions button{min-height:44px}.chart-import-message{white-space:pre-line}@media print{.chart-import-modal{display:none!important}}`;
@@ -196,8 +201,6 @@ confirmButton.onclick=async()=>{
   window.lumenBatchCertApi?.setStatus(message.textContent.replace(/\n/g,' — '));
   archiveButton.hidden=false;
   // The earlier visit was already attached transactionally to the same worker record.
-  // Re-read previous judgments and original PDFs immediately, without reopening the chart.
-  document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
   // No clinical data are sent by this importer; existing counting runs after commit.
   window.lumenConteggio?.wake();
  }catch(e){message.textContent='IMPORTAZIONE NON ESEGUITA\n'+(e.message||String(e))+'\nNessuna cartella del pacchetto è stata salvata.'}
