@@ -1210,7 +1210,7 @@ function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const 
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]+' '+v:String(v)}
 function archiveHaystack(r){const d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,lumenRuoliAzienda.forRecord(r).committente,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query='',roles={}){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))&&lumenRuoliAzienda.matches(lumenRuoliAzienda.forRecord(r),roles)}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -2316,7 +2316,7 @@ input.addEventListener('change',async e=>{
 <script src="firma-recupero.js?v=20260929-1"></script>
 <script src="prova-fantasma.js?v=20261004-visiotest-1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="importa-cartelle.js?v=20261002-1"></script>
+<script src="importa-cartelle.js?v=20261029-precedenti-1"></script>
 <script src="importa-referti.js?v=20261014-mac-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
 <script src="backup-stream.js?v=20261014-mac-1"></script>
@@ -2497,7 +2497,7 @@ input.addEventListener('change',async e=>{
 })();
 
 </script>
-<script src="storico-cartaceo.js?v=20261029-pdf-1"></script>
+<script src="storico-cartaceo.js?v=20261029-precedenti-1"></script>
 <script>
 /* Local attachment presence checks: PDF text plus on-device OCR of scans.
    Only derived scan metadata is written; attachments, visits and manual confirmations are preserved. */
@@ -3147,7 +3147,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script src="esami-compatti.js?v=20261022-1"></script>
 <script src="lumen-offline.js?v=20261022-1"></script>
 <script src="lumen-migliorie-prova.js?v=20261023-prova-1"></script>
-<script src="copia-giudizio-precedente.js?v=20261029-pdf-2"></script>
+<script src="copia-giudizio-precedente.js?v=20261029-precedenti-1"></script>
 </body></html>
 
 
