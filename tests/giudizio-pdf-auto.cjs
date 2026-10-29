@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {parse,positioned}=require('../giudizio-pdf-auto.js');
+const good='GIUDIZIO: IDONEO CON LIMITAZIONI\nPrescrizioni / limitazioni: Evitare carichi oltre 5 kg\nNon lavorare in quota\nPeriodicità visita medica: ANNUALE\nFirma';
+assert.deepEqual(parse(good),{ok:true,giudizio:'IDONEO CON LIMITAZIONI',prescrizioni:'EVITARE CARICHI OLTRE 5 KG\nNON LAVORARE IN QUOTA',periodicita:'ANNUALE',periodicita_altro:''});
+assert(parse(good.replace('GIUDIZIO: IDONEO CON LIMITAZIONI','[x] IDONEO CON LIMITAZIONI\nIDONEO\nIDONEO CON PRESCRIZIONI')).ok);
+assert(!parse(good.replace('GIUDIZIO: IDONEO CON LIMITAZIONI','IDONEO\nIDONEO CON LIMITAZIONI')).ok,'Unmarked printed choices must not select a verdict');
+assert(!parse(good.replace('GIUDIZIO:','[x] IDONEO\nGIUDIZIO:')).ok,'Contradictory verdicts block copying');
+assert(!parse(good.replace('ANNUALE','ANNUALE BIENNALE')).ok);
+assert(!parse(good.replace('Prescrizioni / limitazioni:','NOTE:')).ok);
+assert(!parse(good.replace('Evitare carichi oltre 5 kg\nNon lavorare in quota','NESSUNA')).ok);
+assert(parse('☒ IDONEO\nPrescrizioni: NESSUNA\nPeriodicità: BIENNALE').ok);
+assert.equal(positioned([{str:'IDONEO',transform:[1,0,0,1,100,200]},{str:'GIUDIZIO:',transform:[1,0,0,1,0,200]},{str:'FIRMA',transform:[1,0,0,1,0,100]}]),'GIUDIZIO: IDONEO\nFIRMA');
+console.log('PASS automatic judgment parser: explicit selection, printed lists rejected, multiline restrictions, ambiguous periods, absent notes, conflicting verdicts and page positioning.');

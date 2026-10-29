@@ -92,26 +92,40 @@ function boot(){
     });
    }catch(_){ /* Keep existing structured-chart judgment discovery available. */ }
   }
-  return {candidate:previous(records,current,originals),hasPdf:originals.length>0};
+  let candidate=previous(records,current,originals),reason='';
+  const latest=originals[0];
+  if(latest&&(!candidate||latest.visit>candidate.visit)&&window.lumenGiudizioPdfAuto){
+   candidate=null; // Never silently substitute an older judgment when the latest PDF is unreadable.
+   try{
+    const extracted=await window.lumenGiudizioPdfAuto.extract(latest);
+    if(extracted.ok){
+     const {giudizio,prescrizioni,periodicita,periodicita_altro,evidence}=extracted;
+     candidate={data:{giudizio,prescrizioni,periodicita,periodicita_altro,datore_lavoro:latest.storicoCartaceo?.azienda||''},visit:latest.visit,source:'pdf-auto',sourceId:latest.id,sourceHash:latest.hash,evidence};
+    }else reason=extracted.reason;
+   }catch(e){reason=e.message||String(e)}
+  }
+  return {candidate,hasPdf:originals.length>0,reason};
  }
  let candidate=null,request=0,timer=0;
- function show(c,hasPdf=false){
+ function show(c,hasPdf=false,reason=''){
   candidate=c;
   wrap.hidden=!c&&!hasPdf;
   button.hidden=!c;
   review.hidden=!hasPdf||!!c;
   status.textContent=c?'Precedente del '+c.visit.split('-').reverse().join('/')+
-    (c.source==='pdf'?' · giudizio verificato e collegato al PDF':' · visita elettronica collegata automaticamente')+
+    (c.source==='pdf-auto'?' · giudizio letto automaticamente dal PDF: controlla la proposta':c.source==='pdf'?' · giudizio verificato e collegato al PDF':' · visita elettronica collegata automaticamente')+
     '. Il medico deve rivalutarlo prima del salvataggio.':
-    hasPdf?'PDF della visita precedente collegato automaticamente. Premi RECUPERA GIUDIZIO DAL PDF PRECEDENTE per consultarlo e registrarlo una sola volta; poi potrai copiarlo nei campi modificabili.':'';
+    hasPdf?'PDF della visita precedente collegato automaticamente. Premi RECUPERA GIUDIZIO DAL PDF PRECEDENTE per consultarlo. '+(reason?reason+' ':'')+'È richiesta una verifica soltanto dove la lettura automatica non è riuscita.':'';
  }
  async function refresh(){
   const token=++request,initial=identity();
   if(!initial.visita||!initial.cognome||!initial.nome||(!initial.cf&&!initial.nascita)){show(null);return;}
   try{
+   wrap.hidden=false;button.hidden=true;review.hidden=true;
+   status.textContent='LETTURA AUTOMATICA DEL GIUDIZIO PRECEDENTE…';
    const found=await lookupPrevious(initial);
    if(token!==request||stamp(initial)!==stamp(identity()))return;
-   show(found.candidate,found.hasPdf);
+   show(found.candidate,found.hasPdf,found.reason);
   }catch(_){if(token===request){show(null);}}
  }
  function schedule(){clearTimeout(timer);show(null);timer=setTimeout(refresh,250);}
@@ -134,11 +148,12 @@ function boot(){
    const changed=Object.keys(old).some(k=>old[k]!==next[k]);
    const conflicts=Object.values(old).some(v=>!!v)&&changed;
    const differentJob=!!(d.mansione&&norm(d.mansione)!==start.mansione||d.datore_lavoro&&norm(d.datore_lavoro)!==start.azienda);
-   const preview='GIUDIZIO DEL '+current.visit.split('-').reverse().join('/')+(current.source==='pdf'?' (TRASCRITTO DA PDF STORICO)':'')+'\n\n'+next.giudizio+
+   const preview='GIUDIZIO DEL '+current.visit.split('-').reverse().join('/')+(current.source==='pdf-auto'?' (LETTURA AUTOMATICA DEL PDF, DA VERIFICARE)':current.source==='pdf'?' (TRASCRITTO DA PDF STORICO)':'')+'\n\n'+next.giudizio+
     '\nPrescrizioni / limitazioni: '+(next.prescrizioni||'NESSUNA')+
     '\nPeriodicità: '+(next.periodicita||'NON INDICATA')+(other?' — '+other:'')+
     (differentJob?'\n\nATTENZIONE: datore di lavoro o mansione diversi dalla visita attuale.':'')+
     (conflicts?'\n\nATTENZIONE: i campi di giudizio già compilati verranno sostituiti.':'')+
+    (current.source==='pdf-auto'?'\n\nLettura automatica: confronta giudizio e testo delle prescrizioni con il PDF originale. Pagine: '+current.evidence.map(x=>x.page).join(', '):'')+
     '\n\nCopiare SOLO questi campi nella visita attuale? Date, firme, esami e altri dati non saranno copiati. Verifica clinica obbligatoria.';
    if(!window.confirm(preview))return;
    if(stamp(start)!==stamp(identity()))throw Error('Lavoratore o visita cambiati. Nessun dato copiato.');

@@ -56,6 +56,20 @@ async function main(){
  assert.match(doc.head.textContent,/button\[hidden\]\{display:none!important/);
 
  assert.match(status.textContent,/PDF della visita precedente collegato automaticamente/);
+ // A readable PDF yields a proposal automatically, but never modifies fields
+ // before the explicit copy action.
+ window.lumenGiudizioPdfAuto={extract:async()=>({ok:true,giudizio:'IDONEO CON LIMITAZIONI',prescrizioni:'EVITARE CARICHI',periodicita:'ANNUALE',periodicita_altro:'',evidence:[{page:2,text:'synthetic source'}]})};
+ doc.dispatchEvent(new window.Event('lumen:precedenti-aggiornati'));await tick();
+ assert(!button.hidden,'Automatically recovered PDF should enable copy');
+ assert.match(status.textContent,/letto automaticamente/);
+ assert.equal(doc.getElementById('prescrizioni').value,'','Automatic extraction must not change the visit');
+ button.click();await tick();
+ assert.equal(doc.getElementById('prescrizioni').value,'EVITARE CARICHI');
+ assert.equal(doc.getElementById('data_giudizio').value,'2026-06-08');
+ window.lumenGiudizioPdfAuto={extract:async()=>({ok:false,reason:'Segno ambiguo'})};
+ doc.dispatchEvent(new window.Event('lumen:precedenti-aggiornati'));await tick();
+ assert(button.hidden,'Ambiguous PDF cannot enable copy');
+ assert.match(status.textContent,/Segno ambiguo/);
  // Simulate an electronic previous visit added after the current page is open.
  archive=[{...chart,history:[{savedAt:'2026-10-29T08:00:00Z',data:{
   cognome:'PROVA',nome:'ALFA',data_nascita:'1980-01-01',codice_fiscale:cf,

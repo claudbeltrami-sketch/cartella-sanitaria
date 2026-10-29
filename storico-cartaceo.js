@@ -55,7 +55,7 @@ function plan(rows,existing,charts=[]){
 const stamp=rows=>JSON.stringify(rows.map(r=>[r.id,r.workerKey,r.visit,r.hash,r.size,r.storicoCartaceo]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
 
 /* Trascrizione medica esplicita del giudizio da PDF originale.
- * I PDF non vengono analizzati automaticamente e la cartella clinica resta invariata.
+ * La lettura automatica propone i campi; questa verifica li lega al PDF originale.
  * La verifica rimane legata all'impronta SHA-256 dell'esatto PDF consultato. */
 const GIUDIZIO_PDF='LUMEN_GIUDIZIO_PDF_V1';
 const tipiGiudizio=['IDONEO','IDONEO CON PRESCRIZIONI','IDONEO CON LIMITAZIONI','NON IDONEO TEMPORANEAMENTE','NON IDONEO PERMANENTEMENTE'];
@@ -280,7 +280,29 @@ function judgmentEditor(row){
    doc.dispatchEvent(new Event('lumen:giudizio-storico-verificato'));
   }catch(e){message('NESSUN DATO MODIFICATO: '+e.message)}finally{locked(false)}
  };
- details.appendChild(save);return details;
+ details.appendChild(save);
+ // Recover fields automatically when a source needs review. Save still binds
+ // the doctor's confirmation to the original document hash.
+ if(!saved&&root.lumenGiudizioPdfAuto){
+  let attempted=false;
+  const autofill=async()=>{
+   if(!details.open||attempted)return;attempted=true;
+   notice.textContent='Lettura automatica del PDF in corso…';
+   try{
+    const result=await root.lumenGiudizioPdfAuto.extract(row);
+    if(result.ok){
+     // Never overwrite edits made while the reader was running.
+     if(!verdict.value&&!notes.value&&!periodic.value&&!other.value){
+      verdict.value=result.giudizio;notes.value=result.prescrizioni;
+      periodic.value=result.periodicita;other.value=result.periodicita_altro;
+     }
+     notice.textContent='Campi recuperati automaticamente. Confrontali con l’originale e conferma. Pagine: '+result.evidence.map(x=>x.page).join(', ');
+    }else notice.textContent=result.reason+' Consulta l’originale per chiarire i campi non leggibili.';
+   }catch(e){notice.textContent='Lettura automatica non riuscita: '+e.message}
+  };
+  details.addEventListener('toggle',autofill);setTimeout(autofill,0);
+ }
+ return details;
 }
 
 async function render(){
