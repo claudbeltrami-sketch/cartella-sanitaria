@@ -80,6 +80,34 @@ function verifiedJudgment(row){
     j.fonteHash!==row.hash||j.dataVisita!==row.visit||!date(row.visit)||!j.verificatoIl)return null;
  try{return {...judgmentFields(j),verificatoIl:j.verificatoIl,fonteHash:j.fonteHash,dataVisita:j.dataVisita}}catch(_){return null}
 }
+// Portable extraction remains a proposal, never a medical verification.
+function extractedJudgment(row){
+ const j=row?.storicoCartaceo?.giudizioEstratto;
+ if(row?.storicoCartaceo?.tipo!==FLAG||row.storicoCartaceo.identitaVerificata!==true||
+    j?.tipo!=='LUMEN_GIUDIZIO_ESTRATTO_V1'||j.fonteHash!==row.hash||j.dataVisita!==row.visit||
+    j.identita!==JSON.stringify([row.workerKey,row.workerBirth,row.workerCf||'',row.storicoCartaceo.cognome,row.storicoCartaceo.nome])||
+    !date(row.visit)||!j.estrattoIl||!Array.isArray(j.evidence)||!j.evidence.length)return null;
+ try{return {ok:true,...judgmentFields(j),evidence:j.evidence,estrattoIl:j.estrattoIl}}catch(_){return null}
+}
+async function saveExtraction(row,result,{storage,now=new Date().toISOString()}){
+ if(!result?.ok||!Array.isArray(result.evidence)||!result.evidence.length)throw Error('Lettura incompleta: nessuna proposta salvata.');
+ const fields=judgmentFields(result),db=await storage.open();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction(storage.store,'readwrite'),store=tx.objectStore(storage.store);let saved,reason;
+  const req=store.get(row.id);req.onsuccess=()=>{try{
+   const current=req.result;
+   if(!current||stamp([current])!==stamp([row])||current.workerBirth!==row.workerBirth||current.workerCf!==row.workerCf||
+      current.storicoCartaceo?.tipo!==FLAG||current.storicoCartaceo.identitaVerificata!==true)
+    throw Error('Originale o identità cambiati: ripetere la preparazione.');
+   const giudizioEstratto={tipo:'LUMEN_GIUDIZIO_ESTRATTO_V1',...fields,fonteHash:row.hash,dataVisita:row.visit,
+    identita:JSON.stringify([row.workerKey,row.workerBirth,row.workerCf||'',row.storicoCartaceo.cognome,row.storicoCartaceo.nome]),
+    estrattoIl:now,evidence:result.evidence.map(e=>({page:e.page,text:String(e.text||'')}))};
+   saved={...current,storicoCartaceo:{...current.storicoCartaceo,giudizioEstratto}};store.put(saved);
+  }catch(e){reason=e;tx.abort()}};
+  tx.oncomplete=()=>resolve(saved);tx.onabort=()=>reject(reason||tx.error||Error('Preparazione non salvata.'));tx.onerror=()=>{};
+ })}finally{db.close()}
+}
+
 async function saveJudgment(row,fields,{storage,now=new Date().toISOString()}){
  if(!row||row.storicoCartaceo?.tipo!==FLAG||row.storicoCartaceo?.identitaVerificata!==true||
     !date(row.visit)||!/^[a-f0-9]{64}$/.test(row.hash||''))throw Error('PDF storico non verificato.');
@@ -147,7 +175,7 @@ async function replaceOriginal(row,file,{storage,stage=async r=>r,pdfLib=root.PD
  const sha=await hash(bytes);if(sha===row.hash)throw Error('Questo PDF è già quello presente.');
  const changed={...row,name:file.name,hash:sha,size:bytes.length,blob:new Blob([bytes],{type:'application/pdf'}),external:undefined,savedAt:now,
   note:'CARTELLA STORICA - PDF SOSTITUITO: '+row.storicoCartaceo.azienda,
-  storicoCartaceo:{...row.storicoCartaceo,giudizioVerificato:undefined,note:'PDF sostituito dopo verifica manuale; versione precedente conservata negli allegati. Trascrizione da riconfermare.',sostituitoIl:now}};
+  storicoCartaceo:{...row.storicoCartaceo,giudizioVerificato:undefined,giudizioEstratto:undefined,note:'PDF sostituito dopo verifica manuale; versione precedente conservata negli allegati. Trascrizione da riconfermare.',sostituitoIl:now}};
  const staged=await stage([changed]);if(staged.length!==1||staged[0].id!==row.id||staged[0].hash!==sha)throw Error('Preparazione PDF incompleta.');
  const db=await storage.open();
  try{await new Promise((resolve,reject)=>{
@@ -163,7 +191,7 @@ async function replaceOriginal(row,file,{storage,stage=async r=>r,pdfLib=root.PD
  return changed;
 }
 
-const core={replaceOriginal,FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti,GIUDIZIO_PDF,tipiGiudizio,tipiPeriodicita,judgmentFields,verifiedJudgment,saveJudgment};
+const core={replaceOriginal,FORMAT,FLAG,parse,plan,stamp,commit,validCF,hash,precedenti,GIUDIZIO_PDF,tipiGiudizio,tipiPeriodicita,judgmentFields,verifiedJudgment,saveJudgment,extractedJudgment,saveExtraction};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.lumenStoricoCartaceo=core;
 if(!root.document||!root.lumenAllegatiStorage||!root.lumenImportCartelle)return;
@@ -175,6 +203,31 @@ dialog.innerHTML='<h2 id="storicoCartaceoTitle">CARTELLE STORICHE ORIGINALI</h2>
 const css=doc.createElement('style');css.textContent='#storicoCartaceoDialog{overflow:auto}#storicoCartaceoDialog [hidden]{display:none!important}#storicoCartaceoDialog label{display:block;margin:14px 0}#storicoCartaceoDialog input{font:inherit;min-height:44px;max-width:100%}#storicoCartaceoDialog button{min-height:44px}@media print{#storicoCartaceoDialog{display:none!important}}';doc.head.appendChild(css);
 doc.body.appendChild(dialog);
 const $=id=>doc.getElementById(id);let pending=null,busy=false;
+const prepare=doc.createElement('button');prepare.type='button';prepare.textContent='PREPARA PRECEDENTI PER IPHONE';
+$('storicoCartaceoFile').parentElement.insertAdjacentElement('afterend',prepare);
+prepare.onclick=async()=>{
+ if(busy)return;locked(true);prepare.disabled=true;let ready=0,review=0;
+ try{
+  const charts=await readCharts(),all=await storage.list(),needed=new Map();
+  for(const chart of charts)for(const version of [{data:chart.data},...(chart.history||[])]){
+   if(!version.data)continue;
+   for(const row of precedenti(all,version.data))needed.set(row.id,row);
+  }
+  for(const row of needed.values()){
+   message('Preparazione '+(ready+review+1)+' / '+needed.size+' · '+row.workerLabel);
+   try{
+    if(!verifiedJudgment(row)){
+     const result=await root.lumenGiudizioPdfAuto.extract(row);
+     if(!result.ok){review++;continue}
+    }
+    ready++;
+   }catch(_){review++}
+  }
+  doc.dispatchEvent(new Event('lumen:precedenti-aggiornati'));
+  message('Preparazione completata: '+ready+' precedenti pronti · '+review+' da verificare sul Mac. Crea ora un backup leggero per trasferire i dati su iPhone. Gli originali restano sul Mac.');
+ }catch(e){message('Preparazione interrotta: '+e.message)}finally{locked(false);prepare.disabled=false}
+};
+
 function message(t){$('storicoCartaceoMessage').textContent=t}
 function locked(v){busy=v;dialog.querySelectorAll('#storicoCartaceoList button,input,select,textarea').forEach(e=>e.disabled=v);for(const id of ['storicoCartaceoFile','storicoCartaceoQuery','storicoCartaceoConfirm','storicoCartaceoClose'])$(id).disabled=v}
 function line(row,status){
