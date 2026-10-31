@@ -83,20 +83,20 @@
   ...(r.peerId?[{label:'RIPROVA INVIO AL MAC',onclick:()=>send(r,report)}]:[]),
   {label:'RIPROVA SALVATAGGIO SU IPHONE',onclick:async()=>{try{report(await persist(r)?'Copia locale salvata e riletta. La firma resta da trasferire se il Mac non ha confermato.':'Copia locale NON salvata. Usa CONDIVIDI / AIRDROP oppure SALVA FILE FIRMA e controlla il file prima di chiudere.')}catch(e){report(e.message)}}}
  ]}
- function state(r){return volatile.has(r.id)?'COPIA LOCALE NON SALVATA — NON CHIUDERE QUESTA PAGINA':r.status==='confirmed'?'FIRMA RICEVUTA E SALVATA DAL MAC':'FIRMA SALVATA SU IPHONE — DA TRASFERIRE'}
+ function state(r){return volatile.has(r.id)?'COPIA LOCALE NON SALVATA — NON CHIUDERE QUESTA PAGINA':r.status==='confirmed'?'FIRMA RICEVUTA E SALVATA DAL MAC':busy.has(r.id)?'INVIO AUTOMATICO AL MAC IN CORSO…':'FIRMA SALVATA SU IPHONE — DA TRASFERIRE'}
  async function send(record,report){
   if(busy.has(record.id))return;
   const r=record;busy.add(r.id);
   try{
    // Refresh persistence before each retry; transport remains usable if storage fails.
-   const safe=await persist(r);report((safe?'Copia locale verificata. ':'Copia locale NON salvata: non chiudere la pagina. ')+'Invio al Mac in corso… Puoi già usare CONDIVIDI / AIRDROP.');
+   const safe=await persist(r);report((safe?'Copia locale verificata. ':'Copia locale NON salvata: non chiudere la pagina. ')+'Attendi la conferma automatica: lascia aperti questa schermata e il QR sul Mac. Non occorre premere altri pulsanti.');
    if(!r.peerId||typeof window.lumenBatchCertApi?.sendSignatureDirectly!=='function')throw Error('Collegamento automatico non disponibile.');
    await window.lumenBatchCertApi.sendSignatureDirectly(r.packet,r.peerId);
    r.status='confirmed';r.confirmedAt=new Date().toISOString();await persist(r);
    // Clear only the exact acknowledged request, never a subsequent worker's QR.
    try{if(JSON.parse(lumenStorage.session.getItem('beltrami_firma_handoff')||'null')?.id===r.id)lumenStorage.session.removeItem('beltrami_firma_handoff')}catch(_){}
    report('✓ FIRMA RICEVUTA E SALVATA DAL MAC. '+label(r)+'.');
-  }catch(e){report(state(r)+'. '+(e.message||e)+' Usa CONDIVIDI / AIRDROP o SALVA FILE FIRMA; sul Mac premi RICEVI DA IPHONE.');}
+  }catch(e){busy.delete(r.id);report(state(r)+'. '+(e.message||e)+' Usa CONDIVIDI / AIRDROP o SALVA FILE FIRMA; sul Mac premi RICEVI DA IPHONE.');}
   finally{busy.delete(r.id)}
  }
  async function finish(firma,h,d){
@@ -142,3 +142,4 @@
  window.addEventListener('beforeunload',e=>{if([...volatile].some(id=>memory.get(id)?.status!=='confirmed')){e.preventDefault();e.returnValue=''}});
  window.lumenFirmaOffline={finish,list,persist,restore,valid,openRecovery,renderRows,fileFor,hasVolatile:()=>volatile.size>0};
 })();
+
