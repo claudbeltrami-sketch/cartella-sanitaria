@@ -22,7 +22,7 @@ dialog.id='firmaDaConsensoDialog';
 dialog.setAttribute('aria-labelledby','fdcTitle');
 dialog.innerHTML='<h3 id="fdcTitle">ACQUISISCI FIRMA DAL CONSENSO</h3>'+
  '<div id="fdcWorker" class="consent-current"></div>'+
- '<p class="fdc-help">Apri il consenso originale già archiviato; se non compare, puoi scegliere il PDF dal Mac. Sul documento trascina il mouse per delimitare <b>solo la firma</b>. L&#39;originale rimane intatto.</p>'+
+ '<p class="fdc-help">Apri il consenso originale già archiviato; se non compare, puoi scegliere il PDF dal Mac. Sul PDF, con il trackpad, fai <b>due clic</b>: uno all&#39;inizio e uno all&#39;angolo opposto del riquadro della firma. Puoi anche trascinare. L&#39;originale rimane intatto.</p>'+
  '<label for="fdcStored">CONSENSI ARCHIVIATI PER QUESTO LAVORATORE</label><select id="fdcStored"><option value="">SELEZIONA UN CONSENSO…</option></select>'+
  '<label for="fdcFile">OPPURE SCEGLI PDF DAL MAC</label><input id="fdcFile" type="file" accept=".pdf,application/pdf,image/png,image/jpeg,.jpg,.jpeg,.png">'+
  '<div class="fdc-actions"><button id="fdcPrev" type="button">PAGINA PRECEDENTE</button><span id="fdcPage">NESSUN DOCUMENTO</span><button id="fdcNext" type="button">PAGINA SUCCESSIVA</button></div>'+
@@ -35,7 +35,7 @@ document.body.appendChild(dialog);
 const el=id=>document.getElementById(id);
 const canvas=el('fdcCanvas'),overlay=el('fdcOverlay'),stage=el('fdcStage');
 const ctx=canvas.getContext('2d'),oc=overlay.getContext('2d');
-let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,rendering=false,renderTask=null,version=0,drag=null,dragOrigin=null;
+let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,rendering=false,renderTask=null,version=0,drag=null,dragOrigin=null,firstCorner=null;
 function status(msg,error){el('fdcStatus').textContent=msg||'';el('fdcStatus').dataset.error=String(!!error)}
 function stamp(data){return JSON.stringify([api.workerSignatureIdentity(data),api.signatureVisit(data),data.cognome,data.nome,data.data_nascita]);}
 function worker(){
@@ -53,12 +53,13 @@ function updateButtons(){
  el('fdcClose').disabled=busy;el('fdcFile').disabled=busy;el('fdcStored').disabled=busy;
 }
 function resetCrop(){
- selection=null;preview='';drag=null;dragOrigin=null;
+ selection=null;preview='';drag=null;dragOrigin=null;firstCorner=null;
  el('fdcPreview').removeAttribute('src');el('fdcPreview').hidden=true;el('fdcSelected').textContent='';
  overlay.width=canvas.width;overlay.height=canvas.height;drawSelection();updateButtons();
 }
 function drawSelection(){
  oc.clearRect(0,0,overlay.width,overlay.height);
+ if(firstCorner&&!drag&&!selection){oc.beginPath();oc.arc(firstCorner.x,firstCorner.y,8,0,Math.PI*2);oc.strokeStyle='#005eaa';oc.lineWidth=3;oc.stroke();return;}
  const r=drag||selection;if(!r)return;
  oc.fillStyle='rgba(43,127,220,.12)';oc.strokeStyle='#005eaa';oc.lineWidth=3;
  oc.fillRect(r.x,r.y,r.w,r.h);oc.strokeRect(r.x,r.y,r.w,r.h);
@@ -80,9 +81,14 @@ function point(e){
  const r=overlay.getBoundingClientRect();
  return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))};
 }
-overlay.addEventListener('pointerdown',e=>{if(busy||!source)return;e.preventDefault();overlay.setPointerCapture(e.pointerId);dragOrigin=point(e);drag={x:dragOrigin.x,y:dragOrigin.y,w:0,h:0};preview='';el('fdcPreview').hidden=true;updateButtons();});
+function rect(a,b){return {x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(b.x-a.x),h:Math.abs(b.y-a.y)}}
+overlay.addEventListener('pointerdown',e=>{if(busy||rendering||!source||stage.hidden)return;e.preventDefault();try{overlay.setPointerCapture(e.pointerId)}catch(_){}dragOrigin=point(e);drag={x:dragOrigin.x,y:dragOrigin.y,w:0,h:0};selection=null;preview='';el('fdcConfirm').checked=false;el('fdcPreview').hidden=true;el('fdcSelected').textContent='';updateButtons();});
 overlay.addEventListener('pointermove',e=>{if(!drag||!dragOrigin||busy)return;e.preventDefault();const p=point(e),start=dragOrigin;drag={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};drawSelection();});
-overlay.addEventListener('pointerup',e=>{if(!dragOrigin)return;e.preventDefault();const p=point(e),start=dragOrigin;selection={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};drag=null;dragOrigin=null;drawSelection();crop();});
+overlay.addEventListener('pointerup',e=>{if(!dragOrigin)return;e.preventDefault();const p=point(e),start=dragOrigin;drag=null;dragOrigin=null;
+ if(Math.hypot(p.x-start.x,p.y-start.y)>=8){selection=rect(start,p);firstCorner=null;}
+ else if(firstCorner){selection=rect(firstCorner,p);firstCorner=null;}
+ else{firstCorner=p;selection=null;drawSelection();status('PRIMO ANGOLO SELEZIONATO. FAI UN SECONDO CLIC SULL’ANGOLO OPPOSTO DELLA FIRMA.');return;}
+ drawSelection();crop();});
 overlay.addEventListener('pointercancel',()=>{drag=null;dragOrigin=null;drawSelection();});
 async function readConsents(key){
  return new Promise((resolve,reject)=>{
@@ -124,7 +130,7 @@ async function renderPage(){
   if(myVersion!==version)return;
   stage.hidden=false;resetCrop();
   el('fdcPage').textContent='PAGINA '+pageNumber+' DI '+pages;
-  status('TRASCINA IL MOUSE SULLA FIRMA PER SELEZIONARLA.');
+  status('CON IL TRACKPAD: UN CLIC SUL PRIMO ANGOLO DELLA FIRMA, POI UN CLIC SULL’ANGOLO OPPOSTO.');
  }catch(e){if(myVersion===version)status('IMPOSSIBILE APRIRE IL DOCUMENTO: '+(e.message||e),true)}
  finally{if(myVersion===version){rendering=false;updateButtons();}}
 }
@@ -149,7 +155,7 @@ async function loadSource(next){
  }catch(e){if(loadVersion===version){source=null;pdf=null;pages=0;stage.hidden=true;status(e.message||String(e),true)}}
  if(loadVersion===version)updateButtons();
 }
-async function open(){
+async function open(consentId){
  try{
   target=worker();if(!target.key)throw Error('SELEZIONARE PRIMA UN LAVORATORE.');
   // PROVA usa l'archivio isolato: consentito soltanto per documenti di test.
@@ -162,12 +168,40 @@ async function open(){
   records=records.filter(r=>!r.workerCf||!target.data.codice_fiscale||r.workerCf.toUpperCase()===target.data.codice_fiscale.toUpperCase());
   records.sort((a,b)=>String(b.acquiredAt||'').localeCompare(String(a.acquiredAt||'')));
   records.forEach((r,i)=>{const opt=document.createElement('option');opt.value=String(i);opt.textContent=r.fileName+' — '+new Date(r.acquiredAt).toLocaleDateString('it-IT');el('fdcStored').appendChild(opt)});
-  if(records.length===1){el('fdcStored').value='0';await loadSource({kind:'archivio_consensi',id:records[0].id,name:records[0].fileName,acquiredAt:records[0].acquiredAt,blob:records[0].blob});}
+  if(consentId){
+   const i=records.findIndex(r=>r.id===consentId);
+   if(i<0)throw Error('QUESTO CONSENSO NON APPARTIENE ALLA CARTELLA APERTA. RIAPRIRE IL LAVORATORE CORRETTO.');
+   const chosen=records[i];el('fdcStored').value=String(i);
+   await loadSource({kind:'archivio_consensi',id:chosen.id,name:chosen.fileName,acquiredAt:chosen.acquiredAt,blob:chosen.blob});
+  }
+  else if(records.length===1){el('fdcStored').value='0';await loadSource({kind:'archivio_consensi',id:records[0].id,name:records[0].fileName,acquiredAt:records[0].acquiredAt,blob:records[0].blob});}
   else status(records.length?'SELEZIONA IL CONSENSO DI QUESTA VISITA.':'NESSUN CONSENSO NELL’ARCHIVIO: PUOI SCEGLIERE IL PDF DAL MAC.');
  }catch(e){if(dialog.open)status(e.message||String(e),true);else alert(e.message||String(e))}
  updateButtons();
 }
-button.onclick=open;
+button.onclick=()=>open();
+const consentList=el('consentList');
+function installConsentExtraction(){
+ if(!consentList)return;
+ consentList.querySelectorAll('.consent-item[data-consent-id]').forEach(row=>{
+  const actions=row.querySelector('.consent-actions');
+  if(!actions||actions.querySelector('[data-extract-signature]'))return;
+  const extract=document.createElement('button');
+  extract.type='button';extract.className='success';extract.dataset.extractSignature='true';extract.textContent='ESTRAI FIRMA';
+  extract.onclick=()=>{
+   const current=api.collect();
+   if(!api.workerSignatureIdentity(current)||!current.cognome||!current.nome){alert('APRIRE PRIMA LA CARTELLA DEL LAVORATORE CORRETTO.');return;}
+   el('btnChiudiConsensi').click();
+   open(row.dataset.consentId);
+  };
+  actions.insertBefore(extract,actions.querySelector('[data-delete]'));
+ });
+}
+if(consentList){
+ const observer=new MutationObserver(installConsentExtraction);
+ observer.observe(consentList,{childList:true});
+ installConsentExtraction();
+}
 el('fdcStored').onchange=async()=>{
  const i=el('fdcStored').value;
  if(i==='')return;
