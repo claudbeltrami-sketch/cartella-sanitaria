@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261031-firma-certificato-3">
+<meta name="lumen-build" content="20261031-semaforo-vdt-1">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2723,7 +2723,13 @@ input.addEventListener('change',async e=>{
  // Completeness concerns only the two laboratory report indicators, never clinical results.
  function semaforoEsami(rec,flags,device={}){
   const d=rec.data||{},plan=Array.isArray(d.protocollo)?d.protocollo:[];
-  const known=plan.length>0&&!String(d.altri_accertamenti||'').trim();
+  // Visit/VDT text in the custom field does not imply laboratory reports.
+  // Keep any other custom investigation uncertain.
+  const other=String(d.altri_accertamenti||'').trim();
+  const onlyVisitVdt=!!other&&!other.toUpperCase()
+   .replace(/VISITA(?:\s+MEDICA)?|VIDEOTERMINAL(?:E|I|ISTA|ISTI)|V\.?D\.?T\.?/g,'')
+   .replace(/\b(?:E|SOLO)\b/g,'').replace(/[\s,;:+/&().-]/g,'');
+  const known=(plan.length>0||onlyVisitVdt)&&(!other||onlyVisitVdt);
   const required={analisi:plan.includes('ANALISI EMATOCHIMICHE'),drug:plan.includes('ESAMI TOSSICOLOGICI')};
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
