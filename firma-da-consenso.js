@@ -35,7 +35,7 @@ document.body.appendChild(dialog);
 const el=id=>document.getElementById(id);
 const canvas=el('fdcCanvas'),overlay=el('fdcOverlay'),stage=el('fdcStage');
 const ctx=canvas.getContext('2d'),oc=overlay.getContext('2d');
-let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,version=0,drag=null,dragOrigin=null;
+let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,rendering=false,renderTask=null,version=0,drag=null,dragOrigin=null;
 function status(msg,error){el('fdcStatus').textContent=msg||'';el('fdcStatus').dataset.error=String(!!error)}
 function stamp(data){return JSON.stringify([api.workerSignatureIdentity(data),api.signatureVisit(data),data.cognome,data.nome,data.data_nascita]);}
 function worker(){
@@ -48,7 +48,7 @@ function assertWorker(){
 }
 function fingerprint(img){return String(img||'').length+':'+String(img||'').slice(0,45)+':'+String(img||'').slice(-45);}
 function updateButtons(){
- el('fdcPrev').disabled=busy||pageNumber<=1;el('fdcNext').disabled=busy||pageNumber>=pages;
+ el('fdcPrev').disabled=busy||rendering||pageNumber<=1;el('fdcNext').disabled=busy||rendering||pageNumber>=pages;
  el('fdcSave').disabled=busy||!preview||!el('fdcConfirm').checked;
  el('fdcClose').disabled=busy;el('fdcFile').disabled=busy;el('fdcStored').disabled=busy;
 }
@@ -98,17 +98,19 @@ async function readConsents(key){
  });
 }
 async function renderPage(){
- const myVersion=++version;preview='';selection=null;el('fdcConfirm').checked=false;
+ if(renderTask)try{renderTask.cancel()}catch(_){}
+ const myVersion=++version;rendering=true;preview='';selection=null;el('fdcConfirm').checked=false;
  stage.hidden=true;status('LETTURA DEL DOCUMENTO…');updateButtons();
  try{
   let w,h;
   if(pdf){
-   const p=await pdf.getPage(pageNumber);const vp=p.getViewport({scale:1});
+   const doc=pdf,p=await doc.getPage(pageNumber);if(myVersion!==version)return;const vp=p.getViewport({scale:1});
    const scale=Math.min(2,1400/vp.width,1900/vp.height);
    const viewport=p.getViewport({scale:scale});
    w=Math.round(viewport.width);h=Math.round(viewport.height);
    canvas.width=w;canvas.height=h;
-   await p.render({canvasContext:ctx,viewport:viewport}).promise;
+   const task=p.render({canvasContext:ctx,viewport:viewport});renderTask=task;
+   try{await task.promise;}finally{if(renderTask===task)renderTask=null;}
   }else{
    const url=URL.createObjectURL(source.blob);
    try{
@@ -124,24 +126,28 @@ async function renderPage(){
   el('fdcPage').textContent='PAGINA '+pageNumber+' DI '+pages;
   status('TRASCINA IL MOUSE SULLA FIRMA PER SELEZIONARLA.');
  }catch(e){if(myVersion===version)status('IMPOSSIBILE APRIRE IL DOCUMENTO: '+(e.message||e),true)}
- updateButtons();
+ finally{if(myVersion===version){rendering=false;updateButtons();}}
 }
 async function loadSource(next){
- if(!next)return;assertWorker();source=next;pdf=null;pages=0;pageNumber=1;version++;
- resetCrop();status('APERTURA DI '+source.name+'…');el('fdcPage').textContent='LETTURA…';
+ if(!next)return;assertWorker();if(renderTask)try{renderTask.cancel()}catch(_){}
+ const loadVersion=++version;source=next;pdf=null;pages=0;pageNumber=1;rendering=false;
+ resetCrop();status('APERTURA DI '+next.name+'…');el('fdcPage').textContent='LETTURA…';
  try{
-  const mime=source.blob.type||'';
-  if(/\.pdf$/i.test(source.name)||mime==='application/pdf'){
+  const mime=next.blob.type||'';
+  if(/\.pdf$/i.test(next.name)||mime==='application/pdf'){
    if(!window.pdfjsLib)throw Error('PDF.js non disponibile. Connettiti a Internet e riapri LUMEN.');
    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-   const doc=await pdfjsLib.getDocument({data:new Uint8Array(await source.blob.arrayBuffer())}).promise;
+   const bytes=await next.blob.arrayBuffer();if(loadVersion!==version)return;
+   const doc=await pdfjsLib.getDocument({data:new Uint8Array(bytes)}).promise;
+   if(loadVersion!==version){doc.destroy();return;}
    pdf=doc;pages=doc.numPages;
-  }else if(/^image\//i.test(mime)||/\.(png|jpe?g)$/i.test(source.name))pages=1;
+  }else if(/^image\//i.test(mime)||/\.(png|jpe?g)$/i.test(next.name))pages=1;
   else throw Error('Formato non supportato: seleziona un PDF, PNG o JPG.');
   if(pages<1||pages>150)throw Error('Documento con numero di pagine non valido.');
+  if(loadVersion!==version)return;
   assertWorker();await renderPage();
- }catch(e){source=null;pdf=null;pages=0;stage.hidden=true;status(e.message||String(e),true)}
- updateButtons();
+ }catch(e){if(loadVersion===version){source=null;pdf=null;pages=0;stage.hidden=true;status(e.message||String(e),true)}}
+ if(loadVersion===version)updateButtons();
 }
 async function open(){
  try{
@@ -199,7 +205,7 @@ el('fdcSave').onclick=async()=>{
  }catch(e){if(modified)metadata.value=old;status('SALVATAGGIO NON CONFERMATO: '+(e.message||e),true)}
  finally{busy=false;updateButtons();}
 };
-function close(){if(busy)return;version++;if(pdf&&pdf.destroy)pdf.destroy();pdf=null;source=null;records=[];preview='';stage.hidden=true;dialog.close();}
+function close(){if(busy)return;version++;if(renderTask)try{renderTask.cancel()}catch(_){}if(pdf&&pdf.destroy)pdf.destroy();pdf=null;source=null;records=[];preview='';stage.hidden=true;dialog.close();}
 el('fdcClose').onclick=close;
 dialog.addEventListener('cancel',e=>{e.preventDefault();close()});
 window.addEventListener('beltrami-signature-updated',()=>{
