@@ -27,17 +27,33 @@ function transfer(mode,packet){
   sender.dataChannel.onopen();receiver.dataChannel.onopen();sender.send(vm.runInContext('JSON.parse(wirePacket)',c));
   return {result,error,frames,maxFrame};
 }
+
 const chosen=html.match(/peer\.connect\(targetPeerId,\{reliable:true,serialization:'([^']+)'\}/)[1];
+const chunkSize=Number(html.match(/const image=packet\.firma_lavoratore_png,size=(\d+),total=/)[1]);
+assert.equal(chosen,'json','Small individually acknowledged chunks must use JSON serialization');
+assert.ok(chunkSize>=1024&&chunkSize<=7000);
 for(const bytes of [62*1024,132*1024,512*1024]){
-  const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,id:'TEST_TRANSPORT',visita:'2026-09-28',identita:'TEST_ONLY',
-    cognome:'PROVA',nome:'TRASPORTO',firma_lavoratore_png:'data:image/png;base64,'+'QUJD'.repeat(bytes/4)};
-  const old=transfer('json',packet);
-  assert.match(old.error?.message||'',/Message too big/);assert.equal(old.frames,0);
-  const actual=transfer(chosen,packet);
-  assert.equal(actual.error,undefined,`Selected ${chosen} transport must accept a ${bytes}-byte signature`);
-  assert.deepEqual(JSON.parse(JSON.stringify(actual.result)),packet);
-  assert.ok(actual.frames>1);assert.ok(actual.maxFrame<17000);
-  const ack={tipo:'BELTRAMI_FIRMA_RICEVUTA_V1',id:packet.id,ok:true};
+ const packet={tipo:'BELTRAMI_FIRMA_IPHONE_V1',versione:2,id:'TEST_TRANSPORT',visita:'2026-09-28',identita:'TEST_ONLY',
+   cognome:'PROVA',nome:'TRASPORTO',firma_lavoratore_png:'data:image/png;base64,'+'QUJD'.repeat(bytes/4)};
+ const old=transfer('json',packet);
+ assert.match(old.error?.message||'',/Message too big/);assert.equal(old.frames,0);
+ const {firma_lavoratore_png:image,...meta}=packet;
+ const total=Math.ceil(image.length/chunkSize),parts=[];
+ let maxFrame=0,frames=0;
+ for(let index=0;index<total;index++){
+  const block={tipo:'BELTRAMI_FIRMA_CHUNK_V1',id:packet.id,index,total,body:image.slice(index*chunkSize,(index+1)*chunkSize),...(index===0?{meta}:{})};
+  const sent=transfer(chosen,block);
+  assert.equal(sent.error,undefined,'Chunk '+index+' must fit the real PeerJS serializer');
+  assert.deepEqual(JSON.parse(JSON.stringify(sent.result)),block);
+  assert.ok(sent.maxFrame<16300,'Frame '+index+' is too large');
+  maxFrame=Math.max(maxFrame,sent.maxFrame);frames+=sent.frames;
+  parts.push(sent.result.body);
+  const ack={tipo:'BELTRAMI_FIRMA_CHUNK_ACK_V1',id:packet.id,index};
   assert.deepEqual(JSON.parse(JSON.stringify(transfer(chosen,ack).result)),ack);
-  console.log(`PASS: ${bytes}-byte signature, ${actual.frames} real PeerJS chunks, exact reassembly and acknowledgement.`);
+ }
+ assert.equal(parts.join(''),image,'Reassemble exact PNG bytes without loss');
+ assert.ok(frames>=total&&total>1);
+ const receipt={tipo:'BELTRAMI_FIRMA_RICEVUTA_V1',id:packet.id,ok:true};
+ assert.deepEqual(JSON.parse(JSON.stringify(transfer(chosen,receipt).result)),receipt);
+ console.log('PASS: '+bytes+'-byte signature in '+total+' acknowledged JSON chunks, max frame '+maxFrame+', exact reconstruction.');
 }
