@@ -204,9 +204,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 /* Firma lavoratore nella cartella: sotto la dicitura, senza modificarne le proporzioni */
 .cartella .cartella-worker-signature .worker-sign-output img{top:1mm;height:17mm}
 .cartella .cartella-worker-signature .signature-line{margin-top:19mm}
-/* Firma lavoratore sul certificato: mantenuta interamente sopra la riga */
+/* Firma lavoratore sul certificato: firma sotto la dicitura e riga subito sotto la firma, anche nell'anteprima a schermo. */
 .certificate .worker-receipt-signature .worker-sign-output{height:17mm}
 .certificate .worker-receipt-signature .worker-sign-output img{top:0;height:16mm;max-height:16mm}
+.certificate .worker-receipt-signature .signature-line{margin-top:0}
 .print-certificato .certificate .page > .worker-receipt-signature.signature-grid:last-child .signature-line{margin-top:0!important}
 @media (max-width:1000px){.worker-sign-modal{padding:6px}.worker-sign-card{width:calc(100vw - 12px);max-width:none;padding:10px}.worker-sign-card h3{font-size:18px}#workerSignCanvas{height:min(42vw,180px);min-height:145px}.worker-sign-help:before{content:'SPAZIO FIRMA ORIZZONTALE. PUOI ANCHE RUOTARE L’IPHONE. ';font-weight:700;color:var(--blu)}}
 @media (max-width:1000px) and (orientation:landscape){.worker-sign-modal{padding:0}.worker-sign-card{width:100%;height:100%;max-width:none;border-radius:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;padding:4px}.worker-sign-card h3,.worker-sign-name,.worker-sign-help{display:none}#workerSignCanvas{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px}.worker-sign-actions{padding-top:4px;gap:6px}.worker-sign-actions button{min-height:40px;padding:6px 12px}}
