@@ -91,7 +91,7 @@
    // Refresh persistence before each retry; transport remains usable if storage fails.
    const safe=await persist(r);report((safe?'Copia locale verificata. ':'Copia locale NON salvata: non chiudere la pagina. ')+'Attendi la conferma automatica: lascia aperti questa schermata e il QR sul Mac. Non occorre premere altri pulsanti.');
    if(!r.peerId||typeof window.lumenBatchCertApi?.sendSignatureDirectly!=='function')throw Error('Collegamento automatico non disponibile.');
-   await window.lumenBatchCertApi.sendSignatureDirectly(r.packet,r.peerId);
+   await window.lumenBatchCertApi.sendSignatureDirectly(r.packet,r.peerId,progress=>report(progress));
    r.status='confirmed';r.confirmedAt=new Date().toISOString();await persist(r);
    // Clear only the exact acknowledged request, never a subsequent worker's QR.
    try{if(JSON.parse(lumenStorage.session.getItem('beltrami_firma_handoff')||'null')?.id===r.id)lumenStorage.session.removeItem('beltrami_firma_handoff')}catch(_){}
