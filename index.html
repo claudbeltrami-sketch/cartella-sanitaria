@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261031-referti-auto-6">
+<meta name="lumen-build" content="20261031-referti-verde-7">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2768,6 +2768,8 @@ input.addEventListener('change',async e=>{
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
   if(flags.completeVerified)return {state:'green',text:'VERIFICATI',detail:'Completezza dei referti previsti confermata manualmente per questa visita'};
+  // Both report categories exhaust this indicator: an incomplete historical protocol cannot invalidate positive evidence.
+  if(flags.analisi==='SÌ'&&flags.drug==='SÌ')return {state:'green',text:'COMPLETI',detail:'Referti di analisi e drug test già riconosciuti per il lavoratore e la visita'};
   if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:'Protocollo non definito o accertamenti personalizzati da verificare'};
   if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
   if(device.iphone&&!keys.every(k=>device.local?.[k]||device.verified?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
