@@ -478,7 +478,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
- <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami.</p><div id="archiveResults" class="archive-referti-scroll"></div>
+ <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica.</p><div id="archiveResults" class="archive-referti-scroll"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
 
@@ -2711,10 +2711,36 @@ input.addEventListener('change',async e=>{
   };
   dialog.append(save,cancel);document.body.append(dialog);dialog.showModal();
  }
+ // Completeness concerns only the two laboratory report indicators, never clinical results.
+ function semaforoEsami(rec,flags){
+  const d=rec.data||{},plan=Array.isArray(d.protocollo)?d.protocollo:[];
+  const known=plan.length>0&&!String(d.altri_accertamenti||'').trim();
+  const required={analisi:plan.includes('ANALISI EMATOCHIMICHE'),drug:plan.includes('ESAMI TOSSICOLOGICI')};
+  const keys=['analisi','drug'].filter(k=>required[k]);
+  if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
+  if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:'Protocollo non definito o accertamenti personalizzati da verificare'};
+  if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
+  const present=keys.filter(k=>flags[k]==='SÌ').length;
+  if(present===keys.length)return {state:'green',text:'COMPLETI',detail:'Referti presenti per analisi e/o drug test previsti'};
+  if(present||keys.some(k=>flags[k]!=='NO'))return {state:'yellow',text:present?'PARZIALI':'DA VERIFICARE',detail:'Uno o più referti previsti mancanti o da verificare'};
+  return {state:'red',text:'MANCANTI',detail:'Nessun referto presente per analisi e/o drug test previsti'};
+ }
+ function updateSemaforo(rec,tr){
+  if(!tr)return;
+  const flags=Object.fromEntries(['analisi','drug'].map(k=>[k,tr.querySelector('[data-referto="'+k+'"] .archive-referto')?.dataset.state||'DA VERIFICARE']));
+  const result=semaforoEsami(rec,flags);
+  let badge=tr.querySelector('.archive-semaforo');
+  if(!badge){badge=document.createElement('span');badge.className='archive-semaforo no-print';badge.setAttribute('data-html2canvas-ignore','true');tr.firstElementChild.append(document.createElement('br'),badge)}
+  const label='Esami: '+result.text;
+  if(badge.textContent!==label)badge.textContent=label;
+  badge.dataset.light=result.state;badge.title=result.detail+' (analisi / drug test)';badge.setAttribute('aria-label',label+'. '+result.detail);
+ }
  function addControls(){
   document.querySelectorAll('#archiveResults button[data-archive-id]').forEach(open=>{
    const rec=recordsById.get(open.dataset.archiveId),cell=open.parentElement;
-   if(!rec||cell.querySelector('[data-verifica-referti]'))return;
+   if(!rec)return;
+   updateSemaforo(rec,open.closest('tr'));
+   if(cell.querySelector('[data-verifica-referti]'))return;
    const button=document.createElement('button');button.type='button';button.className='secondary';button.dataset.verificaReferti='true';button.textContent='VERIFICA REFERTI';button.style.marginLeft='5px';
    button.onclick=()=>editVerification(rec,button).catch(e=>alert('Impossibile aprire la verifica: '+e.message));(cell.querySelector('.archive-action-commands')||cell).append(button);
   });
@@ -2924,9 +2950,9 @@ input.addEventListener('change',async e=>{
  }
  installScanControl();
 
- window.lumenArchiveReferti={statuses,inspectText};
+ window.lumenArchiveReferti={statuses,inspectText,semaforoEsami};
  const style=document.createElement('style');
- style.textContent='.archive-referto{display:inline-block;font-weight:700;padding:4px 7px;border-radius:5px;white-space:nowrap}.archive-referto[data-state="SÌ"]{background:#e2f3e6;color:#175c30}.archive-referto[data-state="NO"]{background:#eee;color:#444}.archive-referto[data-state="DA VERIFICARE"]{background:#fff0c8;color:#714c00}.archive-referti-scroll{overflow-x:auto}.archive-referti-scroll .archive-table{min-width:1000px}';
+ style.textContent='.archive-semaforo{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-top:5px}.archive-semaforo:before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #555;background:#fff}.archive-semaforo[data-light=green]:before{background:#16803b}.archive-semaforo[data-light=yellow]:before{background:#f3c623}.archive-semaforo[data-light=red]:before{background:#d72c2c}@media print{.archive-semaforo{display:none!important}}.archive-referto{display:inline-block;font-weight:700;padding:4px 7px;border-radius:5px;white-space:nowrap}.archive-referto[data-state="SÌ"]{background:#e2f3e6;color:#175c30}.archive-referto[data-state="NO"]{background:#eee;color:#444}.archive-referto[data-state="DA VERIFICARE"]{background:#fff0c8;color:#714c00}.archive-referti-scroll{overflow-x:auto}.archive-referti-scroll .archive-table{min-width:1000px}';
  document.head.appendChild(style);
 })();
 
