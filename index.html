@@ -1091,6 +1091,28 @@ let firmaMacPeer=null,firmaPreparationVersion=0;
 function closeFirmaMacPeer(){if(firmaMacPeer)firmaMacPeer.close();firmaMacPeer=null}
 function peerErrorText(err){return String(err&&err.message||'COLLEGAMENTO IPHONE–MAC NON RIUSCITO. RIPROVARE.')}
 function firmaQrStatus(message){const el=document.getElementById('firmaQrMessage');if(el){el.textContent=message;el.setAttribute('role','status');el.setAttribute('aria-live','polite');}}
+function showFirmaMacReceipt(packet){
+ const name=[packet.cognome,packet.nome].filter(Boolean).join(' ')||'LAVORATORE';
+ const description=name+' — visita '+packet.visita+' — ore '+clock()+'. Firma inserita e salvataggio verificato nell’archivio del Mac.';
+ const qrOverlay=document.getElementById('firmaQrOverlay');
+ if(qrOverlay&&qrOverlay.querySelector){
+  const title=qrOverlay.querySelector('h2'),qr=qrOverlay.querySelector('#firmaQrCode'),button=qrOverlay.querySelector('button');
+  if(title)title.textContent='✓ FIRMA RICEVUTA';
+  if(qr)qr.style.display='none';
+  firmaQrStatus(description);
+  if(button)button.textContent='CHIUDI RICEVUTA';
+ }
+ document.getElementById('firmaMacReceipt')?.remove();
+ const banner=document.createElement('div');
+ banner.id='firmaMacReceipt';
+ banner.setAttribute?.('role','status');
+ banner.setAttribute?.('aria-live','polite');
+ banner.style.cssText='position:fixed;top:16px;right:16px;z-index:100005;box-sizing:border-box;max-width:min(440px,calc(100vw - 32px));padding:18px 20px;border:3px solid #14804a;border-radius:14px;background:#f0fdf4;color:#14532d;box-shadow:0 10px 40px rgba(0,0,0,.24);font:16px/1.4 system-ui,sans-serif;white-space:normal;text-align:left';
+ banner.innerHTML='<div style="font-weight:800;font-size:19px;margin-bottom:8px">✓ FIRMA RICEVUTA E SALVATA</div><div class="lumen-firma-receipt-detail"></div><button type="button" style="margin-top:12px;padding:8px 18px;background:#166534;color:white;border:0;border-radius:8px;cursor:pointer">OK, CHIUDI AVVISO</button>';
+ banner.querySelector('.lumen-firma-receipt-detail').textContent=description;
+ banner.querySelector('button').onclick=()=>banner.remove();
+ document.body.appendChild(banner);
+}
 function openAutomaticSignatureReceiver(request){return new Promise(resolve=>{
  closeFirmaMacPeer();
  if(!window.Peer){resolve('');return}
@@ -1121,7 +1143,7 @@ function openAutomaticSignatureReceiver(request){return new Promise(resolve=>{
    if(saving)await saving;
    if(savedImage!==packet.firma_lavoratore_png)throw Error('FIRMA DIVERSA DA QUELLA SALVATA.');
    conn.send({...ack,ok:true});
-   if(active&&firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='✓ FIRMA RICEVUTA E SALVATA NELLA CARTELLA. PUOI CHIUDERE.';}
+   if(active&&firmaMacPeer===session){showFirmaMacReceipt(packet);}
   }catch(err){try{conn.send({...ack,ok:false,errore:err.message||String(err)})}catch(_){}if(active&&firmaMacPeer===session){firmaQrStatus('FIRMA NON SALVATA: '+(err.message||String(err)));showSaveInfo('error','FIRMA NON SALVATA',err.message||String(err));}}
  });conn.on('error',err=>{if(active&&firmaMacPeer===session)firmaQrStatus('COLLEGAMENTO IPHONE INTERROTTO: '+peerErrorText(err)+'. LA FIRMA RESTA SULL’IPHONE.');});});
  const lost=()=>{session.close();if(firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='COLLEGAMENTO INTERROTTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.';}};
@@ -1181,6 +1203,7 @@ window.beltramiFirmaIphone={
  archiveLocal:async firma=>archiveVisitSignature(collect(),firma),
  prepare:async()=>{
   const preparation=++firmaPreparationVersion;
+  document.getElementById('firmaMacReceipt')?.remove();
   document.getElementById('firmaQrOverlay')?.remove();
   try{
    const d=collect(),identita=workerSignatureIdentity(d),visita=checkedSignatureVisit(d),selection=workerSelectionVersion;
