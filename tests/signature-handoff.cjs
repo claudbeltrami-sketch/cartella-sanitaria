@@ -158,7 +158,7 @@ async function automaticTests(){
  receiver=await c.openAutomaticSignatureReceiver(request);
  const stuckPeer=peers.get(receiver);stuckPeer.removeAllListeners('connection');stuckPeer.on('connection',()=>{});
  const timeout=c.sendSignatureDirectly(packet,receiver);const rejected=assert.rejects(timeout,/NON HA CONFERMATO/);
- await new Promise(r=>setImmediate(r));[...timers.values()].find(t=>t.ms===30000).fn();await rejected;c.closeFirmaMacPeer();
+ await new Promise(r=>setImmediate(r));[...timers.values()].find(t=>t.ms===90000).fn();await rejected;c.closeFirmaMacPeer();
  // Sender uses the automatic path and only clears its own completed request.
  c.apply(A);receiver=await c.openAutomaticSignatureReceiver(request);
  await c.window.lumenFirmaOffline.persist({...((await c.window.lumenFirmaOffline.list())[0]),peerId:receiver});
