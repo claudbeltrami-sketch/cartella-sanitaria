@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261031-aggiornamento-stabile-5">
+<meta name="lumen-build" content="20261031-referti-auto-6">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -478,7 +478,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
- <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica. Su iPhone, i referti previsti non disponibili sul telefono sono gialli: DA VERIFICARE SUL MAC.</p><div id="archiveResults" class="archive-referti-scroll"></div>
+ <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica. La lettura dei referti parte automaticamente aprendo l’archivio sul Mac. Le letture e le conferme salvate sono incluse nel backup e restano valide su iPhone; i casi non ancora verificati indicano DA VERIFICARE SUL MAC.</p><div id="archiveResults" class="archive-referti-scroll"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
 
@@ -1365,7 +1365,7 @@ let archiveRenderVersion=0,archiveActiveQuery='',archiveActiveRoles={};
 function archiveRoleInputs(){return {committente:document.getElementById('archiveClient').value.trim(),datore_lavoro:document.getElementById('archiveEmployer').value.trim()}}
 function clearArchiveRoles(){document.getElementById('archiveClient').value='';document.getElementById('archiveEmployer').value=''}
 
-async function renderArchive(query=''){const version=++archiveRenderVersion,roles=archiveRoleInputs(),rows=await listCartelleArchive(query,roles);const indicators=window.lumenArchiveReferti?await window.lumenArchiveReferti.statuses(rows):new Map();if(version!==archiveRenderVersion)return;archiveActiveQuery=String(query||'').trim();archiveActiveRoles=roles;const box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length+(query?' — Ricerca: “'+query+'”':'')+(roles.committente?' — Committente: '+roles.committente:'')+(roles.datore_lavoro?' — Datore: '+roles.datore_lavoro:'');if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA. CONTROLLARE IL TESTO INSERITO O PREMERE MOSTRA TUTTE.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>DATORE DI LAVORO</th><th>COMMITTENTE</th><th>DATA VISITA</th><th>ANALISI</th><th>DRUG TEST</th><th>AGGIORNATA</th><th>VERSIONI</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const flags=indicators.get(r.id)||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'},recordId=r.id,tr=document.createElement('tr'),d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'',vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong><br><small>Nascita: '+escapeHtml(r.dataNascita||'—')+'</small></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(d.datore_lavoro||'DA COMPLETARE')+'</td><td>'+escapeHtml(d.committente||'NON INDICATO')+'</td><td>'+escapeHtml(archiveDateText(visit)||'—')+'</td>'+['analisi','drug'].map(k=>'<td data-referto="'+k+'"><span class="archive-referto" data-state="'+flags[k]+'">'+flags[k]+'</span></td>').join('')+'<td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td><span class="archive-badge">'+vers+'</span></td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.dataset.archiveId=recordId;b1.onclick=e=>{e.preventDefault();e.stopPropagation();openArchiveRecord(recordId)};td.className='archive-actions';td.appendChild(b1);const menu=document.createElement('details');menu.className='archive-actions-menu';const summary=document.createElement('summary');summary.textContent='ALTRE AZIONI ▾';const commands=document.createElement('div');commands.className='archive-action-commands';menu.append(summary,commands);td.appendChild(menu);menu.addEventListener('toggle',()=>{if(menu.open)td.closest('tbody').querySelectorAll('.archive-actions-menu[open]').forEach(other=>{if(other!==menu)other.open=false})});commands.addEventListener('click',e=>{if(e.target.closest('button'))menu.open=false});if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(recordId);commands.appendChild(b2)}const b3=document.createElement('button');b3.type='button';b3.className='danger';b3.textContent='ELIMINA';b3.style.marginLeft='5px';b3.onclick=()=>deleteArchiveRecord(recordId);commands.appendChild(b3);['LAVORATORE','CF','DATORE DI LAVORO','COMMITTENTE','DATA VISITA','ANALISI','DRUG TEST','AGGIORNATA','VERSIONI','AZIONI'].forEach((label,i)=>tr.children[i].dataset.label=label);tb.appendChild(tr)});box.innerHTML='';box.appendChild(t);window.lumenArchiveReferti?.decorate()}
+async function renderArchive(query=''){const version=++archiveRenderVersion,roles=archiveRoleInputs(),rows=await listCartelleArchive(query,roles);const indicators=window.lumenArchiveReferti?await window.lumenArchiveReferti.statuses(rows):new Map();if(version!==archiveRenderVersion)return;archiveActiveQuery=String(query||'').trim();archiveActiveRoles=roles;const box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length+(query?' — Ricerca: “'+query+'”':'')+(roles.committente?' — Committente: '+roles.committente:'')+(roles.datore_lavoro?' — Datore: '+roles.datore_lavoro:'');if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA. CONTROLLARE IL TESTO INSERITO O PREMERE MOSTRA TUTTE.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>DATORE DI LAVORO</th><th>COMMITTENTE</th><th>DATA VISITA</th><th>ANALISI</th><th>DRUG TEST</th><th>AGGIORNATA</th><th>VERSIONI</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const flags=indicators.get(r.id)||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'},recordId=r.id,tr=document.createElement('tr'),d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'',vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong><br><small>Nascita: '+escapeHtml(r.dataNascita||'—')+'</small></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(d.datore_lavoro||'DA COMPLETARE')+'</td><td>'+escapeHtml(d.committente||'NON INDICATO')+'</td><td>'+escapeHtml(archiveDateText(visit)||'—')+'</td>'+['analisi','drug'].map(k=>'<td data-referto="'+k+'"><span class="archive-referto" data-state="'+flags[k]+'">'+flags[k]+'</span></td>').join('')+'<td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td><span class="archive-badge">'+vers+'</span></td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.dataset.archiveId=recordId;b1.onclick=e=>{e.preventDefault();e.stopPropagation();openArchiveRecord(recordId)};td.className='archive-actions';td.appendChild(b1);const menu=document.createElement('details');menu.className='archive-actions-menu';const summary=document.createElement('summary');summary.textContent='ALTRE AZIONI ▾';const commands=document.createElement('div');commands.className='archive-action-commands';menu.append(summary,commands);td.appendChild(menu);menu.addEventListener('toggle',()=>{if(menu.open)td.closest('tbody').querySelectorAll('.archive-actions-menu[open]').forEach(other=>{if(other!==menu)other.open=false})});commands.addEventListener('click',e=>{if(e.target.closest('button'))menu.open=false});if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(recordId);commands.appendChild(b2)}const b3=document.createElement('button');b3.type='button';b3.className='danger';b3.textContent='ELIMINA';b3.style.marginLeft='5px';b3.onclick=()=>deleteArchiveRecord(recordId);commands.appendChild(b3);['LAVORATORE','CF','DATORE DI LAVORO','COMMITTENTE','DATA VISITA','ANALISI','DRUG TEST','AGGIORNATA','VERSIONI','AZIONI'].forEach((label,i)=>tr.children[i].dataset.label=label);tb.appendChild(tr)});box.innerHTML='';box.appendChild(t);window.lumenArchiveReferti?.decorate();window.lumenArchiveReferti?.checkPending(rows)}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 const originalSaveCartellaVerified=saveCartellaVerified;
 saveCartellaVerified=async function(){try{const x=await saveToLocalArchive();showSaveInfo('ok',x.isUpdate?'✓ CARTELLA AGGIORNATA NELL’ARCHIVIO':'✓ CARTELLA INSERITA NELL’ARCHIVIO',(x.rec.cognome||'')+' '+(x.rec.nome||'')+'\nCF: '+(x.rec.cf||'NON PRESENTE')+'\nVersioni conservate: '+x.versioni+'\nOra: '+clock());setStatus(x.isUpdate?'CARTELLA AGGIORNATA NELL’ARCHIVIO LOCALE.':'CARTELLA SALVATA NELL’ARCHIVIO LOCALE.')}catch(e){showSaveInfo('error','ARCHIVIO LOCALE NON AGGIORNATO',e.message||String(e));return}await originalSaveCartellaVerified()}
@@ -2667,12 +2667,13 @@ input.addEventListener('change',async e=>{
      analisi=analisi||scanned.analisi==='SÌ';drug=drug||scanned.drug==='SÌ';
      uncertainAnalisi=uncertainAnalisi||scanned.analisi==='DA VERIFICARE';uncertainDrug=uncertainDrug||scanned.drug==='DA VERIFICARE';
     }else{
-     const result=classify(row);analisi=analisi||result.analisi;drug=drug||result.drug;
-     uncertainAnalisi=uncertainAnalisi||!result.analisi;uncertainDrug=uncertainDrug||!result.drug;
+     uncertainAnalisi=true;uncertainDrug=true; // File labels alone cannot certify report contents.
     }
    }
-   const local={analisi:false,drug:false};
+   const local={analisi:false,drug:false,verified:{analisi:false,drug:false}};
    for(const row of rows){
+    const evidence=scans.get(scanId(row));
+    if(visit&&date(row.visit)===visit&&(!code||!cf(row.workerCf)||code===cf(row.workerCf))&&evidence?.version===SCAN_VERSION&&evidence.fingerprint===fingerprint(row)){local.verified.analisi ||= evidence.analisi==='SÌ';local.verified.drug ||= evidence.drug==='SÌ'}
     if(!(row.blob instanceof Blob&&row.blob.size)||!visit||date(row.visit)!==visit||(code&&cf(row.workerCf)&&code!==cf(row.workerCf)))continue;
     const scan=scans.get(scanId(row));
     const result=scan?.version===SCAN_VERSION&&scan.fingerprint===fingerprint(row)?{analisi:scan.analisi==='SÌ',drug:scan.drug==='SÌ'}:classify(row);
@@ -2681,21 +2682,49 @@ input.addEventListener('change',async e=>{
    localRefertiById.set(rec.id,local);
    const manual=verified.get(verificationId(rec));
    if(manual&&manual.workerCf===code&&manual.visit===visit){if(manual.analisi==='SÌ'||manual.analisi==='NO'){analisi=manual.analisi==='SÌ';uncertainAnalisi=false}if(manual.drug==='SÌ'||manual.drug==='NO'){drug=manual.drug==='SÌ';uncertainDrug=false}}
-   const result={analisi:analisi?'SÌ':uncertainAnalisi?'DA VERIFICARE':'NO',drug:drug?'SÌ':uncertainDrug?'DA VERIFICARE':'NO',completeVerified:!!(manual&&manual.workerCf===code&&manual.visit===visit&&manual.completeVerified&&manual.context===verificationContext(rec))};verificationFlagsById.set(rec.id,result);return [rec.id,result];
+   if(manual&&manual.workerCf===code&&manual.visit===visit){local.verified.analisi ||= manual.analisi==='SÌ';local.verified.drug ||= manual.drug==='SÌ'}
+   const result={analisi:analisi?'SÌ':uncertainAnalisi?'DA VERIFICARE':'NO',drug:drug?'SÌ':uncertainDrug?'DA VERIFICARE':'NO',...(manual&&manual.workerCf===code&&manual.visit===visit&&manual.completeVerified&&manual.context===verificationContext(rec)?{completeVerified:true}:{})};verificationFlagsById.set(rec.id,result);return [rec.id,result];
   }));
  }
  
  const verificationFlagsById=new Map();
+ function matchesVisit(row,rec){
+  const d=rec.data||{},code=cf(rec.cf||d.codice_fiscale),visit=date(d.data_giudizio||d.data_cartella);
+  if(row.kind!=='allegato_cartella_v1'||nonReferto(row)||!visit||date(row.visit)!==visit)return false;
+  if(String(row.workerKey||'').startsWith('CF_')&&cf(row.workerCf)&&cf(row.workerKey.slice(3))!==cf(row.workerCf))return false;
+  if(code&&cf(row.workerCf)&&code!==cf(row.workerCf))return false;
+  return row.workerKey===rec.id||!!(code&&code===cf(row.workerCf));
+ }
  function verificationContext(rec){const d=rec.data||{};return JSON.stringify([d.protocollo||[],d.altri_accertamenti||''])}
  function verificationId(rec){const d=rec.data||{};return 'REFERTI_VERIFICA_'+JSON.stringify([rec.id,cf(rec.cf||d.codice_fiscale),date(d.data_giudizio||d.data_cartella)])}
  async function editVerification(rec,button){
   const d=rec.data||{},visit=date(d.data_giudizio||d.data_cartella);
   if(!visit){alert('Aprire la cartella e indicare la data della visita prima di verificare i referti.');return}
   const dialog=document.createElement('dialog');
-  dialog.style.cssText='max-width:520px;width:90%;padding:20px;border-radius:12px';
+  dialog.style.cssText='max-width:760px;width:90%;max-height:90vh;overflow:auto;padding:20px;border-radius:12px';
   const title=document.createElement('h3');title.textContent='VERIFICA REFERTI — '+[rec.cognome,rec.nome].filter(Boolean).join(' ');dialog.append(title);
   const info=document.createElement('p');info.textContent='Visita: '+visit+'. Conferma la presenza nei referti controllati. “NO” significa non presente nei documenti controllati, non esito negativo. Le spunte della cartella restano separate.';dialog.append(info);
-  const previous=(await window.lumenAllegatiStorage.list()).find(r=>r.id===verificationId(rec));
+  const documents=await window.lumenAllegatiStorage.list();
+  const previous=documents.find(r=>r.id===verificationId(rec));
+  const urls=[];
+  const files=document.createElement('section');files.setAttribute('aria-label','Referti della visita');
+  const heading=document.createElement('h4');heading.textContent='REFERTI DELLA VISITA';files.append(heading);
+  const matching=documents.filter(row=>matchesVisit(row,rec));
+  const preview=document.createElement('iframe');preview.title='Anteprima del referto';preview.style.cssText='width:100%;height:50vh;border:1px solid #aaa;margin:12px 0';preview.hidden=true;
+  const fileMessage=document.createElement('p');fileMessage.setAttribute('role','status');
+  for(const row of matching){
+   const line=document.createElement('div');line.style.margin='10px 0';
+   const label=document.createElement('span');label.textContent=row.name+' ';
+   const open=document.createElement('button');open.type='button';open.textContent='APRI REFERTO';open.dataset.openReferto=row.id;
+   open.onclick=async()=>{open.disabled=true;fileMessage.textContent='Apertura del referto…';try{
+    const blob=row.blob instanceof Blob?row.blob:await window.lumenExternalAttachments?.getBlob(row);
+    if(!(blob instanceof Blob)||!blob.size)throw Error('PDF conservato sul Mac: collega la cartella LUMEN_ALLEGATI per aprirlo.');
+    const url=URL.createObjectURL(blob);urls.push(url);preview.src=url;preview.hidden=false;fileMessage.textContent=row.name;
+   }catch(e){fileMessage.textContent=e.message}finally{open.disabled=false}};
+   line.append(label,open);files.append(line);
+  }
+  if(!matching.length){const empty=document.createElement('p');empty.textContent='Nessun referto associato a questa visita.';files.append(empty)}
+  files.append(fileMessage,preview);dialog.append(files);
   const selects={};
   for(const [key,label] of [['analisi','Analisi ematochimiche'],['drug','Drug test']]){
    const field=document.createElement('label');field.style.cssText='display:block;margin:15px 0';field.textContent=label+' ';
@@ -2708,7 +2737,7 @@ input.addEventListener('change',async e=>{
   const message=document.createElement('p');message.setAttribute('role','status');dialog.append(message);
   const save=document.createElement('button');save.textContent='SALVA VERIFICA';save.type='button';
   const cancel=document.createElement('button');cancel.textContent='ANNULLA';cancel.type='button';cancel.style.marginLeft='10px';
-  const close=()=>{dialog.close();dialog.remove()};cancel.onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();if(!save.disabled)close()});
+  const close=()=>{dialog.close();urls.forEach(url=>URL.revokeObjectURL(url));dialog.remove()};cancel.onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();if(!save.disabled)close()});
   save.onclick=async()=>{
    save.disabled=cancel.disabled=true;
    let db;
@@ -2741,7 +2770,7 @@ input.addEventListener('change',async e=>{
   if(flags.completeVerified)return {state:'green',text:'VERIFICATI',detail:'Completezza dei referti previsti confermata manualmente per questa visita'};
   if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:'Protocollo non definito o accertamenti personalizzati da verificare'};
   if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
-  if(device.iphone&&!keys.every(k=>device.local?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
+  if(device.iphone&&!keys.every(k=>device.local?.[k]||device.verified?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
   const present=keys.filter(k=>flags[k]==='SÌ').length;
   if(present===keys.length)return {state:'green',text:'COMPLETI',detail:'Referti presenti per analisi e/o drug test previsti'};
   if(present||keys.some(k=>flags[k]!=='NO'))return {state:'yellow',text:present?'PARZIALI':'DA VERIFICARE',detail:'Uno o più referti previsti mancanti o da verificare'};
@@ -2751,7 +2780,7 @@ input.addEventListener('change',async e=>{
   if(!tr)return;
   const flags=verifiedFlags||{...Object.fromEntries(['analisi','drug'].map(k=>[k,tr.querySelector('[data-referto="'+k+'"] .archive-referto')?.dataset.state||'DA VERIFICARE'])),completeVerified:verificationFlagsById.get(rec.id)?.completeVerified===true,error:verificationFlagsById.get(rec.id)?.error===true};
   if(verifiedFlags)verificationFlagsById.set(rec.id,verifiedFlags);
-  const result=semaforoEsami(rec,flags,{iphone:/iPhone|iPod/i.test(navigator.userAgent),local:localRefertiById.get(rec.id)});
+  const result=semaforoEsami(rec,flags,{iphone:/iPhone|iPod/i.test(navigator.userAgent),local:localRefertiById.get(rec.id),verified:localRefertiById.get(rec.id)?.verified});
   let badge=tr.querySelector('.archive-semaforo');
   if(!badge){badge=document.createElement('span');badge.className='archive-semaforo no-print';badge.setAttribute('data-html2canvas-ignore','true');tr.firstElementChild.append(document.createElement('br'),badge)}
   const label='Esami: '+result.text;
@@ -2919,6 +2948,7 @@ input.addEventListener('change',async e=>{
   document.querySelectorAll('#archiveResults button[data-archive-id]').forEach(open=>{
    const state=flags.get(open.dataset.archiveId),tr=open.closest('tr');if(!state||!tr)return;
    for(const key of ['analisi','drug']){const badge=tr.querySelector('[data-referto="'+key+'"] .archive-referto');if(badge&&badge.textContent!==state[key]){badge.textContent=state[key];badge.dataset.state=state[key]}}
+   updateSemaforo(recordsById.get(open.dataset.archiveId),tr,state);
   });
  }
  
@@ -2973,7 +3003,39 @@ input.addEventListener('change',async e=>{
  }
  installScanControl();
 
- window.lumenArchiveReferti={statuses,inspectText,semaforoEsami,decorate:addControls};
+
+ // One sequential pass per unchanged attachment, without moving focus or reloading.
+ const autoAttempted=new Set();let autoPending=[],autoRunning=false;
+ function checkPending(records){
+  autoPending=records;void automaticCheck().catch(e=>{const status=document.getElementById('refertiScanStatus');if(status)status.textContent='Controllo automatico non completato: '+e.message});
+ }
+ async function automaticCheck(){
+  if(autoRunning||scanning||/iPhone|iPod/i.test(navigator.userAgent)||!window.pdfjsLib)return;
+  autoRunning=true;scanning=true;stopRequested=false;
+  const button=document.getElementById('refertiScanAll'),stop=document.getElementById('refertiScanStop'),status=document.getElementById('refertiScanStatus');
+  if(button)button.disabled=true;if(stop){stop.hidden=false;stop.disabled=false;stop.textContent='INTERROMPI DOPO LA PAGINA'}
+  let done=0,unresolved=0;
+  try{
+   while(autoPending.length&&!stopRequested){
+    const records=autoPending;autoPending=[];
+    const all=await window.lumenAllegatiStorage.list(),old=new Map(all.filter(r=>r.kind==='referti_scan_v1').map(r=>[r.id,r]));
+    const rows=all.filter(row=>records.some(rec=>matchesVisit(row,rec)));
+    for(const row of rows){
+     if(stopRequested)break;
+     const key=row.id+fingerprint(row),previous=old.get(scanId(row));
+     if(autoAttempted.has(key)||(previous?.version===SCAN_VERSION&&previous.fingerprint===fingerprint(row)&&previous.readable))continue;
+     autoAttempted.add(key);
+     reportProgress=detail=>{if(status)status.textContent='Controllo automatico: '+row.name+' — '+detail};
+     reportProgress('lettura del referto');
+     try{const result=await scanPdf(row);if(stopRequested)break;await saveScan(row,result);if(!result.readable||result.analisi==='DA VERIFICARE'||result.drug==='DA VERIFICARE')unresolved++;done++;await refreshBadges()}
+     catch(e){if(e.systemic)throw e;unresolved++}
+    }
+   }
+   if(status&&(done||unresolved))status.textContent=(stopRequested?'Controllo interrotto. ':'')+'Controllo automatico: '+done+' referti letti. '+(unresolved?unresolved+' da verificare: apri il referto dal pannello VERIFICA REFERTI.':'Risultati salvati e semafori aggiornati.');
+  }finally{await closeOcr();autoRunning=false;scanning=false;if(button)button.disabled=false;if(stop)stop.hidden=true;await refreshBadges().catch(()=>{})}
+ }
+
+ window.lumenArchiveReferti={statuses,inspectText,semaforoEsami,decorate:addControls,checkPending};
  addControls();
  const style=document.createElement('style');
  style.textContent='.archive-semaforo{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-top:5px}.archive-semaforo:before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #555;background:#fff}.archive-semaforo[data-light=green]:before{background:#16803b}.archive-semaforo[data-light=yellow]:before{background:#f3c623}.archive-semaforo[data-light=red]:before{background:#d72c2c}@media print{.archive-semaforo{display:none!important}}.archive-referto{display:inline-block;font-weight:700;padding:4px 7px;border-radius:5px;white-space:nowrap}.archive-referto[data-state="SÌ"]{background:#e2f3e6;color:#175c30}.archive-referto[data-state="NO"]{background:#eee;color:#444}.archive-referto[data-state="DA VERIFICARE"]{background:#fff0c8;color:#714c00}.archive-referti-scroll{overflow-x:auto}.archive-referti-scroll .archive-table{min-width:1000px}';
@@ -3349,6 +3411,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script src="firma-da-consenso.js?v=20261031-2"></script>
 <script src="anagrafiche-verifica.js?v=20261029-1"></script>
 </body></html>
+
 
 
 
