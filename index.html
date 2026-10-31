@@ -1122,49 +1122,106 @@ function openAutomaticSignatureReceiver(request){return new Promise(resolve=>{
  const finishOpen=id=>{if(settled)return;settled=true;clearTimeout(timer);resolve(id)};
  const session={close(){if(!active)return;active=false;clearTimeout(timer);clearTimeout(expiry);finishOpen('');try{peer.destroy()}catch(_){}}};
  firmaMacPeer=session;
- const timer=setTimeout(()=>session.close(),12000);
+ const timer=setTimeout(()=>session.close(),15000);
  peer.on('open',id=>{
   if(!active||settled)return;finishOpen(id);
-  expiry=setTimeout(()=>{session.close();if(firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='COLLEGAMENTO SCADUTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.';}},15*60*1000);
+  expiry=setTimeout(()=>{session.close();if(firmaMacPeer===session)firmaQrStatus('COLLEGAMENTO SCADUTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.');},15*60*1000);
  });
  peer.on('connection',conn=>{
-  if(active&&firmaMacPeer===session)firmaQrStatus('IPHONE COLLEGATO. IN ATTESA DELLA FIRMA…');
-  conn.on('data',async packet=>{
-  const ack={tipo:'BELTRAMI_FIRMA_RICEVUTA_V1',id:packet&&packet.id};
-  try{
-   if(!active||firmaMacPeer!==session||selection!==workerSelectionVersion)throw Error('RICHIESTA CHIUSA O CARTELLA CAMBIATA. RIAPRI LA VISITA E GENERA UN NUOVO QR.');
-   if(!packet||packet.id!==request.id||packet.identita!==request.identita||packet.visita!==request.visita)throw Error('LA FIRMA NON CORRISPONDE A QUESTO QR.');
-   checkReturnedSignature(packet,collect());
-   if(savedImage&&savedImage!==packet.firma_lavoratore_png)throw Error('QUESTA RICHIESTA HA GIÀ RICEVUTO UNA FIRMA DIVERSA.');
-   if(!saving&&!savedImage){
-    firmaQrStatus('FIRMA ARRIVATA. SALVATAGGIO E VERIFICA IN CORSO…');
-    saving=archiveReceivedSignature(packet).then(()=>{savedImage=packet.firma_lavoratore_png}).finally(()=>{saving=null});
+  const transfer={parts:[],total:0,received:0,meta:null};
+  conn.on('open',()=>{if(active&&firmaMacPeer===session)firmaQrStatus('IPHONE COLLEGATO. RICEZIONE FIRMA IN CORSO…')});
+  conn.on('data',async incoming=>{
+   let packet=incoming;
+   const ack={tipo:'BELTRAMI_FIRMA_RICEVUTA_V1',id:incoming&&incoming.id};
+   try{
+    if(!active||firmaMacPeer!==session||selection!==workerSelectionVersion)throw Error('RICHIESTA CHIUSA O CARTELLA CAMBIATA. RIAPRI LA VISITA E GENERA UN NUOVO QR.');
+    if(incoming?.tipo==='BELTRAMI_FIRMA_HELLO_V1'){
+     if(incoming.id!==request.id||incoming.identita!==request.identita||incoming.visita!==request.visita)throw Error('QUESTO IPHONE NON CORRISPONDE ALLA RICHIESTA DEL MAC.');
+     conn.send({tipo:'BELTRAMI_FIRMA_READY_V1',id:request.id});
+     firmaQrStatus('IPHONE COLLEGATO. IN ATTESA DELLA FIRMA…');return;
+    }
+    if(incoming?.tipo==='BELTRAMI_FIRMA_CHUNK_V1'){
+     const {id,index,total,body,meta}=incoming;
+     if(id!==request.id||!Number.isInteger(index)||!Number.isInteger(total)||total<1||total>600||index<0||index>=total||typeof body!=='string'||body.length>7000)throw Error('BLOCCO DI FIRMA NON VALIDO.');
+     if(index===0){
+      if(!meta||meta.tipo!=='BELTRAMI_FIRMA_IPHONE_V1'||meta.versione!==2||meta.id!==request.id||meta.identita!==request.identita||meta.visita!==request.visita)throw Error('IDENTITÀ O DATA DELLA FIRMA NON CORRISPONDENTI.');
+      transfer.total=total;transfer.meta=meta;transfer.parts=[];transfer.received=0;
+     }
+     if(!transfer.meta||transfer.total!==total||index!==transfer.received)throw Error('BLOCCHI FIRMA FUORI ORDINE. RIPETERE INVIO.');
+     transfer.parts.push(body);transfer.received++;
+     if(transfer.parts.reduce((n,x)=>n+x.length,0)>4000000)throw Error('FIRMA TROPPO GRANDE PER IL TRASFERIMENTO.');
+     conn.send({tipo:'BELTRAMI_FIRMA_CHUNK_ACK_V1',id,index});
+     firmaQrStatus('RICEZIONE FIRMA DALL’IPHONE: '+Math.round(100*transfer.received/total)+'%');
+     if(transfer.received!==total)return;
+     packet={...transfer.meta,firma_lavoratore_png:transfer.parts.join('')};
+     transfer.parts=[];transfer.meta=null;
+    }
+    if(!packet||packet.id!==request.id||packet.identita!==request.identita||packet.visita!==request.visita)throw Error('LA FIRMA NON CORRISPONDE A QUESTO QR.');
+    checkReturnedSignature(packet,collect());
+    if(savedImage&&savedImage!==packet.firma_lavoratore_png)throw Error('QUESTA RICHIESTA HA GIÀ RICEVUTO UNA FIRMA DIVERSA.');
+    if(!saving&&!savedImage){
+     firmaQrStatus('FIRMA ARRIVATA. SALVATAGGIO E VERIFICA IN CORSO…');
+     saving=archiveReceivedSignature(packet).then(()=>{savedImage=packet.firma_lavoratore_png}).finally(()=>{saving=null});
+    }
+    if(saving)await saving;
+    if(savedImage!==packet.firma_lavoratore_png)throw Error('FIRMA DIVERSA DA QUELLA SALVATA.');
+    conn.send({...ack,ok:true});
+    if(active&&firmaMacPeer===session)showFirmaMacReceipt(packet);
+   }catch(err){
+    try{conn.send({...ack,ok:false,errore:err.message||String(err)})}catch(_){}
+    if(active&&firmaMacPeer===session){firmaQrStatus('FIRMA NON SALVATA: '+(err.message||String(err)));showSaveInfo('error','FIRMA NON SALVATA',err.message||String(err))}
    }
-   if(saving)await saving;
-   if(savedImage!==packet.firma_lavoratore_png)throw Error('FIRMA DIVERSA DA QUELLA SALVATA.');
-   conn.send({...ack,ok:true});
-   if(active&&firmaMacPeer===session){showFirmaMacReceipt(packet);}
-  }catch(err){try{conn.send({...ack,ok:false,errore:err.message||String(err)})}catch(_){}if(active&&firmaMacPeer===session){firmaQrStatus('FIRMA NON SALVATA: '+(err.message||String(err)));showSaveInfo('error','FIRMA NON SALVATA',err.message||String(err));}}
- });conn.on('error',err=>{if(active&&firmaMacPeer===session)firmaQrStatus('COLLEGAMENTO IPHONE INTERROTTO: '+peerErrorText(err)+'. LA FIRMA RESTA SULL’IPHONE.');});});
- const lost=()=>{session.close();if(firmaMacPeer===session){const message=document.getElementById('firmaQrMessage');if(message)message.textContent='COLLEGAMENTO INTERROTTO. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.';}};
- peer.on('error',lost);peer.on('disconnected',lost);peer.on('close',lost);
+  });
+  conn.on('error',err=>{if(active&&firmaMacPeer===session)firmaQrStatus('COLLEGAMENTO IPHONE INTERROTTO: '+peerErrorText(err)+'. LA FIRMA RESTA SULL’IPHONE.');});
+ });
+ const lost=err=>{session.close();if(firmaMacPeer===session)firmaQrStatus('COLLEGAMENTO NON DISPONIBILE: '+peerErrorText(err)+'. CHIUDI E PREMI DI NUOVO INVIA A IPHONE.');};
+ peer.on('error',lost);peer.on('close',lost);
+ // A lost signaling socket does not imply a lost, already-open WebRTC data channel.
+ peer.on('disconnected',()=>{if(active&&firmaMacPeer===session)firmaQrStatus('SERVER DI COLLEGAMENTO SCOLLEGATO. SE LA FIRMA NON ARRIVA, GENERA UN NUOVO QR.');});
 })}
-function sendSignatureDirectly(packet,targetPeerId){return new Promise((resolve,reject)=>{
+function sendSignatureDirectly(packet,targetPeerId,onProgress){return new Promise((resolve,reject)=>{
  if(!window.Peer||!targetPeerId){reject(new Error('COLLEGAMENTO AUTOMATICO NON DISPONIBILE.'));return}
+ if(!packet||!packet.id||typeof packet.firma_lavoratore_png!=='string'||packet.firma_lavoratore_png.length>4000000){reject(Error('FIRMA NON VALIDA O TROPPO GRANDE.'));return}
  let peer;try{peer=new Peer(undefined,firmaPeerOptions())}catch(e){reject(e);return}
- let done=false,conn=null;
+ let done=false,conn=null,ready=false,index=0;
+ const image=packet.firma_lavoratore_png,size=7000,total=Math.ceil(image.length/size);
+ const {firma_lavoratore_png, ...meta}=packet;
+ if(total<1||total>600){try{peer.destroy()}catch(_){}reject(Error('FIRMA TROPPO GRANDE.'));return}
+ const progress=p=>{if(typeof onProgress==='function')try{onProgress(p)}catch(_){}};
  const finish=(err,value)=>{if(done)return;done=true;clearTimeout(timer);try{if(conn)conn.close();peer.destroy()}catch(_){}err?reject(err):resolve(value)};
- const timer=setTimeout(()=>finish(new Error('IL MAC NON HA CONFERMATO IL SALVATAGGIO. LASCIA APERTO IL QR E RIPROVA.')),30000);
+ const timer=setTimeout(()=>finish(new Error('IL MAC NON HA CONFERMATO IL SALVATAGGIO. LA FIRMA RESTA SU IPHONE.')),90000);
  const lost=err=>finish(new Error('COLLEGAMENTO INTERROTTO. LA FIRMA RESTA SU IPHONE. '+(err&&err.type==='peer-unavailable'?'Il QR del Mac non è più attivo: genera un nuovo QR.':err&&err.message?peerErrorText(err):'RIPROVA.')));
+ const sendNext=()=>{
+  if(done||!conn||!ready||index>=total)return;
+  const n=index;
+  try{conn.send({tipo:'BELTRAMI_FIRMA_CHUNK_V1',id:packet.id,index:n,total,body:image.slice(n*size,(n+1)*size),...(n===0?{meta}:{})});}
+  catch(e){finish(e)}
+ };
  peer.on('open',()=>{
   if(done)return;
-  // PeerJS JSON rejects messages >= 16,300 bytes; binary chunks PNG payloads safely.
-  try{conn=peer.connect(targetPeerId,{reliable:true,serialization:'binary'});
-   conn.on('open',()=>{try{conn.send(packet)}catch(e){finish(e)}});
-   conn.on('data',ack=>{if(ack&&ack.tipo==='BELTRAMI_FIRMA_RICEVUTA_V1'&&ack.id===packet.id){if(ack.ok===true)finish(null,true);else finish(new Error(ack.errore||'IL MAC NON HA SALVATO LA FIRMA.'))}});
+  try{
+   conn=peer.connect(targetPeerId,{reliable:true,serialization:'json'});
+   conn.on('open',()=>{progress('MAC COLLEGATO. INVIO FIRMA…');conn.send({tipo:'BELTRAMI_FIRMA_HELLO_V1',id:packet.id,identita:packet.identita,visita:packet.visita});});
+   conn.on('data',message=>{
+    if(done||!message||message.id!==packet.id)return;
+    if(message.tipo==='BELTRAMI_FIRMA_READY_V1'&&!ready){ready=true;sendNext();return}
+    if(message.tipo==='BELTRAMI_FIRMA_CHUNK_ACK_V1'&&ready&&message.index===index){
+     index++;
+     if(index===total){progress('FIRMA INVIATA. VERIFICA SALVATAGGIO SUL MAC…');return}
+     if(index===1||index%8===0)progress('TRASFERIMENTO FIRMA: '+Math.round(index*100/total)+'%');
+     sendNext();return;
+    }
+    if(message.tipo==='BELTRAMI_FIRMA_RICEVUTA_V1'){
+     if(message.ok===true&&ready&&index===total)finish(null,true);
+     else if(message.ok===false)finish(Error(message.errore||'IL MAC NON HA SALVATO LA FIRMA.'));
+    }
+   });
    conn.on('error',lost);conn.on('close',lost);
   }catch(e){finish(e)}
- });peer.on('error',lost);peer.on('disconnected',lost);peer.on('close',lost);
+ });
+ peer.on('error',lost);peer.on('close',lost);
+ // WebRTC remains connected even when the PeerJS signaling socket drops.
+ peer.on('disconnected',()=>{if(!conn?.open)lost(new Error('Server di collegamento non disponibile.'))});
 })}
 function signatureRequestKey(id){return 'beltrami_richiesta_firma_v2_'+id}
 function checkedSignatureVisit(d){const visit=signatureVisit(d);if(!/^\d{4}-\d{2}-\d{2}$/.test(visit))throw new Error('IMPOSTARE LA DATA DELLA VISITA PRIMA DELLA FIRMA.');return visit}
