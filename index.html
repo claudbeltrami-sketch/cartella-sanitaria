@@ -478,7 +478,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
- <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica.</p><div id="archiveResults" class="archive-referti-scroll"></div>
+ <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica. Su iPhone, i referti previsti non disponibili sul telefono sono gialli: DA VERIFICARE SUL MAC.</p><div id="archiveResults" class="archive-referti-scroll"></div>
  <div class="archive-note">Ricerca disponibile per cognome, nome, codice fiscale, azienda, mansione e data della visita. Per ricaricare cartelle salvate, premi IMPORTA / RIPRISTINA COPIA DI SICUREZZA e scegli il file BACKUP_LUMEN dall’app File.</div>
 </div></div>
 
@@ -2625,6 +2625,7 @@ input.addEventListener('change',async e=>{
  'use strict';
  const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
  const recordsById=new Map();
+ const localRefertiById=new Map();
  const cf=v=>norm(v).replace(/ /g,'');
  const date=v=>{const s=String(v||'').trim(),m=s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/);return m?[m[3],m[2].padStart(2,'0'),m[1].padStart(2,'0')].join('-'):s};
  function classify(row){
@@ -2670,6 +2671,14 @@ input.addEventListener('change',async e=>{
      uncertainAnalisi=uncertainAnalisi||!result.analisi;uncertainDrug=uncertainDrug||!result.drug;
     }
    }
+   const local={analisi:false,drug:false};
+   for(const row of rows){
+    if(!(row.blob instanceof Blob&&row.blob.size)||!visit||date(row.visit)!==visit||(code&&cf(row.workerCf)&&code!==cf(row.workerCf)))continue;
+    const scan=scans.get(scanId(row));
+    const result=scan?.version===SCAN_VERSION&&scan.fingerprint===fingerprint(row)?{analisi:scan.analisi==='SÌ',drug:scan.drug==='SÌ'}:classify(row);
+    local.analisi=local.analisi||result.analisi;local.drug=local.drug||result.drug;
+   }
+   localRefertiById.set(rec.id,local);
    const manual=verified.get(verificationId(rec));
    if(manual&&manual.workerCf===code&&manual.visit===visit){if(manual.analisi==='SÌ'||manual.analisi==='NO'){analisi=manual.analisi==='SÌ';uncertainAnalisi=false}if(manual.drug==='SÌ'||manual.drug==='NO'){drug=manual.drug==='SÌ';uncertainDrug=false}}
    return [rec.id,{analisi:analisi?'SÌ':uncertainAnalisi?'DA VERIFICARE':'NO',drug:drug?'SÌ':uncertainDrug?'DA VERIFICARE':'NO'}];
@@ -2712,7 +2721,7 @@ input.addEventListener('change',async e=>{
   dialog.append(save,cancel);document.body.append(dialog);dialog.showModal();
  }
  // Completeness concerns only the two laboratory report indicators, never clinical results.
- function semaforoEsami(rec,flags){
+ function semaforoEsami(rec,flags,device={}){
   const d=rec.data||{},plan=Array.isArray(d.protocollo)?d.protocollo:[];
   const known=plan.length>0&&!String(d.altri_accertamenti||'').trim();
   const required={analisi:plan.includes('ANALISI EMATOCHIMICHE'),drug:plan.includes('ESAMI TOSSICOLOGICI')};
@@ -2720,6 +2729,7 @@ input.addEventListener('change',async e=>{
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
   if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:'Protocollo non definito o accertamenti personalizzati da verificare'};
   if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
+  if(device.iphone&&!keys.every(k=>device.local?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
   const present=keys.filter(k=>flags[k]==='SÌ').length;
   if(present===keys.length)return {state:'green',text:'COMPLETI',detail:'Referti presenti per analisi e/o drug test previsti'};
   if(present||keys.some(k=>flags[k]!=='NO'))return {state:'yellow',text:present?'PARZIALI':'DA VERIFICARE',detail:'Uno o più referti previsti mancanti o da verificare'};
@@ -2728,7 +2738,7 @@ input.addEventListener('change',async e=>{
  function updateSemaforo(rec,tr){
   if(!tr)return;
   const flags=Object.fromEntries(['analisi','drug'].map(k=>[k,tr.querySelector('[data-referto="'+k+'"] .archive-referto')?.dataset.state||'DA VERIFICARE']));
-  const result=semaforoEsami(rec,flags);
+  const result=semaforoEsami(rec,flags,{iphone:/iPhone|iPod/i.test(navigator.userAgent),local:localRefertiById.get(rec.id)});
   let badge=tr.querySelector('.archive-semaforo');
   if(!badge){badge=document.createElement('span');badge.className='archive-semaforo no-print';badge.setAttribute('data-html2canvas-ignore','true');tr.firstElementChild.append(document.createElement('br'),badge)}
   const label='Esami: '+result.text;
