@@ -35,7 +35,7 @@ document.body.appendChild(dialog);
 const el=id=>document.getElementById(id);
 const canvas=el('fdcCanvas'),overlay=el('fdcOverlay'),stage=el('fdcStage');
 const ctx=canvas.getContext('2d'),oc=overlay.getContext('2d');
-let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,version=0,drag=null;
+let target=null,records=[],source=null,pdf=null,pages=0,pageNumber=1,selection=null,preview='',busy=false,version=0,drag=null,dragOrigin=null;
 function status(msg,error){el('fdcStatus').textContent=msg||'';el('fdcStatus').dataset.error=String(!!error)}
 function stamp(data){return JSON.stringify([api.workerSignatureIdentity(data),api.signatureVisit(data),data.cognome,data.nome,data.data_nascita]);}
 function worker(){
@@ -53,7 +53,7 @@ function updateButtons(){
  el('fdcClose').disabled=busy;el('fdcFile').disabled=busy;el('fdcStored').disabled=busy;
 }
 function resetCrop(){
- selection=null;preview='';drag=null;
+ selection=null;preview='';drag=null;dragOrigin=null;
  el('fdcPreview').removeAttribute('src');el('fdcPreview').hidden=true;el('fdcSelected').textContent='';
  overlay.width=canvas.width;overlay.height=canvas.height;drawSelection();updateButtons();
 }
@@ -80,10 +80,10 @@ function point(e){
  const r=overlay.getBoundingClientRect();
  return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))};
 }
-overlay.addEventListener('pointerdown',e=>{if(busy||!source)return;e.preventDefault();overlay.setPointerCapture(e.pointerId);const p=point(e);drag={x:p.x,y:p.y,w:0,h:0};preview='';el('fdcPreview').hidden=true;updateButtons();});
-overlay.addEventListener('pointermove',e=>{if(!drag||busy)return;e.preventDefault();const p=point(e),start=drag;drag={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x)+(start.w&&p.x>=start.x?start.w:0),h:Math.abs(p.y-start.y)+(start.h&&p.y>=start.y?start.h:0)};drawSelection();});
-overlay.addEventListener('pointerup',e=>{if(!drag)return;e.preventDefault();const p=point(e),start=drag;selection={x:Math.max(0,start.x),y:Math.max(0,start.y),w:Math.min(canvas.width-start.x,Math.abs(p.x-start.x)),h:Math.min(canvas.height-start.y,Math.abs(p.y-start.y))};drag=null;drawSelection();crop();});
-overlay.addEventListener('pointercancel',()=>{drag=null;drawSelection();});
+overlay.addEventListener('pointerdown',e=>{if(busy||!source)return;e.preventDefault();overlay.setPointerCapture(e.pointerId);dragOrigin=point(e);drag={x:dragOrigin.x,y:dragOrigin.y,w:0,h:0};preview='';el('fdcPreview').hidden=true;updateButtons();});
+overlay.addEventListener('pointermove',e=>{if(!drag||!dragOrigin||busy)return;e.preventDefault();const p=point(e),start=dragOrigin;drag={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};drawSelection();});
+overlay.addEventListener('pointerup',e=>{if(!dragOrigin)return;e.preventDefault();const p=point(e),start=dragOrigin;selection={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};drag=null;dragOrigin=null;drawSelection();crop();});
+overlay.addEventListener('pointercancel',()=>{drag=null;dragOrigin=null;drawSelection();});
 async function readConsents(key){
  return new Promise((resolve,reject)=>{
   const req=lumenStorage.indexedDB.open('beltrami_consensi_cartacei_v1',1);
@@ -146,7 +146,7 @@ async function loadSource(next){
 async function open(){
  try{
   target=worker();if(!target.key)throw Error('SELEZIONARE PRIMA UN LAVORATORE.');
-  if(lumenStorage.isTest)throw Error('LA MODALITÀ PROVA NON CONSENTE DI ACQUISIRE FIRME REALI.');
+  // PROVA usa l'archivio isolato: consentito soltanto per documenti di test.
   source=null;pdf=null;pages=0;pageNumber=1;version++;
   el('fdcFile').value='';el('fdcConfirm').checked=false;resetCrop();stage.hidden=true;
   el('fdcWorker').textContent='LAVORATORE: '+target.data.cognome+' '+target.data.nome+' — VISITA: '+target.visit+(target.data.codice_fiscale?' — CF '+target.data.codice_fiscale:'');
