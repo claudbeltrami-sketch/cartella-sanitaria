@@ -2,7 +2,7 @@
    Read an immutable snapshot of the populated certificate; never write records. */
 (function () {
  'use strict';
- const VERSION='20261013-a4-1', MM=72/25.4, WIDTH=210*MM, HEIGHT=297*MM;
+ const VERSION='20261031-a4-worker-sign-2', MM=72/25.4, WIDTH=210*MM, HEIGHT=297*MM;
  const MARGIN=10*MM, CONTENT=WIDTH-2*MARGIN;
  const fields=['lavoratore','sesso','luogo','data_nascita','codice_fiscale','azienda','mansione',
   'data_visita','periodicita','prossima_visita','luogo_visita','rischi','giudizio','prescrizioni','luogo_data'];
@@ -154,7 +154,7 @@
    drawImage(doctorImage,right+5,y+17,column-10,57);line(right,y+78,column);
    y+=signatureHeight;
    centered('Firma del lavoratore per ricevuta',MARGIN,y,column,bold,10.5);
-   drawImage(workerImage,MARGIN+5,y+18,column-10,45);line(MARGIN,y+66,column);
+   drawImage(workerImage,MARGIN+5,y+22,column-10,42);line(MARGIN,y+66,column);
   }
   async function toBlob(){
    if(!pdf.getPageCount())throw Error('Nessun certificato da esportare.');
