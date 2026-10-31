@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261031-semaforo-vdt-2">
+<meta name="lumen-build" content="20261031-verifica-manuale-3">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2681,10 +2681,12 @@ input.addEventListener('change',async e=>{
    localRefertiById.set(rec.id,local);
    const manual=verified.get(verificationId(rec));
    if(manual&&manual.workerCf===code&&manual.visit===visit){if(manual.analisi==='SÌ'||manual.analisi==='NO'){analisi=manual.analisi==='SÌ';uncertainAnalisi=false}if(manual.drug==='SÌ'||manual.drug==='NO'){drug=manual.drug==='SÌ';uncertainDrug=false}}
-   return [rec.id,{analisi:analisi?'SÌ':uncertainAnalisi?'DA VERIFICARE':'NO',drug:drug?'SÌ':uncertainDrug?'DA VERIFICARE':'NO'}];
+   const result={analisi:analisi?'SÌ':uncertainAnalisi?'DA VERIFICARE':'NO',drug:drug?'SÌ':uncertainDrug?'DA VERIFICARE':'NO',completeVerified:!!(manual&&manual.workerCf===code&&manual.visit===visit&&manual.completeVerified&&manual.context===verificationContext(rec))};verificationFlagsById.set(rec.id,result);return [rec.id,result];
   }));
  }
  
+ const verificationFlagsById=new Map();
+ function verificationContext(rec){const d=rec.data||{};return JSON.stringify([d.protocollo||[],d.altri_accertamenti||''])}
  function verificationId(rec){const d=rec.data||{};return 'REFERTI_VERIFICA_'+JSON.stringify([rec.id,cf(rec.cf||d.codice_fiscale),date(d.data_giudizio||d.data_cartella)])}
  async function editVerification(rec,button){
   const d=rec.data||{},visit=date(d.data_giudizio||d.data_cartella);
@@ -2701,6 +2703,8 @@ input.addEventListener('change',async e=>{
    for(const [value,text] of [['','Da verificare'],['SÌ','Presente'],['NO','Non presente nei referti']]){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option)}
    select.value=previous?.[key]||'';selects[key]=select;field.append(select);dialog.append(field);
   }
+  const completeLabel=document.createElement('label');completeLabel.style.cssText='display:block;margin:16px 0';
+  const complete=document.createElement('input');complete.type='checkbox';complete.checked=!!(previous?.completeVerified&&previous.context===verificationContext(rec));completeLabel.append(complete,document.createTextNode(' Ho verificato il protocollo e confermo che tutti i referti previsti per questa visita sono presenti.'));dialog.append(completeLabel);
   const message=document.createElement('p');message.setAttribute('role','status');dialog.append(message);
   const save=document.createElement('button');save.textContent='SALVA VERIFICA';save.type='button';
   const cancel=document.createElement('button');cancel.textContent='ANNULLA';cancel.type='button';cancel.style.marginLeft='10px';
@@ -2710,10 +2714,11 @@ input.addEventListener('change',async e=>{
    let db;
    try{
     db=await window.lumenAllegatiStorage.open();
-    const record={id:verificationId(rec),kind:'referti_verifica_v1',workerKey:rec.id,workerCf:cf(rec.cf||d.codice_fiscale),visit,analisi:selects.analisi.value,drug:selects.drug.value,verifiedAt:new Date().toISOString()};
+    const record={id:verificationId(rec),kind:'referti_verifica_v1',workerKey:rec.id,workerCf:cf(rec.cf||d.codice_fiscale),visit,analisi:selects.analisi.value,drug:selects.drug.value,completeVerified:complete.checked,context:verificationContext(rec),verifiedAt:new Date().toISOString()};
     await new Promise((resolve,reject)=>{const tx=db.transaction(window.lumenAllegatiStorage.store,'readwrite');tx.objectStore(window.lumenAllegatiStorage.store).put(record);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('Salvataggio non riuscito'));tx.onerror=()=>{}});
     const flags=(await statuses([rec])).get(rec.id),tr=button.closest('tr');
     if(tr)for(const key of ['analisi','drug']){const badge=tr.querySelector('[data-referto="'+key+'"] .archive-referto');if(badge){badge.textContent=flags[key];badge.dataset.state=flags[key]}}
+    updateSemaforo(rec,tr,flags);
     close();
    }catch(e){message.textContent='Verifica non salvata: '+e.message;save.disabled=cancel.disabled=false}
    finally{if(db)db.close()}
@@ -2733,6 +2738,7 @@ input.addEventListener('change',async e=>{
   const required={analisi:plan.includes('ANALISI EMATOCHIMICHE'),drug:plan.includes('ESAMI TOSSICOLOGICI')};
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
+  if(flags.completeVerified)return {state:'green',text:'VERIFICATI',detail:'Completezza dei referti previsti confermata manualmente per questa visita'};
   if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:'Protocollo non definito o accertamenti personalizzati da verificare'};
   if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
   if(device.iphone&&!keys.every(k=>device.local?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
@@ -2741,9 +2747,10 @@ input.addEventListener('change',async e=>{
   if(present||keys.some(k=>flags[k]!=='NO'))return {state:'yellow',text:present?'PARZIALI':'DA VERIFICARE',detail:'Uno o più referti previsti mancanti o da verificare'};
   return {state:'red',text:'MANCANTI',detail:'Nessun referto presente per analisi e/o drug test previsti'};
  }
- function updateSemaforo(rec,tr){
+ function updateSemaforo(rec,tr,verifiedFlags){
   if(!tr)return;
-  const flags=Object.fromEntries(['analisi','drug'].map(k=>[k,tr.querySelector('[data-referto="'+k+'"] .archive-referto')?.dataset.state||'DA VERIFICARE']));
+  const flags=verifiedFlags||verificationFlagsById.get(rec.id)||Object.fromEntries(['analisi','drug'].map(k=>[k,tr.querySelector('[data-referto="'+k+'"] .archive-referto')?.dataset.state||'DA VERIFICARE']));
+  if(verifiedFlags)verificationFlagsById.set(rec.id,verifiedFlags);
   const result=semaforoEsami(rec,flags,{iphone:/iPhone|iPod/i.test(navigator.userAgent),local:localRefertiById.get(rec.id)});
   let badge=tr.querySelector('.archive-semaforo');
   if(!badge){badge=document.createElement('span');badge.className='archive-semaforo no-print';badge.setAttribute('data-html2canvas-ignore','true');tr.firstElementChild.append(document.createElement('br'),badge)}
