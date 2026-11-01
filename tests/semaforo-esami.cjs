@@ -56,3 +56,14 @@ for(const [custom,a,d,expected] of [
  ['Analisi ematochimiche ed ECG','SÌ','NO','yellow']
 ]) assert.equal(state({data:{altri_accertamenti:custom}},a,d),expected,custom);
 console.log('PASS: explicit historical laboratory prescriptions, missing reports, negation and ambiguous custom tests.');
+
+for(const [protocollo,custom,a,d,expected] of [
+ [['VISITA MEDICA','VISIOTEST'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: BIENNALE; VISIOTEST: BIENNALE.','NO','NO','white'],
+ [['VISITA MEDICA','ESAMI TOSSICOLOGICI'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: ANNUALE; DRUG: ANNUALE. DICITURA MANOSCRITTA CONSERVATA SOPRA; VOCE ESAMI TOSSICOLOGICI USATA COME DESTINAZIONE.','NO','SÌ','green'],
+ [['VISITA MEDICA','ESAMI TOSSICOLOGICI'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: ANNUALE; DRUG: ANNUALE. DICITURA MANOSCRITTA CONSERVATA SOPRA; VOCE ESAMI TOSSICOLOGICI USATA COME DESTINAZIONE.','NO','NO','red'],
+ [['VISITA MEDICA'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: ANNUALE; DRUG: ANNUALE.','NO','SÌ','yellow'],
+ [['VISITA MEDICA'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: ANNUALE. ALTRO DA VALUTARE','NO','NO','yellow'],
+ [['VISITA MEDICA','ANALISI EMATOCHIMICHE'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: ANNUALE.','SÌ','NO','yellow'],
+ [['VISITA MEDICA'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: NON SEGNATA.','NO','NO','white']
+]) assert.equal(state({data:{protocollo,altri_accertamenti:custom}},a,d),expected);
+console.log('PASS: historical transcript template matches structured prescription; incomplete, conflicting and unknown notes stay uncertain.');
