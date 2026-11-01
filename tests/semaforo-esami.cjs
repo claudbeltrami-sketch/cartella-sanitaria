@@ -44,3 +44,15 @@ const {app}=require('./allegati-dom.cjs');
   console.log('PASS: archive DOM light visible; updates after verification; no observer loop/duplicates; records preserved.');
  }finally{p.dom.window.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+for(const [custom,a,d,expected] of [
+ ['Analisi ematochimiche','SÌ','NO','green'],
+ ['Visita e VDT; drug test','NO','SÌ','green'],
+ ['Esami ematochimici e drug test','SÌ','NO','yellow'],
+ ['Analisi ematochimiche','NO','NO','red'],
+ ['No drug test','NO','SÌ','yellow'],
+ ['Drug test non previsto','NO','SÌ','yellow'],
+ ['Drug test da valutare','NO','SÌ','yellow'],
+ ['Analisi ematochimiche ed ECG','SÌ','NO','yellow']
+]) assert.equal(state({data:{altri_accertamenti:custom}},a,d),expected,custom);
+console.log('PASS: explicit historical laboratory prescriptions, missing reports, negation and ambiguous custom tests.');

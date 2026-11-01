@@ -2763,8 +2763,17 @@ input.addEventListener('change',async e=>{
   const onlyVisitVdt=!!other&&!other.toUpperCase()
    .replace(/\b(?:VISITA(?:\s+MEDICA)?|VISIOTEST|VISIO\s+TEST|SCREENING\s+VISIVO|ESAME\s+VISIVO|VIDEOTERMINAL(?:ISTI|ISTA|I|E)|V\.?D\.?T\.?)\b/g,'')
    .replace(/\b(?:E|SOLO)\b/g,'').replace(/[\s,;:+/&().-]/g,'');
-  const known=(plan.length>0||onlyVisitVdt)&&(!other||onlyVisitVdt);
-  const required={analisi:plan.includes('ANALISI EMATOCHIMICHE'),drug:plan.includes('ESAMI TOSSICOLOGICI')};
+  // Historical imports may store the prescribed laboratory tests in the custom field.
+  // Accept only an exhaustive, explicit list; preserve uncertainty for every other term.
+  const custom=other.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const labPattern=/\b(?:ANALISI EMATOCHIMICHE|ESAMI EMATOCHIMICI|ESAMI TOSSICOLOGICI|DRUG TEST)\b/g;
+  const customLabs=custom.match(labPattern)||[];
+  const remaining=custom.replace(labPattern,'')
+   .replace(/\b(?:VISITA(?:\s+MEDICA)?|VISIOTEST|VISIO\s+TEST|SCREENING\s+VISIVO|ESAME\s+VISIVO|VIDEOTERMINAL(?:ISTI|ISTA|I|E)|V\.?D\.?T\.?)\b/g,'')
+   .replace(/\b(?:E|SOLO)\b/g,'').replace(/[\s,;:+/&().-]/g,'');
+  const explicitCustom=customLabs.length>0&&!remaining;
+  const known=(plan.length>0||onlyVisitVdt||explicitCustom)&&(!other||onlyVisitVdt||explicitCustom);
+  const required={analisi:plan.includes('ANALISI EMATOCHIMICHE')||(explicitCustom&&customLabs.some(v=>/EMATOCHIMIC/.test(v))),drug:plan.includes('ESAMI TOSSICOLOGICI')||(explicitCustom&&customLabs.some(v=>/TOSSICOLOGICI|DRUG TEST/.test(v)))};
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
   if(flags.completeVerified)return {state:'green',text:'VERIFICATI',detail:'Completezza dei referti previsti confermata manualmente per questa visita'};
