@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261101-archivio-compatto-14">
+<meta name="lumen-build" content="20261101-cartaceo-collega-15">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2438,7 +2438,7 @@ input.addEventListener('change',async e=>{
 <script src="importa-referti.js?v=20261014-mac-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
 <script src="backup-stream.js?v=20261014-mac-1"></script>
-<script src="allegati-esterni.js?v=20261014-mac-1"></script>
+<script src="allegati-esterni.js?v=20261101-collega-2"></script>
 <script>
 /* Bundled with the chart so attachment access is available on offline reload. */
 /* Documenti clinici locali. Lo store originali è già incluso nel backup e nella
@@ -2725,7 +2725,19 @@ input.addEventListener('change',async e=>{
   const finish=()=>{closed=true;dialog.close();urls.forEach(url=>URL.revokeObjectURL(url));dialog.remove();if(button.isConnected)button.focus()};
   close.onclick=finish;dialog.addEventListener('cancel',e=>{e.preventDefault();finish()});
   dialog.append(title,info,close);
+  let selectedRow=rows[0];
+  const connect=document.createElement('button');connect.type='button';connect.textContent='COLLEGA CARTELLA PDF E APRI';connect.style.marginLeft='8px';connect.hidden=true;
+  connect.onclick=async()=>{
+   connect.disabled=true;
+   try{
+    await window.lumenExternalAttachments.connectForViewing();
+    if(!closed)await show(selectedRow);
+   }catch(e){if(!closed)message.textContent=e.name==='AbortError'?'Selezione annullata. Puoi riprovare.':e.message||String(e)}
+   finally{connect.disabled=false}
+  };
+  dialog.append(connect);
   async function show(row){
+   selectedRow=row;connect.hidden=true;
    const current=++request;
    message.textContent='Apertura del cartaceo…';preview.hidden=true;
    try{
@@ -2733,7 +2745,7 @@ input.addEventListener('change',async e=>{
     if(closed||current!==request)return;
     if(!(blob instanceof Blob)||!blob.size)throw Error('Originale non disponibile qui. Collega la cartella LUMEN_ALLEGATI da ARCHIVIO PDF SUL MAC.');
     const url=URL.createObjectURL(blob);urls.push(url);preview.src=url;preview.hidden=false;message.textContent=row.name;
-   }catch(e){if(!closed&&current===request)message.textContent=e.message||String(e)}
+   }catch(e){if(!closed&&current===request){message.textContent=e.message||String(e);connect.hidden=false}}
   }
   if(rows.length>1)for(const row of rows){const select=document.createElement('button');select.type='button';select.className='secondary';select.textContent=row.name;select.onclick=()=>show(row);dialog.append(select)}
   dialog.append(message,preview);document.body.append(dialog);dialog.showModal();show(rows[0]);
