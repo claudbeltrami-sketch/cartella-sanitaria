@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261101-esami-blocco-11">
+<meta name="lumen-build" content="20261101-cartaceo-semaforo-12">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2626,6 +2626,7 @@ input.addEventListener('change',async e=>{
  const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
  const recordsById=new Map();
  const localRefertiById=new Map();
+ const originalsById=new Map();
  const cf=v=>norm(v).replace(/ /g,'');
  const date=v=>{const s=String(v||'').trim(),m=s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/);return m?[m[3],m[2].padStart(2,'0'),m[1].padStart(2,'0')].join('-'):s};
  function classify(row){
@@ -2646,8 +2647,11 @@ input.addEventListener('change',async e=>{
  async function statuses(records){
   records.forEach(r=>recordsById.set(r.id,r));
   let attachments,verified,scans;
-  try{const all=await window.lumenAllegatiStorage.list();scans=new Map(all.filter(r=>r.kind==='referti_scan_v1').map(r=>[r.id,r]));attachments=all.filter(r=>r.kind==='allegato_cartella_v1'&&!nonReferto(r));verified=new Map(all.filter(r=>r.kind==='referti_verifica_v1').map(r=>[r.id,r]));}
-  catch(_){return new Map(records.map(r=>[r.id,{analisi:'DA VERIFICARE',drug:'DA VERIFICARE',error:true}]))}
+  try{const all=await window.lumenAllegatiStorage.list();scans=new Map(all.filter(r=>r.kind==='referti_scan_v1').map(r=>[r.id,r]));attachments=all.filter(r=>r.kind==='allegato_cartella_v1'&&!nonReferto(r));verified=new Map(all.filter(r=>r.kind==='referti_verifica_v1').map(r=>[r.id,r]));
+   const originals=all.filter(r=>r.kind==='allegato_cartella_v1'&&(nonReferto(r)||r.storicoCartaceo?.tipo==='cartella_storica_originale_v1'));
+   records.forEach(rec=>originalsById.set(rec.id,originals.filter(row=>matchesOriginal(row,rec))));
+  }
+  catch(_){records.forEach(rec=>originalsById.delete(rec.id));return new Map(records.map(r=>[r.id,{analisi:'DA VERIFICARE',drug:'DA VERIFICARE',error:true}]))}
   const byKey=new Map(),byCf=new Map();
   for(const r of attachments){
    if(String(r.workerKey||'').startsWith('CF_')&&cf(r.workerCf)&&cf(r.workerKey.slice(3))!==cf(r.workerCf))continue;
@@ -2689,6 +2693,52 @@ input.addEventListener('change',async e=>{
  }
  
  const verificationFlagsById=new Map();
+ function matchesOriginal(row,rec){
+  const d=rec.data||{},code=cf(rec.cf||d.codice_fiscale),visit=date(d.data_giudizio||d.data_cartella),birth=date(d.data_nascita||rec.dataNascita);
+  if(!visit||date(row.visit)!==visit)return false;
+  if(String(row.workerKey||'').startsWith('CF_')&&cf(row.workerCf)&&cf(row.workerKey.slice(3))!==cf(row.workerCf))return false;
+  if(code&&cf(row.workerCf)&&code!==cf(row.workerCf))return false;
+  if(birth&&row.workerBirth&&birth!==date(row.workerBirth))return false;
+  return row.workerKey===rec.id||!!(code&&code===cf(row.workerCf));
+ }
+ function addOriginalControl(rec,tr){
+  if(!tr)return;
+  const rows=originalsById.get(rec.id)||[];
+  let button=tr.querySelector('.archive-cartaceo');
+  if(!rows.length){if(button)button.remove();return}
+  if(button)return;
+  button=document.createElement('button');button.type='button';button.className='secondary archive-cartaceo no-print';button.textContent='CARTACEO';
+  button.title='Apri la cartella cartacea originale della stessa visita';button.setAttribute('data-html2canvas-ignore','true');
+  button.style.cssText='display:inline-block;min-height:28px;padding:3px 7px;margin:5px 0 0 7px;font-size:11px;vertical-align:middle';
+  button.onclick=()=>openOriginal(rec,button);
+  tr.querySelector('.archive-semaforo').after(button);
+ }
+ function openOriginal(rec,button){
+  const rows=originalsById.get(rec.id)||[];if(!rows.length)return;
+  const dialog=document.createElement('dialog');dialog.className='no-print';dialog.style.cssText='width:min(1000px,94vw);max-height:92vh;box-sizing:border-box;overflow:auto;padding:16px;border-radius:10px';
+  const title=document.createElement('h3');title.textContent='CARTACEO ORIGINALE — '+[rec.cognome,rec.nome].filter(Boolean).join(' ');
+  const visit=date(rec.data?.data_giudizio||rec.data?.data_cartella);
+  const info=document.createElement('p');info.textContent='Visita: '+visit.split('-').reverse().join('/');
+  const close=document.createElement('button');close.type='button';close.className='secondary';close.textContent='CHIUDI';
+  const message=document.createElement('p');message.setAttribute('role','status');
+  const preview=document.createElement('iframe');preview.title='Cartella cartacea originale';preview.style.cssText='display:block;width:100%;height:65vh;border:1px solid #aaa;margin-top:12px';preview.hidden=true;
+  const urls=[];let closed=false,request=0;
+  const finish=()=>{closed=true;dialog.close();urls.forEach(url=>URL.revokeObjectURL(url));dialog.remove();if(button.isConnected)button.focus()};
+  close.onclick=finish;dialog.addEventListener('cancel',e=>{e.preventDefault();finish()});
+  dialog.append(title,info,close);
+  async function show(row){
+   const current=++request;
+   message.textContent='Apertura del cartaceo…';preview.hidden=true;
+   try{
+    const blob=row.blob instanceof Blob?row.blob:await window.lumenExternalAttachments?.getBlob(row);
+    if(closed||current!==request)return;
+    if(!(blob instanceof Blob)||!blob.size)throw Error('Originale non disponibile qui. Collega la cartella LUMEN_ALLEGATI da ARCHIVIO PDF SUL MAC.');
+    const url=URL.createObjectURL(blob);urls.push(url);preview.src=url;preview.hidden=false;message.textContent=row.name;
+   }catch(e){if(!closed&&current===request)message.textContent=e.message||String(e)}
+  }
+  if(rows.length>1)for(const row of rows){const select=document.createElement('button');select.type='button';select.className='secondary';select.textContent=row.name;select.onclick=()=>show(row);dialog.append(select)}
+  dialog.append(message,preview);document.body.append(dialog);dialog.showModal();show(rows[0]);
+ }
  function matchesVisit(row,rec){
   const d=rec.data||{},code=cf(rec.cf||d.codice_fiscale),visit=date(d.data_giudizio||d.data_cartella);
   if(row.kind!=='allegato_cartella_v1'||nonReferto(row)||!visit||date(row.visit)!==visit)return false;
@@ -2842,6 +2892,7 @@ input.addEventListener('change',async e=>{
    const rec=recordsById.get(open.dataset.archiveId),cell=open.parentElement;
    if(!rec)return;
    updateSemaforo(rec,open.closest('tr'));
+   addOriginalControl(rec,open.closest('tr'));
    if(cell.querySelector('[data-verifica-referti]'))return;
    const button=document.createElement('button');button.type='button';button.className='secondary';button.dataset.verificaReferti='true';button.textContent='VERIFICA REFERTI';button.style.marginLeft='5px';
    button.onclick=()=>editVerification(rec,button).catch(e=>alert('Impossibile aprire la verifica: '+e.message));(cell.querySelector('.archive-action-commands')||cell).append(button);
