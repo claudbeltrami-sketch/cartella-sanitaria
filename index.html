@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261101-cartaceo-semaforo-12">
+<meta name="lumen-build" content="20261101-esito-ecg-13">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2811,6 +2811,9 @@ input.addEventListener('change',async e=>{
   // Visit/VDT text in the custom field does not imply laboratory reports.
   // Keep any other custom investigation uncertain.
   const other=String(d.altri_accertamenti||'').trim();
+  // A recorded ECG outcome is not a prescription for laboratory reports.
+  // Require the matching structured examination and an unambiguous outcome only.
+  const recordedEcg=plan.includes('ELETTROCARDIOGRAMMA')&&/^(?:ECG|ELETTROCARDIOGRAMMA)\s*:?\s*(?:NEI LIMITI|NELLA NORMA|NORMALE|NDR)\.?$/i.test(other);
   const onlyVisitVdt=!!other&&!other.toUpperCase()
    .replace(/\b(?:VISITA(?:\s+MEDICA)?|VISIOTEST|VISIO\s+TEST|SCREENING\s+VISIVO|ESAME\s+VISIVO|VIDEOTERMINAL(?:ISTI|ISTA|I|E)|V\.?D\.?T\.?)\b/g,'')
    .replace(/\b(?:E|SOLO)\b/g,'').replace(/[\s,;:+/&().-]/g,'');
@@ -2850,7 +2853,7 @@ input.addEventListener('change',async e=>{
    return entries.every(v=>plan.includes(v))&&plan.every(v=>entries.includes(v));
   }
   const transcript=matchingTranscript();
-  const known=(plan.length>0||onlyVisitVdt||explicitCustom)&&(!other||onlyVisitVdt||explicitCustom||transcript);
+  const known=(plan.length>0||onlyVisitVdt||explicitCustom)&&(!other||onlyVisitVdt||explicitCustom||transcript||recordedEcg);
   const required={analisi:plan.includes('ANALISI EMATOCHIMICHE')||(explicitCustom&&customLabs.some(v=>/EMATOCHIMIC/.test(v))),drug:plan.includes('ESAMI TOSSICOLOGICI')||(explicitCustom&&customLabs.some(v=>/TOSSICOLOGICI|DRUG TEST/.test(v)))};
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
@@ -2858,7 +2861,7 @@ input.addEventListener('change',async e=>{
   // Both report categories exhaust this indicator: an incomplete historical protocol cannot invalidate positive evidence.
   if(flags.analisi==='SÌ'&&flags.drug==='SÌ')return {state:'green',text:'COMPLETI',detail:'Referti di analisi e drug test già riconosciuti per il lavoratore e la visita'};
   if(!known)return {state:'yellow',text:'DA VERIFICARE',detail:!plan.length&&!other?'Protocollo vuoto: confrontare la sezione accertamenti della cartella originale; se vuota anche lì, definire gli esami previsti.':'Accertamenti nelle note non riconosciuti: controllare «'+other+'» e confrontarli con il protocollo della visita.'};
-  if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:'Analisi e drug test non selezionati nel protocollo della visita'};
+  if(!keys.length)return {state:'white',text:'NON PREVISTI',detail:(recordedEcg?'Esito ECG annotato in cartella. Questo indicatore riguarda analisi e drug test. ':'')+'Analisi e drug test non selezionati nel protocollo della visita'};
   if(device.iphone&&!keys.every(k=>device.local?.[k]||device.verified?.[k]))return {state:'yellow',text:'DA VERIFICARE SUL MAC',detail:'Referti previsti non disponibili o non riconosciuti su questo iPhone. Verificare gli allegati sul Mac'};
   const names={analisi:'Analisi ematochimiche',drug:'Drug test'};
   const issues=keys.filter(k=>flags[k]!=='SÌ').map(k=>names[k]+(flags[k]==='NO'?': referto non rilevato; cercarlo e associarlo alla visita':': lettura o disponibilità del referto da verificare sul Mac')).join('. ');
