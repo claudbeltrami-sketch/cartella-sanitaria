@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261101-esami-motivo-10">
+<meta name="lumen-build" content="20261101-esami-blocco-11">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -2824,10 +2824,11 @@ input.addEventListener('change',async e=>{
   const result=semaforoEsami(rec,flags,{iphone:/iPhone|iPod/i.test(navigator.userAgent),local:localRefertiById.get(rec.id),verified:localRefertiById.get(rec.id)?.verified});
   let badge=tr.querySelector('.archive-semaforo');
   if(!badge){badge=document.createElement('span');badge.className='archive-semaforo no-print';badge.setAttribute('data-html2canvas-ignore','true');tr.firstElementChild.append(document.createElement('br'),badge)}
+  const alcoholNotice=flags.alcoholOnlyNotice?'Allegato descritto come etanolo urinario: non conferma un drug test. Controllare la classificazione e il protocollo.':'';
+  if(alcoholNotice){result.state='yellow';result.text='DA VERIFICARE'}
+  // Resolve the final label before writing: observed text changes must settle.
   const label='Esami: '+result.text;
   if(badge.textContent!==label)badge.textContent=label;
-  const alcoholNotice=flags.alcoholOnlyNotice?'Allegato descritto come etanolo urinario: non conferma un drug test. Controllare la classificazione e il protocollo.':'';
-  if(alcoholNotice){result.state='yellow';result.text='DA VERIFICARE';badge.textContent='Esami: '+result.text}
   const detail=[result.detail,alcoholNotice].filter(Boolean).join(' ');
   badge.dataset.light=result.state;badge.title=detail+' (analisi / drug test)';badge.setAttribute('aria-label',badge.textContent+'. '+detail);
   let reason=tr.querySelector('.archive-esami-reason');
