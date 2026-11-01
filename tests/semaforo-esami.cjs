@@ -67,3 +67,16 @@ for(const [protocollo,custom,a,d,expected] of [
  [['VISITA MEDICA'],'PROTOCOLLO TRASCRITTO: VISITA MEDICA: NON SEGNATA.','NO','NO','white']
 ]) assert.equal(state({data:{protocollo,altri_accertamenti:custom}},a,d),expected);
 console.log('PASS: historical transcript template matches structured prescription; incomplete, conflicting and unknown notes stay uncertain.');
+
+const ecgPlan=['VISITA MEDICA','ELETTROCARDIOGRAMMA','ESAME FUNZIONALE DEL RACHIDE'];
+for(const note of ['ECG NEI LIMITI','ECG: nei limiti.','ELETTROCARDIOGRAMMA NELLA NORMA']){
+ const data={protocollo:ecgPlan,altri_accertamenti:note},before=JSON.stringify(data);
+ assert.equal(state({data},'NO','NO'),'white','recorded ECG does not require a laboratory attachment');
+ assert.equal(JSON.stringify(data),before);
+ assert.equal(state({data:{...data,protocollo:[...ecgPlan,'ANALISI EMATOCHIMICHE']}},'NO','NO'),'red','missing prescribed labs remain missing');
+ assert.equal(state({data:{...data,protocollo:[...ecgPlan,'ESAMI TOSSICOLOGICI']}},'NO','NO'),'red','missing drug reports remain missing');
+}
+for(const [protocollo,note] of [[['VISITA MEDICA'],'ECG NEI LIMITI'],[ecgPlan,'ECG NEI LIMITI; ALTRO DA VALUTARE'],[ecgPlan,'ECG DA ESEGUIRE']]){
+ assert.equal(state({data:{protocollo,altri_accertamenti:note}},'NO','NO'),'yellow','conflicting or ambiguous notes still require review');
+}
+console.log('PASS: recorded ECG outcome, no separate lab requirement, missing labs/drug and ambiguous notes preserved.');
