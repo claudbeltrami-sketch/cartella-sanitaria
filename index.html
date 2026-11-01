@@ -2772,7 +2772,31 @@ input.addEventListener('change',async e=>{
    .replace(/\b(?:VISITA(?:\s+MEDICA)?|VISIOTEST|VISIO\s+TEST|SCREENING\s+VISIVO|ESAME\s+VISIVO|VIDEOTERMINAL(?:ISTI|ISTA|I|E)|V\.?D\.?T\.?)\b/g,'')
    .replace(/\b(?:E|SOLO)\b/g,'').replace(/[\s,;:+/&().-]/g,'');
   const explicitCustom=customLabs.length>0&&!remaining;
-  const known=(plan.length>0||onlyVisitVdt||explicitCustom)&&(!other||onlyVisitVdt||explicitCustom);
+
+  // Imported paper-chart notes repeat the structured prescription, including frequencies.
+  // Accept this template only when every entry agrees with the stored protocol.
+  function matchingTranscript(){
+   let text=other.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+   if(!text.startsWith('PROTOCOLLO TRASCRITTO: '))return false;
+   text=text.slice('PROTOCOLLO TRASCRITTO: '.length);
+   const destination=' DICITURA MANOSCRITTA CONSERVATA SOPRA; VOCE ESAMI TOSSICOLOGICI USATA COME DESTINAZIONE.';
+   const mapped=text.endsWith(destination);
+   if(mapped)text=text.slice(0,-destination.length);
+   text=text.replace(/ VISITA MEDICA: SEGNI ANCHE SU ANNUALE; PERIODICITA FINALE BIENNALE\.$/,'');
+   if(!text.endsWith('.'))return false;
+   const allowed=['VISITA MEDICA','AUDIOMETRIA','SPIROMETRIA BASALE','ESAME FUNZIONALE DEL RACHIDE','VISIOTEST','ANALISI EMATOCHIMICHE','ESAMI TOSSICOLOGICI'];
+   const entries=text.slice(0,-1).split('; ').map(entry=>{
+    const m=entry.match(/^(.+): (ANNUALE|BIENNALE|NON SEGNATA)$/);
+    if(!m)return null;
+    const name=m[1];
+    if(mapped&&['DRUG','A/DRUG','D/ALCOL'].includes(name))return 'ESAMI TOSSICOLOGICI';
+    return allowed.includes(name)?name:null;
+   });
+   if(entries.some(v=>!v)||!entries.length||!plan.length)return false;
+   return entries.every(v=>plan.includes(v))&&plan.every(v=>entries.includes(v));
+  }
+  const transcript=matchingTranscript();
+  const known=(plan.length>0||onlyVisitVdt||explicitCustom)&&(!other||onlyVisitVdt||explicitCustom||transcript);
   const required={analisi:plan.includes('ANALISI EMATOCHIMICHE')||(explicitCustom&&customLabs.some(v=>/EMATOCHIMIC/.test(v))),drug:plan.includes('ESAMI TOSSICOLOGICI')||(explicitCustom&&customLabs.some(v=>/TOSSICOLOGICI|DRUG TEST/.test(v)))};
   const keys=['analisi','drug'].filter(k=>required[k]);
   if(flags.error)return {state:'yellow',text:'DA VERIFICARE',detail:'Archivio allegati non disponibile'};
