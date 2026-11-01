@@ -129,7 +129,22 @@
   }
   return staged;
  }
- window.lumenExternalAttachments={valid,getBlob,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew};
+ async function connectForViewing(){
+  if(window.showDirectoryPicker){
+   const picked=window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'read'});
+   const root=await picked;connection={root};connectionLoaded=true;
+   try{await remember(root)}catch(_){}
+  }else{
+   const source=await new Promise((resolve,reject)=>{
+    const input=document.createElement('input');input.type='file';input.setAttribute('webkitdirectory','');input.multiple=true;input.hidden=true;
+    input.onchange=()=>{try{if(!input.files.length)throw new DOMException('Selezione annullata','AbortError');const result=sourceFromFiles(Array.from(input.files));input.remove();resolve(result)}catch(e){input.remove();reject(e)}};
+    input.addEventListener('cancel',()=>{input.remove();reject(new DOMException('Selezione annullata','AbortError'))},{once:true});
+    document.body.append(input);input.click();
+   });connection=source;connectionLoaded=true;
+  }
+  window.dispatchEvent(new Event('lumen-allegati-esterni-updated'));
+ }
+ window.lumenExternalAttachments={valid,getBlob,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew,connectForViewing};
  // Deliberate, user-initiated local folder access; nothing runs on page load.
  const trigger=document.createElement('button');trigger.type='button';trigger.id='btnArchivioPdfMac';trigger.textContent='ARCHIVIO PDF SUL MAC';
  document.getElementById('btnBackupCompleto').insertAdjacentElement('afterend',trigger);
