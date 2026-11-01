@@ -15,12 +15,21 @@
   if(connectionLoaded)return connection;
   const db=await configDb();try{connection=await new Promise((resolve,reject)=>{const r=db.transaction('config').objectStore('config').get('root');r.onsuccess=()=>resolve(r.result?{root:r.result}:null);r.onerror=()=>reject(r.error)});connectionLoaded=true;return connection}finally{db.close()}
  }
+ // Load the remembered capability early, without opening a permission prompt.
+ connected().catch(()=>{});
+ async function allowRead(source,{ask=false}={}){
+  if(source?.files)return true;
+  if(!source?.root)return false;
+  if(await source.root.queryPermission({mode:'read'})==='granted')return true;
+  if(ask&&source.root.requestPermission)return await source.root.requestPermission({mode:'read'})==='granted';
+  return false;
+ }
  function missing(){return Error('PDF conservato sul Mac. Apri ARCHIVIO PDF SUL MAC e collega la cartella LUMEN_ALLEGATI. Il backup leggero conserva il collegamento, non il PDF.');}
  async function destinationFile(ref,source){
   if(!valid(ref))throw Error('Collegamento esterno non valido. Nessun file è stato modificato.');
   if(source?.files){const file=source.files.get(ref.file);if(!file)throw Error('Manca nella cartella: '+ref.file);return file}
   if(!source?.root)throw missing();
-  if(await source.root.queryPermission({mode:'read'})!=='granted')throw missing();
+  if(!await allowRead(source,{ask:!!navigator.userActivation?.isActive}))throw missing();
   try{return await (await source.root.getFileHandle(ref.file)).getFile()}catch(e){if(e.name==='NotFoundError')throw Error('PDF non trovato nella cartella del Mac: '+ref.file);throw e}
  }
  async function verify(blob,ref){
@@ -130,6 +139,11 @@
   return staged;
  }
  async function connectForViewing(){
+  const previous=connectionLoaded?connection:await connected();
+  if(previous){
+   if(!await allowRead(previous,{ask:true}))throw Error('Accesso alla cartella non autorizzato. Consenti l’accesso per aprire i PDF già collegati.');
+   return;
+  }
   if(window.showDirectoryPicker){
    const picked=window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'read'});
    const root=await picked;connection={root};connectionLoaded=true;
