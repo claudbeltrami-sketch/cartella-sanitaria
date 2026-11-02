@@ -1594,6 +1594,57 @@ async function parseXlsx(buf){
  let z=await unzipEntries(buf),td=new TextDecoder();let shared=[];if(z['xl/sharedStrings.xml']){let doc=new DOMParser().parseFromString(td.decode(z['xl/sharedStrings.xml']),'application/xml');shared=[...doc.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}let sheetName=Object.keys(z).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));if(!sheetName)throw new Error('Nessun foglio trovato nel file Excel.');let doc=new DOMParser().parseFromString(td.decode(z[sheetName]),'application/xml'),rows=[];for(const r of doc.getElementsByTagName('row')){let arr=[];for(const c of r.getElementsByTagName('c')){let ref=c.getAttribute('r')||'A1',letters=(ref.match(/[A-Z]+/)||['A'])[0],col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;col--;let t=c.getAttribute('t'),v=(c.getElementsByTagName('v')[0]||{}).textContent||'';if(t==='s')v=shared[Number(v)]??'';else if(t==='inlineStr')v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');arr[col]=v}rows.push(arr)}return rows
 }
 function saveWorkersLocal(){try{lumenStorage.local.setItem('beltrami_workers_v8',JSON.stringify({workers,currentWorkerIndex,attachedSourceName,when:new Date().toISOString()}))}catch(_){}}
+// La lista può conservare campi vuoti dopo che la cartella della stessa visita è stata salvata.
+// Recupera soltanto l'identità verificabile; non modifica mai cartelle o dati clinici.
+let listaAnagraficaSyncInCorso=false,listaAnagraficaUltimaChiave='';
+async function sincronizzaAnagraficaVisitati(){
+ if(listaAnagraficaSyncInCorso||lumenStorage.isTest)return;
+ const dataSeduta=workerDate(text('v9Data')),lista=workers;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dataSeduta))return;
+ const incompleti=lista.filter(w=>w.visited&&w.cognome&&w.nome&&(!w.codice_fiscale||!w.data_nascita));
+ if(!incompleti.length)return;
+ const chiave=JSON.stringify([dataSeduta,attachedSourceName,incompleti.map(w=>[w.id,w.cognome,w.nome,w.codice_fiscale,w.data_nascita,w.datore_lavoro,w.committente])]);
+ if(chiave===listaAnagraficaUltimaChiave)return;
+ listaAnagraficaUltimaChiave=chiave;listaAnagraficaSyncInCorso=true;
+ try{
+  const archivio=await listCartelleArchive('');
+  if(workers!==lista||workerDate(text('v9Data'))!==dataSeduta)return;
+  let corretti=0;
+  for(const w of incompleti){
+   if(!lista.includes(w))continue;
+   const stessoNome=x=>norm(x.cognome)===norm(w.cognome)&&norm(x.nome)===norm(w.nome);
+   if(lista.filter(stessoNome).length!==1)continue; // Non scegliere tra omonimi.
+   const candidati=[];
+   for(const r of archivio){
+    if(!stessoNome(r))continue;
+    for(const d0 of [r.data,...(r.history||[]).map(h=>h.data)].filter(Boolean)){
+     const d=workerRecordData(r,d0);
+     if(!stessoNome(d)||workerDate(signatureVisit(d))!==dataSeduta)continue;
+     if(w.committente&&norm(w.committente)!==norm(d.committente))continue;
+     if(w.datore_lavoro&&norm(w.datore_lavoro)!==norm(d.datore_lavoro))continue;
+     const cf=norm(d.codice_fiscale).replace(/\s+/g,''),nascita=workerDate(d.data_nascita);
+     if(!window.lumenImportCartelleStorage.validCF(cf)||!/^\d{4}-\d{2}-\d{2}$/.test(nascita))continue;
+     if(w.codice_fiscale&&norm(w.codice_fiscale).replace(/\s+/g,'')!==cf)continue;
+     if(w.data_nascita&&workerDate(w.data_nascita)!==nascita)continue;
+     candidati.push({cf,nascita});
+    }
+   }
+   const distinti=new Map(candidati.map(c=>[c.cf+'|'+c.nascita,c]));
+   if(distinti.size!==1)continue; // Nessuna attribuzione da visite o identità ambigue.
+   const d=[...distinti.values()][0];
+   if(!w.codice_fiscale)w.codice_fiscale=d.cf;
+   if(!w.data_nascita)w.data_nascita=d.nascita;
+   w.problemi=(w.problemi||[]).filter(p=>!((p==='CF MANCANTE'&&w.codice_fiscale)||(p==='DATA NASCITA MANCANTE'&&w.data_nascita)));
+   w.da_verificare=window.lumenAnagrafiche.unresolved(w).length>0;
+   corretti++;
+  }
+  if(corretti&&workers===lista){
+   renderWorkers(); // Aggiorna elenco e memoria della lista, non la cartella sanitaria.
+   window.lumenCambiaLista?.saveCurrentIntoActive?.();
+  }
+ }catch(_){/* In assenza dell'archivio mantieni gli avvisi e non inventare dati. */}
+ finally{listaAnagraficaSyncInCorso=false}
+}
 function renderWorkers(){
  const q=norm(document.getElementById('workerSearch').value);workersBody.innerHTML='';
  workers.forEach((w,i)=>{
@@ -1610,6 +1661,7 @@ function renderWorkers(){
  });
  const done=workers.filter(w=>w.visited).length;
  workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal();
+ if(window.lumenAnagrafiche)void sincronizzaAnagraficaVisitati();
 }
 const workerDrafts=new Map(),workerDraftRows=new WeakMap();
 let emptyWorkerScreen=null,workerDraftRowSequence=0,activeDraftWorker=null,activeDraftVersion=-1;
@@ -3524,5 +3576,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <script src="firma-da-consenso.js?v=20261031-2"></script>
-<script src="anagrafiche-verifica.js?v=20261029-1"></script>
+<script src="anagrafiche-verifica.js?v=20261102-1"></script>
 </body></html>
