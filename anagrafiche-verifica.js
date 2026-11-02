@@ -5,11 +5,11 @@ const read=id=>document.getElementById(id)?.value||'';
 const current=()=>Object.fromEntries(['cognome','nome','codice_fiscale','data_nascita','sesso'].map(k=>[k,read(k)]));
 const date=s=>{const m=String(s||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(s||'')};
 const pretty=s=>s.split('-').reverse().join('/');
-const validBirth=v=>{const m=date(v).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);if(!m)return false;const t=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));return t.getUTCFullYear()===+m[1]&&t.getUTCMonth()+1===+m[2]&&t.getUTCDate()===+m[3]};
+const validBirth=v=>{const m=date(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;const t=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));return t.getUTCFullYear()===+m[1]&&t.getUTCMonth()+1===+m[2]&&t.getUTCDate()===+m[3]};
 const staleMissing=(issue,d)=>{
- const name=String(issue||'').trim().toUpperCase().replace(/\\s+/g,' ');
+ const name=String(issue||'').trim().toUpperCase().replace(/\s+/g,' ');
  if(name==='DATA NASCITA MANCANTE')return validBirth(d.data_nascita);
- if(name==='CF MANCANTE')return /^(?:[A-Z0-9]{16}|[0-9]{11})$/.test(String(d.codice_fiscale||'').trim().toUpperCase().replace(/\\s/g,''));
+ if(name==='CF MANCANTE')return /^(?:[A-Z0-9]{16}|[0-9]{11})$/.test(String(d.codice_fiscale||'').trim().toUpperCase().replace(/\s/g,''));
  return false;
 };
 function detect(d){
