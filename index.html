@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261102-email-certificati-1">
+<meta name="lumen-build" content="20261102-ricerca-certificati-2">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -1892,7 +1892,7 @@ window.lumenArchiveVisitsApi={list:(query='')=>listCartelleArchive(query),getFil
 window.lumenImportCartelleStorage={open:openCartelleDb,store:CARTELLE_STORE,identity:cartellaIdentity,id:cartellaId,validCF:cf=>/^[0-9]{11}$/.test(cf)||cf.length===16&&controlChar(cf.slice(0,15))===cf[15],calculateCF:calculateCFData};
 window.lumenConteggioStorage={list:()=>listCartelleArchive(''),change:async(id,mutate)=>{const db=await openCartelleDb();return new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite'),store=tx.objectStore(CARTELLE_STORE),request=store.get(id);request.onsuccess=()=>{if(request.result){try{mutate(request.result);store.put(request.result)}catch(e){tx.abort();reject(e)}}};tx.oncomplete=()=>{db.close();resolve()};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||new Error('Conteggio non aggiornato'))}})}};
 window.lumenAnagraficheBridge={renderWorkers,autosaveCurrentCartella,saveRow:(d,state)=>{const row=workers[currentWorkerIndex];if(row&&workerMatch(row,d)===2){row.verifica_anagrafica=state;renderWorkers();window.lumenCambiaLista?.saveCurrentIntoActive();}}};
-window.lumenBatchCertApi={collect,apply,getCartellaRecord,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
+window.lumenBatchCertApi={collect,apply,getCartellaRecord,findWorkerArchive,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
@@ -2114,11 +2114,30 @@ async function preparaInvioCertificati(archiveBatch){
  if(!visitati.length){alert('IN QUESTA SESSIONE NON RISULTANO LAVORATORI VISITATI.');return}
  const trovati=[],mancanti=[];api.setStatus('CONTROLLO DELLE CARTELLE DEI '+visitati.length+' LAVORATORI VISITATI...');
  for(const w of visitati){
-  let rec=fromArchive?archiveBatch.records.find(r=>api.cartellaId(r.data)===api.cartellaId(w)):await api.getCartellaRecord(api.cartellaId(w));
-  if(!fromArchive&&rec&&window.lumenArchiveVisitsApi.selectDate)rec=window.lumenArchiveVisitsApi.selectDate([rec],s.data)[0];
+  let records=[],reason='cartella non trovata nell’archivio';
+  if(fromArchive){
+   records=archiveBatch.records.filter(r=>api.cartellaId(r.data)===api.cartellaId(w));
+  }else{
+   const found=await api.findWorkerArchive(w);
+   records=found.records;
+   if(!records.length&&found.possible.length)reason='identità da verificare: codice fiscale o data di nascita insufficienti';
+  }
+  // Search verified identities, including legacy keys and historical visits.
+  const visits=window.lumenArchiveVisitsApi.selectDate;
+  const candidates=visits?visits(records,s.data):records.filter(r=>(r.data.data_giudizio||r.data.data_cartella)===s.data);
+  let rec=candidates.length===1?candidates[0]:null;
+  if(records.length&&!candidates.length)reason='nessuna visita salvata per il '+fmt(s.data);
+  if(candidates.length>1)reason='più cartelle compatibili: verificare l’identità';
   const d=rec&&rec.data;
-  if(d&&(d.data_giudizio||d.data_cartella)===s.data&&d.cognome&&d.nome&&d.datore_lavoro&&(Array.isArray(d.giudizio)?d.giudizio.some(Boolean):String(d.giudizio||'').trim()))trovati.push({w,rec});
-  else mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim());
+  if(d){
+   const missing=[];
+   if(!d.cognome||!d.nome)missing.push('nome o cognome');
+   if(!String(d.datore_lavoro||'').trim())missing.push('datore di lavoro');
+   if(!(Array.isArray(d.giudizio)?d.giudizio.some(x=>String(x||'').trim()):String(d.giudizio||'').trim()))missing.push('giudizio');
+   if(!missing.length){trovati.push({w,rec});continue;}
+   reason='dati mancanti: '+missing.join(', ');
+  }
+  mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim()+' — '+reason);
  }
  if(mancanti.length){alert('PREPARAZIONE SOSPESA.\n\nManca una cartella completa con giudizio per la data della seduta nell’ARCHIVIO CARTELLE:\n\n• '+mancanti.join('\n• ')+'\n\nApri o importa queste cartelle e premi SALVA CARTELLA, poi riprova.');api.setStatus('INVIO SOSPESO: MANCANO '+mancanti.length+' CARTELLE NELL’ARCHIVIO.');return}
  if(!norm(s.sede||'')&&trovati.some(x=>!norm(x.rec.data.luogo_visita||''))){
