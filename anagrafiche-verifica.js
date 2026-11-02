@@ -5,6 +5,13 @@ const read=id=>document.getElementById(id)?.value||'';
 const current=()=>Object.fromEntries(['cognome','nome','codice_fiscale','data_nascita','sesso'].map(k=>[k,read(k)]));
 const date=s=>{const m=String(s||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(s||'')};
 const pretty=s=>s.split('-').reverse().join('/');
+const validBirth=v=>{const m=date(v).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);if(!m)return false;const t=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));return t.getUTCFullYear()===+m[1]&&t.getUTCMonth()+1===+m[2]&&t.getUTCDate()===+m[3]};
+const staleMissing=(issue,d)=>{
+ const name=String(issue||'').trim().toUpperCase().replace(/\\s+/g,' ');
+ if(name==='DATA NASCITA MANCANTE')return validBirth(d.data_nascita);
+ if(name==='CF MANCANTE')return /^(?:[A-Z0-9]{16}|[0-9]{11})$/.test(String(d.codice_fiscale||'').trim().toUpperCase().replace(/\\s/g,''));
+ return false;
+};
 function detect(d){
  const issues=[],cf=String(d.codice_fiscale||'').toUpperCase().replace(/\s/g,'');
  const decoded=cf.slice(6,11).replace(/[LMNPQRSTUV]/g,c=>String('LMNPQRSTUV'.indexOf(c)));
@@ -14,7 +21,7 @@ function detect(d){
   if(day>=1&&day<=31&&dob&& (parts[0]?.slice(-2)!==yy||Number(parts[1])!==month||Number(parts[2])!==day))issues.push('Data di nascita discordante: nella cartella '+pretty(dob)+', nel CF '+String(day).padStart(2,'0')+'/'+String(month).padStart(2,'0')+'/anno '+yy+'. Verificare documento.');
  }
  const note=String(d.note_anagrafiche||'').trim();if(note)issues.push(note);
- for(const p of d.problemi||[])if(p&&!issues.includes(p))issues.push(p);
+ for(const p of d.problemi||[])if(p&&!staleMissing(p,d)&&!issues.includes(p))issues.push(p);
  return [...new Set(issues)];
 }
 let state={pending:[],resolved:[]};
@@ -22,7 +29,7 @@ const box=document.createElement('section');box.id='lumenAnagrafiche';box.classN
 const title=document.createElement('strong');title.textContent='DATI ANAGRAFICI DA VERIFICARE';const list=document.createElement('ul');const button=document.createElement('button');button.type='button';button.textContent='DOCUMENTO VERIFICATO / RISOLVI';box.append(title,list,button);
 document.getElementById('cognome').closest('form').prepend(box);
 const style=document.createElement('style');style.textContent='#lumenAnagrafiche{border:2px solid #b56a00;background:#fff4d6;color:#573400;padding:12px;margin:12px 0}#lumenAnagrafiche[hidden]{display:none!important}#lumenAnagrafiche button{background:#805000;color:white;padding:8px}@media print{#lumenAnagrafiche{display:none!important}}';document.head.append(style);
-function refresh(){for(const issue of detect(current()))if(!state.pending.includes(issue)&&!state.resolved.some(r=>r.issue===issue))state.pending.push(issue);box.hidden=!state.pending.length;list.replaceChildren(...state.pending.map(s=>{const li=document.createElement('li');li.textContent=s;return li}));}
+function refresh(){state.pending=state.pending.filter(issue=>!staleMissing(issue,current()));for(const issue of detect(current()))if(!state.pending.includes(issue)&&!state.resolved.some(r=>r.issue===issue))state.pending.push(issue);box.hidden=!state.pending.length;list.replaceChildren(...state.pending.map(s=>{const li=document.createElement('li');li.textContent=s;return li}));}
 function load(d){const s=d.verifica_anagrafica;state={pending:Array.isArray(s?.pending)?s.pending.slice():[],resolved:Array.isArray(s?.resolved)?s.resolved.slice():[]};for(const issue of detect(d))if(!state.pending.includes(issue)&&!state.resolved.some(r=>r.issue===issue))state.pending.push(issue);refresh();}
 button.onclick=async()=>{
  const note=prompt('Dopo aver controllato il documento, indica il dato verificato e l’eventuale correzione effettuata nei campi della cartella:');if(!note?.trim())return;
