@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261101-cartaceo-memoria-16">
+<meta name="lumen-build" content="20261102-certificato-stampa-1">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -184,10 +184,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  .print-certificato .box-title{margin-bottom:4px!important}
  .print-certificato .cert-grid{gap:4px 10px!important}
  .print-certificato .cert-value{min-height:20px!important;padding:2px!important}
- .print-certificato .signature-grid{margin-top:8px!important;break-inside:auto!important;page-break-inside:auto!important}
+ .print-certificato .signature-grid{margin-top:8px!important;break-inside:avoid!important;page-break-inside:avoid!important}
  .print-certificato .signature-grid .firma-timbro-incorporata img{max-height:24mm!important;width:auto!important;max-width:100%!important}
  .print-certificato .signature-line{margin-top:14px!important}
- .print-certificato .certificate .page > .signature-grid:last-child{position:absolute!important;left:10mm!important;right:10mm!important;top:220mm!important;bottom:auto!important;margin:0!important}\n .print-certificato .certificate .page > .signature-grid:last-child .signature-line{margin-top:20mm!important}
+ .print-certificato .certificate .page > .signature-grid:last-child{position:static!important;margin-top:8px!important}\n .print-certificato .certificate .page > .signature-grid:last-child .signature-line{margin-top:0!important}
  .print-certificato p{margin:4px 0!important}
 }
 
@@ -2449,7 +2449,7 @@ input.addEventListener('change',async e=>{
 <script id="lumen-print-values-20260912">
 /* Temporary print text uses current form values; it never saves or edits a record. */
 (function(){
- let nativeCartella=false;
+ let nativeCartella=false,nativeCertificato=false;
  function clearPrintValues(){
   document.querySelectorAll('#cartellaForm .lumen-print-value').forEach(el=>el.remove());
   document.querySelectorAll('#cartellaForm .lumen-print-source').forEach(el=>el.classList.remove('lumen-print-source'));
@@ -2457,7 +2457,12 @@ input.addEventListener('change',async e=>{
  window.addEventListener('beforeprint',function(){
   const form=document.getElementById('cartellaForm');
   if(!form)return;
-  if(!document.body.className.trim()&&!form.classList.contains('hidden')){
+  const explicitPrint=[...document.body.classList].some(name=>name.startsWith('print-'));
+  const certificate=document.getElementById('certificate');
+  if(!explicitPrint&&certificate&&getComputedStyle(certificate).display!=='none'){
+   nativeCertificato=true;document.body.classList.add('print-certificato');
+  }
+  if(!explicitPrint&&!nativeCertificato&&!form.classList.contains('hidden')&&getComputedStyle(form).display!=='none'){
    nativeCartella=true;document.body.classList.add('print-cartella');
   }
   const cartellaPrint=document.body.classList.contains('print-cartella');
@@ -2479,6 +2484,7 @@ input.addEventListener('change',async e=>{
   document.getElementById('lumen-cartella-page-size').media='not all';
   clearPrintValues();
   if(nativeCartella){document.body.classList.remove('print-cartella');nativeCartella=false;}
+  if(nativeCertificato){document.body.classList.remove('print-certificato');nativeCertificato=false;}
  });
 })();
 </script>
