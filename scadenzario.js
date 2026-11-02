@@ -187,7 +187,16 @@
  }
  function lock(value){busy=value;dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=value);if(!value)$('scPdf').disabled=!shown.length;}
  async function load(){if(busy)return;lock(true);clearLink();$('scMessage').textContent='LETTURA ARCHIVIO…';try{snapshot=build(await root.lumenArchiveVisitsApi.list(),today(),localSessions());updateClients();render();}catch(e){snapshot={rows:[],unassigned:0,reference:today()};shown=[];$('scRows').replaceChildren();$('scMessage').textContent='Scadenzario non caricato: '+e.message;}finally{lock(false);}}
- $('btnScadenzario').onclick=async()=>{dialog.showModal();await load()};$('scReload').onclick=load;
+ async function open(range='all'){
+  if(busy)return;
+  $('scRange').value=range;
+  $('scClient').value='';
+  for(const id of ['scEmployer','scSite','scSearch'])$(id).value='';
+  if(!dialog.open)dialog.showModal();
+  await load();
+ }
+ root.lumenScadenzario.open=open;
+ $('btnScadenzario').onclick=()=>open();$('scReload').onclick=load;
  function close(){if(!busy){clearLink();dialog.close();$('btnScadenzario').focus()}}
  $('scClose').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close()});
  for(const id of ['scRange','scClient','scEmployer','scSite','scSearch'])$(id).addEventListener('input',render);
