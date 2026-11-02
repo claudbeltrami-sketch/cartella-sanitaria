@@ -1,9 +1,9 @@
 /* MIME round-trip and real certificate PDF geometry, synthetic data only. */
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const {PDFDocument}=require('pdf-lib'),mail=require('../certificati-email.js');
+const PDFLib=require('../vendor/pdf-lib.min.js'),{PDFDocument}=PDFLib,mail=require('../certificati-email.js');
 const html=fs.readFileSync('index.html','utf8');
 const doctorImage=html.match(/class="firma-timbro-incorporata"[^>]*><img src="([^"]+)"/)[1];
-const window={PDFLib:require('pdf-lib')};new Function('window','Blob',fs.readFileSync('certificato-pdf.js','utf8'))(window,Blob);
+const window={PDFLib};new Function('window','Blob',fs.readFileSync('certificato-pdf.js','utf8'))(window,Blob);
 const base={lavoratore:'COLLAUDO EMAIL',sesso:'M',luogo:'ROMA',data_nascita:'01/01/1980',codice_fiscale:'',azienda:'AZIENDA FITTIZIA SPA',mansione:'ADDETTO ALLE PULIZIE',data_visita:'02/11/2026',periodicita:'ANNUALE',prossima_visita:'',luogo_visita:'SERMONETA',rischi:'MOVIMENTAZIONE MANUALE DEI CARICHI, IMPEGNO ARTI SUP - MOV. RIP., ALCOL/DRUG TEST',giudizio:'IDONEO',prescrizioni:'',luogo_data:'SERMONETA, 02/11/2026',doctor:'Dott. Claudio Beltrami - Medico Competente n. 22294 - Ordine dei Medici di Latina n. 982\nSpecialista in Igiene e Medicina Preventiva',doctorImage,workerImage:doctorImage,barcode:{bars:[],text:''},test:false};
 (async()=>{
  fs.mkdirSync('tmp/email-qa',{recursive:true});
