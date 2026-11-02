@@ -57,7 +57,16 @@
    const source=await root.lumenArchiveVisitsApi.list();
    const result=root.lumenScadenzario.build(source,undefined,root.lumenScadenzario.localSessions());
    const count=scadenze(result.rows);
-   badge.textContent='Scadenze su questo dispositivo: '+count.overdue+' scadute · '+count.next30+' entro 30 giorni · '+count.incomplete+' da completare'+(root.lumenStorage?.isTest?' (archivio PROVA)':'');
+   badge.replaceChildren(document.createTextNode('Scadenze su questo dispositivo: '));
+   for(const [index,range,label] of [[0,'overdue',count.overdue+' scadute'],[1,'30',count.next30+' entro 30 giorni'],[2,'missing',count.incomplete+' da completare']]){
+    if(index)badge.append(document.createTextNode(' · '));
+    const button=document.createElement('button');
+    button.type='button';button.textContent=label;
+    button.style.cssText='font:inherit;color:#174f82;background:#fff;border:1px solid #8aa7bf;border-radius:6px;padding:6px 9px;cursor:pointer;text-decoration:underline';
+    button.setAttribute('aria-label','Mostra elenco: '+label);
+    button.onclick=()=>root.lumenScadenzario.open(range);
+    badge.append(button);
+   }
   }catch(e){badge.textContent='Scadenze non disponibili: apri SCADENZARIO ('+(e.message||String(e))+')';}
   finally{refresh.disabled=false;}
  }
