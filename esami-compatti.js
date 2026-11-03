@@ -20,6 +20,17 @@
     const protocol = document.getElementById('protocollo');
     const planned = protocol.querySelector('input[value="VISIOTEST"]');
     const notes = document.getElementById('visiotest_note');
+    const preset = document.getElementById('visiotest_nota_predefinita');
+    preset.addEventListener('change', () => {
+      const phrase = preset.value;
+      if (!phrase) return;
+      const existing = notes.value.trim();
+      if (!existing.toUpperCase().includes(phrase)) {
+        notes.value = [existing, phrase].filter(Boolean).join(' · ');
+        notes.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+      preset.value = '';
+    });
     let adding = false;
     function refreshVisibility() {
       editor.hidden = !(planned.checked || result.value || notes.value.trim() || adding);
