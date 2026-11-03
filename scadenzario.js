@@ -162,6 +162,27 @@
  root.lumenScadenzario={day,deadline,recover,localSessions,build,filter,pdf,saveDate};
  if(!root.document)return;
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const nextVisit=$('prossima_visita');
+ if(nextVisit){
+  const periodicity=$('periodicita'),judgmentDate=$('data_giudizio');
+  function suggestNextVisit(){
+   if(nextVisit.value && nextVisit.value!==nextVisit.dataset.suggestedDate)return;
+   const next=['ANNUALE','BIENNALE'].includes(periodicity.value)
+    ?deadline({periodicita:periodicity.value},day(judgmentDate.value)).next:'';
+   nextVisit.value=next;
+   nextVisit.dataset.suggestedDate=next;
+  }
+  for(const field of [periodicity,judgmentDate]){
+   field.addEventListener('input',suggestNextVisit);
+   field.addEventListener('change',suggestNextVisit);
+  }
+  nextVisit.addEventListener('input',()=>delete nextVisit.dataset.suggestedDate);
+  document.addEventListener('lumen:cartella-applied',()=>{
+   delete nextVisit.dataset.suggestedDate;
+   suggestNextVisit();
+  });
+  suggestNextVisit();
+ }
  const style=document.createElement('style');style.textContent=`#scadenzarioDialog{box-sizing:border-box;width:min(1200px,calc(100vw - 20px));max-height:92vh;overflow:auto;padding:20px;border:2px solid #27834a;border-radius:12px;background:white;color:#222}#scadenzarioDialog::backdrop{background:#0009}#scadenzarioDialog .sc-controls{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}#scadenzarioDialog label{display:flex;flex:1 1 170px;flex-direction:column;gap:5px;font-weight:bold}#scadenzarioDialog input,#scadenzarioDialog select{box-sizing:border-box;width:100%;padding:8px;font-size:16px;min-height:42px}#scadenzarioDialog table{border-collapse:collapse;width:100%;min-width:960px;font-size:14px}#scadenzarioDialog td,#scadenzarioDialog th{text-align:left;padding:9px;border-bottom:1px solid #ccc;max-width:200px;overflow-wrap:anywhere}#scadenzarioDialog tr[data-status=SCADUTO]{background:#fff0ed}#scadenzarioDialog tr[data-status="DA COMPLETARE"]{background:#fff8dc}#scMessage{white-space:pre-line}#scadenzarioDialog .sc-table{overflow:auto}@media(max-width:700px){#scadenzarioDialog .sc-table{overflow:visible}#scadenzarioDialog table,#scadenzarioDialog tbody{display:block;min-width:0;width:100%}#scadenzarioDialog thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}#scadenzarioDialog tbody tr{display:block;border:1px solid #aaa;border-radius:8px;margin:12px 0;padding:6px}#scadenzarioDialog td{display:grid;grid-template-columns:105px minmax(0,1fr);gap:8px;max-width:none;padding:8px 4px}#scadenzarioDialog td:before{content:attr(data-label);font-weight:bold}#scadenzarioDialog .sc-value{min-width:0}#scadenzarioDialog td small{display:block}}@media print{#scadenzarioDialog{display:none!important}}`;document.head.append(style);
  const dialog=document.createElement('dialog');dialog.id='scadenzarioDialog';dialog.setAttribute('aria-labelledby','scTitle');dialog.innerHTML=`<div class="consent-head"><h3 id="scTitle">SCADENZARIO VISITE</h3><button id="scClose" type="button" class="secondary">CHIUDI</button></div><p id="scScope"></p><p>La prossima scadenza usa la data esplicita oppure la data della visita più la periodicità registrata. Le sedi mancanti si recuperano dalle fonti della stessa visita. La data proposta è modificabile: premi SALVA DATA sulla riga per conservarla nella cartella.</p><div class="sc-controls"><label>Periodo<select id="scRange"><option value="overdue">SCADUTI</option><option value="30">ENTRO 30 GIORNI</option><option value="60">ENTRO 60 GIORNI</option><option value="90">ENTRO 90 GIORNI</option><option value="missing">DA COMPLETARE</option><option value="all" selected>TUTTI GLI ATTIVI</option><option value="ceased">CESSATI (SOLO CONSULTAZIONE)</option></select></label><label>Committente<select id="scClient"><option value="">TUTTI I COMMITTENTI</option></select></label><label>Azienda<input id="scEmployer" placeholder="TUTTE LE AZIENDE"></label><label>Sede di visita<input id="scSite" placeholder="TUTTE LE SEDI"></label><label>Lavoratore / CF<input id="scSearch"></label></div><div class="sc-controls"><button id="scReload" type="button">AGGIORNA DALL’ARCHIVIO</button><button id="scPdf" type="button" class="success">ELENCO PDF</button></div><p id="scMessage" role="status" aria-live="polite"></p><div id="scLink"></div><div class="sc-table" id="scRows"></div>`;document.body.append(dialog);
  let snapshot={rows:[],unassigned:0,reference:today()},shown=[],url='',busy=false;
