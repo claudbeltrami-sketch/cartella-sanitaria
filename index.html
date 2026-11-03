@@ -696,6 +696,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 </div></div>
 <div class="row"><div class="field"><label for="visiotest_esito">Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>NORMALE CON CORREZIONE PER LONTANO</option><option>NORMALE CON CORREZIONE PER VICINO</option><option>NORMALE CON CORREZIONE PER LONTANO E VICINO</option><option>ALTERATO</option></select>
+<div id="visiotest_non_previsto" class="no-print" hidden>Visiotest non previsto dal protocollo <button type="button" id="visiotest_aggiungi">AGGIUNGI ESITO</button></div>
 <div id="visiotest_editor" class="no-print" hidden>
  <label for="visiotest_scelta">Esito</label><select id="visiotest_scelta" data-temporary><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select>
  <label id="visiotest_per_label" hidden>Per <select id="visiotest_per" data-temporary><option value="">Scegli</option><option>LONTANO</option><option>VICINO</option><option value="LONTANO E VICINO">ENTRAMBI</option></select></label>
@@ -3584,7 +3585,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 
 </script>
-<script src="esami-compatti.js?v=20261103-visiotest-1"></script>
+<script src="esami-compatti.js?v=20261103-visiotest-2"></script>
 <script src="lumen-offline.js?v=20261031-firma-auto-1"></script>
 <script src="lumen-migliorie-prova.js?v=20261102-scadenze-1"></script>
 <script src="copia-giudizio-precedente.js?v=20261029-frosinone-warning-3"></script>
