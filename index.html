@@ -695,7 +695,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div id="spirometryGraphStatus" class="spirometry-graph-status hidden" role="status" aria-live="polite"></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 </div></div>
-<div class="row"><div class="field"><label for="visiotest_esito">Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>NORMALE CON CORREZIONE PER LONTANO</option><option>NORMALE CON CORREZIONE PER VICINO</option><option>NORMALE CON CORREZIONE PER LONTANO E VICINO</option><option>ALTERATO</option></select>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:8px;align-items:start"><div class="field" style="min-width:0"><label for="visiotest_esito">Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>NORMALE CON CORREZIONE PER LONTANO</option><option>NORMALE CON CORREZIONE PER VICINO</option><option>NORMALE CON CORREZIONE PER LONTANO E VICINO</option><option>ALTERATO</option></select>
 <div id="visiotest_non_previsto" class="no-print" hidden>Visiotest non previsto dal protocollo <button type="button" id="visiotest_aggiungi">AGGIUNGI ESITO</button></div>
 <div id="visiotest_editor" class="no-print" hidden>
  <label for="visiotest_scelta">Esito</label><select id="visiotest_scelta" data-temporary><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select>
@@ -703,11 +703,12 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <button type="button" id="visiotest_conferma">CONFERMA ESITO</button>
  <button type="button" id="visiotest_cancella">SVUOTA ESITO</button>
  <span id="visiotest_registrato" role="status"></span>
-</div></div></div>
-<div class="field full"><label for="visiotest_note">Note Visiotest</label><div id="visiotest_nota_predefinita" class="no-print" style="display:flex;flex-wrap:wrap;gap:4px;min-width:0">
+</div>
+<div class="field full"><label for="visiotest_note">Note Visiotest</label><textarea id="visiotest_note" rows="2" data-upper></textarea></div></div>
+<div id="visiotest_nota_predefinita" class="no-print" style="display:flex;flex-direction:column;align-items:flex-end;align-self:start;justify-self:end;gap:4px;min-width:0">
  <button type="button" style="width:auto;min-width:0;min-height:26px;padding:3px 7px;font-size:11px;line-height:1.2;white-space:normal!important;overflow-wrap:anywhere;height:auto;max-width:100%;text-align:left">TEST ESEGUITO CON GLI OCCHIALI ABITUALI</button>
  <button type="button" style="width:auto;min-width:0;min-height:26px;padding:3px 7px;font-size:11px;line-height:1.2;white-space:normal!important;overflow-wrap:anywhere;height:auto;max-width:100%;text-align:left">CONSIGLIATO CONTROLLO OCULISTICO</button>
-</div><textarea id="visiotest_note" rows="2" data-upper></textarea></div>
+</div></div>
 <div class="field"><label>Altri accertamenti</label><input id="altri_accertamenti" data-upper></div>
 <div class="row"><div class="field"><label>Periodicità protocollo</label><select id="periodicita_protocollo"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_protocollo_altro" data-upper></div></div>
 </section>
