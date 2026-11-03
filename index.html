@@ -703,7 +703,11 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <button type="button" id="visiotest_conferma">CONFERMA ESITO</button>
  <button type="button" id="visiotest_cancella">SVUOTA ESITO</button>
  <span id="visiotest_registrato" role="status"></span>
-</div></div><div class="field"><label for="visiotest_note">Note Visiotest (facoltative)</label><select id="visiotest_nota_predefinita" class="no-print" data-temporary aria-label="Scegli una nota Visiotest"><option value="">Scegli una nota</option><option>TEST ESEGUITO CON GLI OCCHIALI ABITUALI</option><option>CONSIGLIATO CONTROLLO OCULISTICO</option></select><input id="visiotest_note" data-upper></div></div>
+</div></div><div class="field"><label for="visiotest_note">Note Visiotest (facoltative)</label><details id="visiotest_nota_predefinita" class="no-print" style="min-width:0">
+ <summary>Scegli una nota</summary>
+ <button type="button" style="display:block;width:100%;white-space:normal;text-align:left">TEST ESEGUITO CON GLI OCCHIALI ABITUALI</button>
+ <button type="button" style="display:block;width:100%;white-space:normal;text-align:left">CONSIGLIATO CONTROLLO OCULISTICO</button>
+</details><textarea id="visiotest_note" rows="2" data-upper></textarea></div></div>
 <div class="field"><label>Altri accertamenti</label><input id="altri_accertamenti" data-upper></div>
 <div class="row"><div class="field"><label>Periodicità protocollo</label><select id="periodicita_protocollo"><option></option><option>ANNUALE</option><option>BIENNALE</option><option>ALTRO</option></select></div><div class="field"><label>Altro</label><input id="periodicita_protocollo_altro" data-upper></div></div>
 </section>
@@ -3585,7 +3589,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 
 </script>
-<script src="esami-compatti.js?v=20261103-visiotest-3"></script>
+<script src="esami-compatti.js?v=20261103-visiotest-4"></script>
 <script src="lumen-offline.js?v=20261031-firma-auto-1"></script>
 <script src="lumen-migliorie-prova.js?v=20261102-scadenze-1"></script>
 <script src="copia-giudizio-precedente.js?v=20261029-frosinone-warning-3"></script>
