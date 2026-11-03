@@ -89,7 +89,7 @@
   if(fromQr)return;
   try{
    const record=await api.getCartellaRecord(api.cartellaId(mode.identity));
-   api.apply(record?.data||{...mode.identity,lumen_prova:true,firma_lavoratore_png:''});
+   api.apply(record?.data||{...mode.identity,lumen_prova:true,stato_rapporto:'ATTIVO',firma_lavoratore_png:''});
    api.setStatus(record?'PROVA FANTASMA RIAPERTA. DATI E FIRME DI PROVA SEPARATI.':'PROVA FANTASMA PRONTA. PUOI COMPILARE LA CARTELLA O PROVARE LA FIRMA.');
   }catch(e){api.showSaveInfo('error','PROVA NON APERTA',e.message)}
  }
