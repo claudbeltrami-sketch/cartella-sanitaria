@@ -24,7 +24,7 @@
     preset.addEventListener('click', event => {
       const option = event.target.closest('button');
       if (!option) return;
-      const phrase = option.textContent.trim();
+      const phrase = option.dataset.note || option.textContent.trim();
       const existing = notes.value.trim();
       if (!existing.toUpperCase().includes(phrase)) {
         notes.value = [existing, phrase].filter(Boolean).join(' · ');
