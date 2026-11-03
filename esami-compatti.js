@@ -2,6 +2,16 @@
 (function () {
   'use strict';
   const groups = [...document.querySelectorAll('.lumen-exam')];
+  const spirometry = groups.find(group => group.dataset.exam === 'spiro');
+  const afterVitals = document.getElementById('lumenSpiroAfterVitals');
+  if (spirometry && afterVitals) {
+    const printPosition = document.createComment('Posizione di stampa della spirometria');
+    spirometry.before(printPosition);
+    afterVitals.replaceWith(spirometry);
+    const nextClinicalField = spirometry.nextElementSibling;
+    window.addEventListener('beforeprint', () => printPosition.after(spirometry));
+    window.addEventListener('afterprint', () => nextClinicalField.before(spirometry));
+  }
   const ids = {
     audio: ['audio_dx_500','audio_dx_1000','audio_dx_2000','audio_dx_4000','audio_sx_500','audio_sx_1000','audio_sx_2000','audio_sx_4000','audiometria_esito','audiometria_difetto','audiometria_interpretazione'],
     spiro: ['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale']
