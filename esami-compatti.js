@@ -12,6 +12,44 @@
     window.addEventListener('beforeprint', () => printPosition.after(spirometry));
     window.addEventListener('afterprint', () => nextClinicalField.before(spirometry));
   }
+  const result = document.getElementById('visiotest_esito');
+  const editor = document.getElementById('visiotest_editor');
+  if (result && editor) {
+    const choice = document.getElementById('visiotest_scelta');
+    const target = document.getElementById('visiotest_per');
+    const targetLabel = document.getElementById('visiotest_per_label');
+    const confirm = document.getElementById('visiotest_conferma');
+    const clear = document.getElementById('visiotest_cancella');
+    const status = document.getElementById('visiotest_registrato');
+    const corrected = 'NORMALE CON CORREZIONE';
+    const prefix = corrected + ' PER ';
+    function refreshChoice() {
+      targetLabel.hidden = choice.value !== corrected;
+      confirm.disabled = !targetLabel.hidden && !target.value;
+    }
+    function showResult() {
+      const value = result.value;
+      choice.value = value.startsWith(prefix) ? corrected : value || choice.options[0].value;
+      target.value = value.startsWith(prefix) ? value.slice(prefix.length) : '';
+      clear.hidden = !value;
+      status.textContent = value ? 'Registrato: ' + value : 'Esito da confermare';
+      refreshChoice();
+    }
+    function saveResult(value) {
+      result.value = value;
+      result.dispatchEvent(new Event('change', {bubbles:true}));
+      showResult();
+    }
+    choice.addEventListener('change', refreshChoice);
+    target.addEventListener('change', refreshChoice);
+    confirm.onclick = () => saveResult(choice.value === corrected ? prefix + target.value : choice.value);
+    clear.onclick = () => saveResult('');
+    document.addEventListener('lumen:cartella-applied', showResult);
+    result.form.addEventListener('reset', () => setTimeout(showResult, 0));
+    result.classList.add('visiotest-print-result');
+    editor.hidden = false;
+    showResult();
+  }
   const ids = {
     audio: ['audio_dx_500','audio_dx_1000','audio_dx_2000','audio_dx_4000','audio_sx_500','audio_sx_1000','audio_sx_2000','audio_sx_4000','audiometria_esito','audiometria_difetto','audiometria_interpretazione'],
     spiro: ['spirometria_fvc','spirometria_fvc_percentuale','spirometria_fev1','spirometria_fev1_percentuale','spirometria_pef','spirometria_pef_percentuale']
@@ -42,7 +80,7 @@
   document.addEventListener('lumen:cartella-applied',() => refresh(true));
   window.addEventListener('beforeprint',() => refresh(false));
   const css = document.createElement('style');
-  css.textContent = '.lumen-exam-toggle{width:100%;justify-content:space-between;gap:12px;margin:8px 0;min-height:38px;background:#eef3f7;color:#173f61;border:1px solid #aabecd;text-align:left}.lumen-exam-toggle span{font-size:12px}.lumen-exam-fields[hidden]{display:none}@media print{.lumen-exam-toggle{display:none!important}.lumen-exam:not(.lumen-exam-filled){display:none!important}.lumen-exam-filled>.lumen-exam-fields[hidden]{display:block!important}}';
+  css.textContent = '@media screen{.visiotest-print-result{display:none}}@media print{#visiotest_editor{display:none!important}}.lumen-exam-toggle{width:100%;justify-content:space-between;gap:12px;margin:8px 0;min-height:38px;background:#eef3f7;color:#173f61;border:1px solid #aabecd;text-align:left}.lumen-exam-toggle span{font-size:12px}.lumen-exam-fields[hidden]{display:none}@media print{.lumen-exam-toggle{display:none!important}.lumen-exam:not(.lumen-exam-filled){display:none!important}.lumen-exam-filled>.lumen-exam-fields[hidden]{display:block!important}}';
   document.head.append(css);
   refresh(true);
 })();
