@@ -388,6 +388,18 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 #archiveResults .archive-action-commands button{display:block;width:100%;margin:4px 0!important;min-height:40px;font-size:12px}
 @media(max-width:950px){#archiveResults .archive-actions{min-width:0}#archiveResults .archive-actions>button{flex:0 0 auto}#archiveResults .archive-actions-menu{margin-left:0;flex:1}#archiveResults .archive-actions-menu summary{min-height:44px}}
 </style>
+<style>
+@media screen {
+  .field.visiotest-field { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 8px; min-width: 0; }
+  .visiotest-field [hidden] { display: none !important; }
+  #visiotest_editor { display: grid; gap: 6px; min-width: 0; }
+  #visiotest_scelta, #visiotest_per, #visiotest_note { width: 100%; min-width: 0; box-sizing: border-box; }
+  #visiotest_registrato { overflow-wrap: anywhere; }
+  .visiotest-actions, .visiotest-notes-header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .visiotest-field button { width: auto !important; min-height: 32px; padding: 4px 9px; font-size: 12px; }
+  #visiotest_note { display: block; margin-top: 5px; }
+}
+</style>
 </head>
 <body>
 <section id="lumenBackupOverlay" aria-labelledby="lumenBackupTitle" style="position:relative;z-index:21;max-width:980px;margin:0 auto 12px;padding:0;border:2px solid #287a46;border-radius:10px;background:white;color:#222">
@@ -695,17 +707,17 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div id="spirometryGraphStatus" class="spirometry-graph-status hidden" role="status" aria-live="polite"></div>
 <div class="small" style="margin:4px 0 8px">Interpretazione orientativa di supporto clinico: non sostituisce la valutazione del medico, il controllo di qualità della manovra né LLN/Z-score. Una FVC ridotta da sola non dimostra restrizione.</div>
 </div></div>
-<div class="field" style="min-width:0"><label for="visiotest_esito">Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>NORMALE CON CORREZIONE PER LONTANO</option><option>NORMALE CON CORREZIONE PER VICINO</option><option>NORMALE CON CORREZIONE PER LONTANO E VICINO</option><option>ALTERATO</option></select>
+<div class="field visiotest-field"><label for="visiotest_esito">Visiotest</label><select id="visiotest_esito"><option></option><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>NORMALE CON CORREZIONE PER LONTANO</option><option>NORMALE CON CORREZIONE PER VICINO</option><option>NORMALE CON CORREZIONE PER LONTANO E VICINO</option><option>ALTERATO</option></select>
 <div id="visiotest_non_previsto" class="no-print" hidden>Visiotest non previsto dal protocollo <button type="button" id="visiotest_aggiungi">AGGIUNGI ESITO</button></div>
 <div id="visiotest_editor" class="no-print" hidden>
  <label for="visiotest_scelta">Esito</label><select id="visiotest_scelta" data-temporary><option>NORMALE SENZA CORREZIONE</option><option>NORMALE CON CORREZIONE</option><option>ALTERATO</option></select>
  <label id="visiotest_per_label" hidden>Per <select id="visiotest_per" data-temporary><option value="">Scegli</option><option>LONTANO</option><option>VICINO</option><option value="LONTANO E VICINO">ENTRAMBI</option></select></label>
- <button type="button" id="visiotest_conferma">CONFERMA ESITO</button>
- <button type="button" id="visiotest_cancella">SVUOTA ESITO</button>
+ <div class="visiotest-actions"><button type="button" id="visiotest_conferma">CONFERMA ESITO</button>
+ <button type="button" id="visiotest_cancella">SVUOTA ESITO</button></div>
  <span id="visiotest_registrato" role="status"></span>
 </div>
-<div class="field full">
- <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px">
+<div class="visiotest-notes">
+ <div class="visiotest-notes-header">
   <label for="visiotest_note">Note Visiotest</label>
   <div id="visiotest_nota_predefinita" class="no-print" style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-left:auto;min-width:0">
    <button type="button" data-note="TEST ESEGUITO CON GLI OCCHIALI ABITUALI" style="flex:none;width:auto!important;min-width:0;min-height:30px;padding:3px 8px;font-size:12px">Occhiali abituali</button>
