@@ -30,8 +30,6 @@
         notes.value = [existing, phrase].filter(Boolean).join(' · ');
         notes.dispatchEvent(new Event('input', {bubbles:true}));
       }
-      preset.open = false;
-      preset.querySelector('summary').focus();
     });
     let adding = false;
     function refreshVisibility() {
@@ -71,7 +69,7 @@
     add.onclick = () => { adding = true; refreshVisibility(); choice.focus(); };
     protocol.addEventListener('change', refreshVisibility);
     notes.addEventListener('input', refreshVisibility);
-    function restoreEditor() { adding = false; preset.open = false; showResult(); }
+    function restoreEditor() { adding = false; showResult(); }
     document.addEventListener('lumen:cartella-applied', restoreEditor);
     result.form.addEventListener('reset', () => setTimeout(restoreEditor, 0));
     result.classList.add('visiotest-print-result');
