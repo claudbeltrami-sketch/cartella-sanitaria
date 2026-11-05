@@ -79,7 +79,15 @@
   function close(){if(!busy){dialog.close();revoke();current=null;}}
   $('certMailClose').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close()});
  }
- function messageData(){if(!current)throw Error('Rigenera i certificati.');return {to:email($('certMailTo').value),subject:header($('certMailSubject').value),body:$('certMailBody').value,blob:current.blob,fileName:current.fileName};}
+ function messageData(){
+  if(!current)throw Error('Rigenera i certificati.');
+  const body=$('certMailBody').value;
+  if(current.kind!=='worker'){
+   const stated=body.match(/\b(\d{1,4})\s+certificati\b/i);
+   if(stated&&Number(stated[1])!==Number(current.count))throw Error('Il testo dichiara '+stated[1]+' certificati, ma il PDF ne contiene '+current.count+'. Annulla e rigenera il PDF selezionando solo quelli pronti.');
+  }
+  return {to:email($('certMailTo').value),subject:header($('certMailSubject').value),body,blob:current.blob,fileName:current.fileName};
+ }
  function open(info){
   buildUi();if(busy)throw Error('Attendi il completamento dell’email.');
   if(!info?.blob?.size||info.blob.type!=='application/pdf')throw Error('PDF non disponibile.');
