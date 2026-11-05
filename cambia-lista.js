@@ -1,57 +1,8 @@
-/* LUMEN hotfix 08/09/2026 - PDF cumulativo V4 */
-(function(){'use strict';
-var S='beltrami_v9_sessione_attiva',W='beltrami_workers_v8',E='beltrami_v9_esiti';
-function read(k,d){try{var v=JSON.parse(lumenStorage.local.getItem(k)||'null');return v==null?d:v}catch(_){return d}}
-function norm(v){return String(v||'').trim().toUpperCase()}
-function key(w,i){return String((w&&w.id)||(w&&w.codice_fiscale)||i)}
-function sessione(){var s=read(S,null),d=read(W,{workers:[]});if(!s)return null;if(!Array.isArray(s.workers))s=Object.assign({},s,{workers:d.workers||[]});if(!s.esiti)s.esiti=read(E,{});return s}
-function vdate(d){return String((d&&(d.data_giudizio||d.data_cartella))||'').slice(0,10)}
-function score(d){if(!d)return-1;var n=0;['cognome','nome','codice_fiscale','data_nascita','luogo_nascita','datore_lavoro','mansione','data_giudizio','giudizio','periodicita'].forEach(function(k){if(String(d[k]||'').trim())n+=2});if(Array.isArray(d.rischi))n+=d.rischi.length;if(Array.isArray(d.protocollo))n+=d.protocollo.length;return n}
-function bestData(r,w,s){var c=[];if(r&&r.data)c.push({data:r.data,t:r.updatedAt||''});if(r&&Array.isArray(r.history))r.history.forEach(function(h){if(h&&h.data)c.push({data:h.data,t:h.savedAt||''})});if(!c.length)return null;var target=String(s.data||'').slice(0,10),same=target?c.filter(function(x){return vdate(x.data)===target}):[],p=same.length?same:c;p.sort(function(a,b){return score(b.data)-score(a.data)||String(b.t).localeCompare(String(a.t))});var d=Object.assign({},p[0].data||{});d.cognome=d.cognome||r.cognome||w.cognome||'';d.nome=d.nome||r.nome||w.nome||'';d.codice_fiscale=d.codice_fiscale||r.cf||w.codice_fiscale||'';d.data_nascita=d.data_nascita||r.dataNascita||w.data_nascita||'';d.luogo_nascita=d.luogo_nascita||w.luogo_nascita||'';d.datore_lavoro=d.datore_lavoro||w.datore_lavoro||s.azienda||'';d.mansione=d.mansione||w.mansione||'';if(target&&!d.data_giudizio)d.data_giudizio=target;return d}
-async function prepara(){
- var b=document.getElementById('v9InvioCertificati'),st=document.getElementById('status'),restore=null;
- var oldText=b&&b.textContent,api=window.lumenBatchCertApi;
- try{
-  var s=sessione();if(!s)return alert('NESSUNA SESSIONE DISPONIBILE.');
-  if(!api||!window.lumenCertificatePdf)return alert('MODULO PDF NON DISPONIBILE. RICARICARE LUMEN.');
-  var es=s.esiti||{},ws=s.workers||[],vis=ws.filter(function(w,i){return w&&w.visited&&norm(es[key(w,i)])!=='ASSENTE'});
-  if(!vis.length)return alert('NON RISULTANO LAVORATORI VISITATI.');
-  b.disabled=true;var found=[],missing=[];
-  for(var j=0;j<vis.length;j++){
-   var w=vis[j],r=await api.getCartellaRecord(api.cartellaId(w)),d=bestData(r,w,s);
-   if(d)found.push({data:d});else missing.push(((w.cognome||'')+' '+(w.nome||'')).trim());
-  }
-  if(!found.length)return alert('NESSUNA CARTELLA SALVATA TROVATA.');
-  if(missing.length&&!confirm('MANCANO '+missing.length+' CARTELLE. PREPARO COMUNQUE LE '+found.length+' TROVATE?'))return;
-  var cert=document.getElementById('certificate'),cart=document.querySelector('.cartella');
-  restore={data:api.collect(),display:cert.style.display,cartHidden:cart&&cart.classList.contains('hidden')};
-  var pdf=await window.lumenCertificatePdf.create(),sede=String(s.sede||'').trim();
-  for(var i=0;i<found.length;i++){
-   b.textContent='CERTIFICATO '+(i+1)+' / '+found.length;
-   if(st)st.textContent='CREAZIONE CERTIFICATO '+(i+1)+' DI '+found.length;
-   var data=Object.assign({},found[i].data);if(!data.luogo_visita&&sede)data.luogo_visita=sede;
-   api.apply(data);api.popolaCertificato(undefined,false);
-   await pdf.addCertificate(window.lumenCertificatePdf.snapshot());
-  }
-  var name='CERTIFICATI_'+String(s.data||'').replace(/-/g,'')+'_'+found.length+'.pdf';
-  var blob=await pdf.toBlob(),u=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(function(){URL.revokeObjectURL(u)},60000);
-  if(api.setStatus)api.setStatus('PDF CUMULATIVO PRONTO: '+found.length+' CERTIFICATI COMPILATI.');
- }catch(e){alert('ERRORE PDF CUMULATIVO:\n'+((e&&e.message)||String(e)))}
- finally{
-  if(restore){
-   api.apply(restore.data);
-   if(restore.display!=='none')api.popolaCertificato(undefined,false);
-   cert.style.display=restore.display;
-   if(cart)cart.classList.toggle('hidden',!!restore.cartHidden);
-  }
-  if(b){b.disabled=false;b.textContent=oldText;}
- }
-}
-function install(){var a=document.getElementById('v9InvioCertificati');if(a){a.disabled=false;a.onclick=prepara;a.title='PDF CUMULATIVO V4'}}
-document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#v9InvioCertificati'):null;if(!t)return;e.preventDefault();e.stopImmediatePropagation();prepara()},true);install();addEventListener('load',install);addEventListener('pageshow',install);setTimeout(install,300);
-})();
+/* LUMEN 05/11/2026: rimosso il generatore cumulativo V4 obsoleto.
+   Il pulsante PREPARA INVIO CERTIFICATI e' gestito esclusivamente da
+   preparaInvioCertificati() in index.html, che chiede di spuntare i lavoratori
+   e non include automaticamente tutte le cartelle trovate.
+   Si mantiene la correzione IndexedDB sottostante. */
 
 /* LUMEN hotfix 19/09/2026 - prepara gli archivi IndexedDB senza forzare una versione inferiore. */
 (function(){'use strict';
