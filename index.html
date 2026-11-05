@@ -2145,6 +2145,43 @@ function emailCertificati(s,fileName,count,blob,people){
  const body='Buongiorno'+referente+',\n\ntrasmetto in allegato i certificati di idoneità relativi ai '+count+' lavoratori visitati il '+fmt(s.data)+' presso '+(s.sede||'la sede indicata')+'.\n\nIl file da allegare è: '+fileName+'\n\nCordiali saluti\nDott. Claudio Beltrami';
  location.href='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
+
+function scegliCertificatiDaInviare(candidati){
+ return new Promise(resolve=>{
+  const dlg=document.createElement('dialog');
+  dlg.setAttribute('aria-label','Selezione certificati da inviare');
+  dlg.style.cssText='box-sizing:border-box;width:min(700px,calc(100vw - 24px));max-height:88vh;overflow:auto;border:2px solid #287a46;border-radius:12px;padding:18px;background:white;color:#111';
+  const title=document.createElement('h2');
+  title.textContent='SELEZIONA I CERTIFICATI DA INVIARE';title.style.margin='0 0 10px';
+  const intro=document.createElement('p');
+  intro.textContent='Spunta solo i certificati pronti dopo aver verificato gli esami previsti dal protocollo. Le cartelle non selezionate restano escluse dal PDF. Nessun certificato viene spedito automaticamente.';
+  const count=document.createElement('p');count.style.fontWeight='bold';
+  const list=document.createElement('div');list.style.cssText='max-height:44vh;overflow:auto;border:1px solid #aaa;border-radius:6px';
+  const boxes=[];
+  candidati.forEach((item,i)=>{
+   const label=document.createElement('label');
+   label.style.cssText='display:flex;align-items:center;gap:12px;margin:0;padding:9px 7px;border-bottom:1px solid #ddd;cursor:pointer';
+   const box=document.createElement('input');box.type='checkbox';box.style.cssText='width:21px;height:21px;flex:none';box.addEventListener('change',refresh);
+   const text=document.createElement('span');text.textContent=(i+1)+'. '+[item.rec.data.cognome,item.rec.data.nome].filter(Boolean).join(' ');
+   label.append(box,text);list.append(label);boxes.push(box);
+  });
+  function refresh(){const n=boxes.filter(x=>x.checked).length;count.textContent=n+' selezionati su '+candidati.length;ok.disabled=n===0;}
+  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:16px';
+  const ok=document.createElement('button');ok.type='button';ok.textContent='GENERA PDF DEI SELEZIONATI';ok.className='success';
+  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='ANNULLA';cancel.className='secondary';
+  actions.append(ok,cancel);dlg.append(title,intro,count,list,actions);
+  function finish(selection){dlg.close();dlg.remove();resolve(selection);}
+  cancel.onclick=()=>finish(null);
+  dlg.addEventListener('cancel',e=>{e.preventDefault();finish(null)});
+  ok.onclick=()=>{
+   const chosen=candidati.filter((_,i)=>boxes[i].checked);
+   if(!chosen.length)return;
+   if(!confirm('Confermi '+chosen.length+' certificati da includere nel PDF? Gli altri '+(candidati.length-chosen.length)+' saranno esclusi.'))return;
+   finish(chosen);
+  };
+  document.body.append(dlg);refresh();dlg.showModal();
+ });
+}
 async function preparaInvioCertificati(archiveBatch){
  const fromArchive=archiveBatch?.tipo==='LUMEN_ARCHIVE_CERTIFICATES_V1';
  const s=fromArchive?archiveBatch.session:scegliSessioneConclusa();if(!s)return;const api=window.lumenBatchCertApi;
@@ -2179,25 +2216,27 @@ async function preparaInvioCertificati(archiveBatch){
   mancanti.push(((w.cognome||'')+' '+(w.nome||'')).trim()+' — '+reason);
  }
  if(mancanti.length){alert('PREPARAZIONE SOSPESA.\n\nManca una cartella completa con giudizio per la data della seduta nell’ARCHIVIO CARTELLE:\n\n• '+mancanti.join('\n• ')+'\n\nApri o importa queste cartelle e premi SALVA CARTELLA, poi riprova.');api.setStatus('INVIO SOSPESO: MANCANO '+mancanti.length+' CARTELLE NELL’ARCHIVIO.');return}
- if(!norm(s.sede||'')&&trovati.some(x=>!norm(x.rec.data.luogo_visita||''))){
+ const selezionati=await scegliCertificatiDaInviare(trovati);
+ if(!selezionati){api.setStatus('INVIO ANNULLATO: NESSUN PDF GENERATO.');return}
+ if(!norm(s.sede||'')&&selezionati.some(x=>!norm(x.rec.data.luogo_visita||''))){
   const luogo=prompt('LUOGO DELLA VISITA PER I CERTIFICATI DEL '+fmt(s.data)+' (COMUNE / SEDE):','');
   if(luogo===null||!luogo.trim())return;
   s.sede=norm(luogo);
  }
  const btn=$('v9InvioCertificati'),oldText=btn.textContent,original=api.collect(),cert=$('certificate'),cart=document.querySelector('.cartella'),certEraVisibile=getComputedStyle(cert).display!=='none',sedeCorrente=$('v9Sede').value;
- btn.disabled=true;btn.textContent='CREAZIONE 0 / '+trovati.length;
+ btn.disabled=true;btn.textContent='CREAZIONE 0 / '+selezionati.length;
  try{
   const pdf=await window.lumenCertificatePdf.create();
-  for(let i=0;i<trovati.length;i++){
-   btn.textContent='CREAZIONE '+(i+1)+' / '+trovati.length;api.setStatus('CREAZIONE CERTIFICATO '+(i+1)+' DI '+trovati.length+' — '+(trovati[i].w.cognome||'')+' '+(trovati[i].w.nome||'')+'...');
-   api.apply({...trovati[i].rec.data,luogo_visita:norm(trovati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);
+  for(let i=0;i<selezionati.length;i++){
+   btn.textContent='CREAZIONE '+(i+1)+' / '+selezionati.length;api.setStatus('CREAZIONE CERTIFICATO '+(i+1)+' DI '+selezionati.length+' — '+(selezionati[i].w.cognome||'')+' '+(selezionati[i].w.nome||'')+'...');
+   api.apply({...selezionati[i].rec.data,luogo_visita:norm(selezionati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);
    await pdf.addCertificate(window.lumenCertificatePdf.snapshot());
   }
-  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),trovati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=await pdf.toBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),selezionati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=await pdf.toBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
-  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nControllo completato: '+trovati.length+' visitati, '+trovati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL: potrai controllare destinatario e testo e scaricare l’email con il PDF già incluso.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,trovati.length,blob,trovati.map(x=>[x.rec.data.cognome,x.rec.data.nome].filter(Boolean).join(' ')))}]);
-  api.setStatus('PDF MULTIPAGINA CREATO: '+trovati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
-  return {fileName,count:trovati.length};
+  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nSelezione confermata: '+selezionati.length+' visitati, '+selezionati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL: potrai controllare destinatario e testo e scaricare l’email con il PDF già incluso.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,selezionati.length,blob,selezionati.map(x=>[x.rec.data.cognome,x.rec.data.nome].filter(Boolean).join(' ')))}]);
+  api.setStatus('PDF MULTIPAGINA CREATO: '+selezionati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
+  return {fileName,count:selezionati.length};
  }catch(err){alert('NON È STATO POSSIBILE CREARE IL PDF.\n'+(err.message||String(err)));api.setStatus('ERRORE NELLA CREAZIONE DEL PDF DEI CERTIFICATI.')}finally{
   api.apply(original);if(certEraVisibile)api.popolaCertificato(undefined,true);else{cert.style.display='none';cart.classList.remove('hidden')}btn.disabled=false;btn.textContent=oldText;
  }
