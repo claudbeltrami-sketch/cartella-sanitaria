@@ -13,7 +13,7 @@
   function compactGroups() {
     const groups = [...panel.querySelectorAll('.tool-group')];
     const target = selector => panel.querySelector(selector + ' .tool-buttons');
-    const keep = ['btnSalva','btnArchivioCartelle','btnCert','btnStampa','btnFirmaLavoratore','btnAltriComandi'];
+    const keep = ['btnSalva','btnChiudiCartella','btnArchivioCartelle','btnCert','btnStampa','btnFirmaLavoratore','btnAltriComandi'];
     const primary = toolbar.querySelector('.toolbar-primary');
     const cert = document.getElementById('btnCert');
     if (cert) primary.append(cert);

@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261105-rubrica-sermolab-1">
+<meta name="lumen-build" content="20261107-chiudi-cartella-1">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -424,6 +424,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="toolbar" id="mainToolbar" aria-label="Comandi principali">
  <div class="toolbar-primary">
 <button type="button" id="btnSalva">SALVA CARTELLA</button>
+<button type="button" id="btnChiudiCartella" class="secondary">CHIUDI CARTELLA</button>
 <button class="success" type="button" id="btnArchivioCartelle">ARCHIVIO CARTELLE</button>
 <button class="success" type="button" id="btnScadenzario">SCADENZARIO</button>
 <button class="signature-command" type="button" id="btnPreparaFirmaIphone" onclick="if(window.beltramiFirmaIphone){window.beltramiFirmaIphone.prepare()}else{alert('COLLEGAMENTO FIRMA NON CARICATO. RICARICARE LA PAGINA.');}">INVIA A IPHONE</button>
@@ -1773,6 +1774,40 @@ async function autosaveCurrentCartella(reason='CAMBIO LAVORATORE'){
   return {saved:false,error:e};
  }
 }
+
+async function chiudiCartella(){
+ const button=document.getElementById('btnChiudiCartella');
+ if(button.disabled)return;
+ button.disabled=true;
+ try{
+  const data=collect();
+  const hasIdentity=!!(data.cognome||data.nome||data.codice_fiscale);
+  if(hasIdentity&&(!data.cognome||!data.nome)){
+   setStatus('CARTELLA NON CHIUSA: COMPLETARE COGNOME E NOME E SALVARE.');return;
+  }
+  const version=workerSelectionVersion;
+  const result=await autosaveCurrentCartella('CHIUDI CARTELLA');
+  if(result.error)return;
+  // Never clear a different worker or edits made while the save was pending.
+  if(version!==workerSelectionVersion||JSON.stringify(collect())!==JSON.stringify(data)){
+   setStatus('LA CARTELLA È CAMBIATA DURANTE IL SALVATAGGIO. PREMI DI NUOVO CHIUDI CARTELLA.');return;
+  }
+  if(hasIdentity){
+   const row=activeDraftVersion===workerSelectionVersion?activeDraftWorker:null;
+   const key=draftKey(data,row);if(key)workerDrafts.set(key,data);
+  }
+  apply({firma_lavoratore_png:''});
+  currentWorkerIndex=-1;activeDraftWorker=null;activeDraftVersion=-1;emptyWorkerScreen=null;
+  renderWorkers();
+  window.lumenCambiaLista?.saveCurrentIntoActive();
+  document.querySelector('.cartella').classList.add('hidden');
+  saveInfo.style.display='none';
+  setStatus('CARTELLA CHIUSA. ARCHIVIO E LISTA CONSERVATI. SELEZIONA UN LAVORATORE O APRI ARCHIVIO CARTELLE.');
+  document.getElementById('workersSummary').scrollIntoView({behavior:'smooth',block:'center'});
+ }catch(e){setStatus('CARTELLA NON CHIUSA: '+(e.message||String(e)))}
+ finally{button.disabled=false}
+}
+document.getElementById('btnChiudiCartella').onclick=chiudiCartella;
 
 async function selectWorker(i){
  const w=workers[i];if(!w)return;
@@ -3329,7 +3364,7 @@ input.addEventListener('change',async e=>{
 <script src="recupera-verifiche.js?v=20261017-2"></script>
 <script src="scadenzario.js?v=20261103-prossima-visita-1"></script>
 <script src="conteggio-automatico.js?v=20261007-ruoli"></script>
-<script src="toolbar-compact.js?v=20261022-2"></script>
+<script src="toolbar-compact.js?v=20261107-chiudi-1"></script>
 
 <script id="lumen-panels-compact-script">
 /* Only move existing controls: retain their IDs, values and event handlers. */
