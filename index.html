@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261107-anamnesi-patologica-2">
+<meta name="lumen-build" content="20261107-anamnesi-patologica-3">
 <script src="prova-storage.js?v=20261014-mac-1-20260929-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -3753,21 +3753,22 @@ function previousPathological(rows,base){
 window.lumenPreviousPathological=previousPathological;
 const field=document.getElementById('anamnesi_patologica'),form=document.getElementById('cartellaForm');
 if(!field||!form)return;
-const controls=document.createElement('div');controls.className='lumen-pathological-history no-print';
-const button=document.createElement('button');button.type='button';button.textContent='ANAMNESI PATOLOGICHE PRECEDENTI';button.setAttribute('aria-expanded','false');button.setAttribute('aria-controls','lumenPathologicalPanel');
-const panel=document.createElement('section');panel.id='lumenPathologicalPanel';panel.hidden=true;panel.setAttribute('aria-label','Anamnesi patologiche precedenti');
+const controls=document.createElement('details');controls.className='lumen-pathological-history no-print';
+const button=document.createElement('summary');button.textContent='ANAMNESI PATOLOGICHE PRECEDENTI · 3';
+const panel=document.createElement('section');panel.id='lumenPathologicalPanel';panel.setAttribute('aria-label','Anamnesi patologiche precedenti');
 controls.append(button,panel);field.closest('.field').before(controls);
 let request=0;
-function close(){request++;panel.hidden=true;panel.replaceChildren();button.setAttribute('aria-expanded','false');}
+panel.textContent='Apertura dello storico… Se questo messaggio rimane, ricarica la pagina con la connessione attiva.';
+function close(){request++;controls.open=false;}
 function message(text){const p=document.createElement('p');p.textContent=text;panel.replaceChildren(p);}
-button.onclick=async()=>{
- if(!panel.hidden){close();return;}
- const base=collect(),identity=cartellaIdentity(base);
- panel.hidden=false;button.setAttribute('aria-expanded','true');const token=++request;
+controls.addEventListener('toggle',async()=>{
+ if(!controls.open){request++;return;}
+ const token=++request;
+ try{
+ const base=Object.fromEntries(['cognome','nome','codice_fiscale','data_nascita','data_giudizio','data_cartella'].map(id=>[id,document.getElementById(id)?.value||''])),identity=cartellaIdentity(base);
  if(!identity.cf&&!(identity.cognome&&identity.nome&&identity.dn)){message('Completa codice fiscale oppure cognome, nome e data di nascita per consultare lo storico.');return;}
  if(!/^\d{4}-\d{2}-\d{2}$/.test(workerDate(base.data_giudizio||base.data_cartella||''))){message('Indica la data della visita corrente per consultare le anamnesi precedenti.');return;}
  message('Ricerca delle anamnesi precedenti…');
- try{
   const found=await findWorkerArchive(base);if(token!==request)return;
   if(!found.records.length&&found.possible.length){message('Identità da verificare nell’archivio: completa il codice fiscale per distinguere gli omonimi.');return;}
   const entries=previousPathological(found.records,base);
@@ -3779,15 +3780,15 @@ button.onclick=async()=>{
    item.append(title,body);panel.append(item);
   }
   panel.querySelector('details').open=true;
- }catch(_){if(token===request)message('Archivio non disponibile. Chiudi e riapri la finestrella per riprovare.');}
-};
+ }catch(e){if(token===request)message('Impossibile leggere lo storico: '+(e.message||String(e))+'. Nessun dato modificato.');}
+});
 const identityFields=['cognome','nome','codice_fiscale','data_nascita','data_cartella','data_giudizio'];
 for(const event of ['input','change'])form.addEventListener(event,e=>{if(identityFields.includes(e.target.id))close();});
 form.addEventListener('reset',close);
 document.addEventListener('lumen:cartella-applied',close);
-document.addEventListener('lumen:precedenti-aggiornati',close);
+// Archive updates must not dismiss a panel the doctor is reading.
 controls.addEventListener('keydown',e=>{if(e.key==='Escape'){close();button.focus();}});
-const css=document.createElement('style');css.textContent='.lumen-pathological-history{margin:8px 0}.lumen-pathological-history>button{min-height:38px;font-size:12px}.lumen-pathological-history section{margin-top:8px;padding:12px;border:1px solid #8da9be;border-radius:8px;background:#f5f9fc;max-height:340px;overflow:auto}.lumen-pathological-history section[hidden]{display:none}.lumen-pathological-history details{margin:8px 0;padding:8px;background:white;border:1px solid #cad6df;border-radius:6px}.lumen-pathological-history summary{cursor:pointer;font-weight:bold;color:#1f5f99;padding:5px}.lumen-pathological-history p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;font-size:14px}@media print{.lumen-pathological-history{display:none!important}}';document.head.append(css);
+const css=document.createElement('style');css.textContent='.lumen-pathological-history{margin:8px 0}.lumen-pathological-history>summary{display:list-item;list-style-position:inside;cursor:pointer;padding:12px;border-radius:8px;background:#1f5f99;color:white;font-weight:700;font-size:12px;min-height:44px;touch-action:manipulation}.lumen-pathological-history section{margin-top:8px;padding:12px;border:1px solid #8da9be;border-radius:8px;background:#f5f9fc;max-height:340px;overflow:auto}.lumen-pathological-history section[hidden]{display:none}.lumen-pathological-history details{margin:8px 0;padding:8px;background:white;border:1px solid #cad6df;border-radius:6px}.lumen-pathological-history summary{cursor:pointer;font-weight:bold;color:#1f5f99;padding:5px}.lumen-pathological-history p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;font-size:14px}@media print{.lumen-pathological-history{display:none!important}}';document.head.append(css);
 })();
 </script>
 
