@@ -44,6 +44,12 @@ label{display:block;font-weight:600}.check{display:flex;gap:10px;align-items:fle
 <label class="check"><input type="checkbox" id="backupChecked"> Ho creato sul Mac un backup aggiornato e ho verificato che il file sia realmente salvato.</label>
 <button type="button" id="apply" disabled>IMPORTA SENZA SOSTITUIRE L'ARCHIVIO</button>
 <pre id="result" role="status"></pre>
+<div id="archiveProof" hidden>
+ <p class="note">Le cartelle di PROVA FANTASMA restano separate dai dati clinici reali. Questo controllo legge soltanto l'archivio prova sul Mac, senza modificarlo.</p>
+ <button type="button" id="verifyArchive" class="secondary">VERIFICA LE CARTELLE NELL'ARCHIVIO PROVA</button>
+ <pre id="archiveProofResult" role="status">Controllo non ancora eseguito.</pre>
+ <a class="button secondary" href="index.html?prova=fantasma&amp;apriArchivio=1">APRI ARCHIVIO CARTELLE IN LUMEN PROVA</a>
+</div>
 </section>
 <script>
 (()=>{
@@ -53,6 +59,7 @@ const charts='beltrami_cartelle_db_v1',files='beltrami_lumen_files_v1',dbChart='
 let prepared=null,preparedUrl=null,selected=null;
 $('day').value=new Date().toLocaleDateString('sv-SE');
 $('mode').textContent=storage.isTest?'MODALITÀ PROVA FANTASMA: archivi separati dai dati reali.':'MODALITÀ ORDINARIA: NON IMPORTARE DATI REALI FINO AL COLLAUDO SU ENTRAMBI I DISPOSITIVI.';
+$('archiveProof').hidden=!storage.isTest;
 function status(id,msg){$(id).textContent=msg}
 function localGet(key,fallback){try{const v=storage.local.getItem(key);return v?JSON.parse(v):fallback}catch{return fallback}}
 function transferFile(file,filename){const a=document.createElement('a'),url=URL.createObjectURL(file);a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
@@ -117,6 +124,23 @@ $('verifyFile').onchange=async()=>{
   status('verifyStatus','✓ FILE JSON VERIFICATO: '+source.name+' ('+source.size+' byte).\nIl file selezionato è identico alla copia preparata. Può essere trasferito al Mac.');
  }catch(e){status('verifyStatus','FILE NON VERIFICATO: '+e.message)}finally{$('verifyFile').value=''}
 };
+async function auditArchive(packet=null){
+ if(!storage.isTest)throw Error('Verifica di prova disponibile solo in PROVA FANTASMA.');
+ const rows=await readRows(charts,dbChart),expected=packet?new Set(packet.cartelle.map(r=>r.id)):null;
+ const found=expected?rows.filter(r=>expected.has(r.id)):rows;
+ const missing=expected?[...expected].filter(id=>!found.some(r=>r.id===id)):[];
+ const lines=found.map(r=>{
+  const dates=[...new Set(api.snapshots(r).map(api.dateOf).filter(Boolean))].sort();
+  return (r.cognome||r.data?.cognome||'')+' '+(r.nome||r.data?.nome||'')+' — visite: '+(dates.join(', ')||'nessuna data');
+ });
+ const visitCount=packet?found.reduce((n,r)=>n+api.snapshots(r).filter(s=>api.dateOf(s)===packet.data).length,0):null;
+ status('archiveProofResult','ARCHIVIO LUMEN PROVA SU QUESTO MAC (sola lettura).\nCartelle/lavoratori: '+found.length+
+  (packet?' di '+expected.size+' dal file; visite della data '+packet.data+': '+visitCount:'')+
+  (missing.length?'\nATTENZIONE: '+missing.length+' cartelle mancanti.':'\n'+(packet?'Tutte le cartelle importate sono consultabili.':'Elenco delle cartelle presenti:'))+
+  (lines.length?'\n'+lines.join('\n'):'\nNessuna cartella presente.'));
+ if(missing.length)throw Error('La lettura di controllo non trova tutte le cartelle importate.');
+}
+$('verifyArchive').onclick=()=>auditArchive().catch(e=>status('archiveProofResult','VERIFICA NON RIUSCITA: '+(e.message||String(e))));
 async function previewPacket(packet){
  if(Boolean(packet.lumen_prova)!==storage.isTest)throw Error('File di prova e archivio reale non possono essere mescolati.');
  const existing=await readRows(charts,dbChart),plan=api.resolve(existing,packet);
@@ -156,7 +180,8 @@ $('apply').onclick=async()=>{
  if(selected.packet.sessione){const key='beltrami_emergenza_sessioni_importate_v1',log=localGet(key,[]);
  const tag=selected.packet.data+'|'+selected.packet.creato;
  if(!log.some(x=>x.tag===tag)){log.push({tag,data:selected.packet.data,origine:'IPHONE',contenuto:selected.packet.sessione});storage.local.setItem(key,JSON.stringify(log))}}
- status('result','IMPORTAZIONE VERIFICATA.\nVisite aggiunte: '+fresh.plan.addedVisits+'\nAllegati aggiunti: '+fresh.addDocs.length+'\nVisite già presenti non modificate: '+fresh.plan.already+'\nL’archivio esistente non è stato azzerato. La sessione importata è conservata separatamente.');
+ if(storage.isTest)await auditArchive(selected.packet);
+ status('result','IMPORTAZIONE VERIFICATA.\nVisite aggiunte: '+fresh.plan.addedVisits+'\nAllegati aggiunti: '+fresh.addDocs.length+'\nVisite già presenti non modificate: '+fresh.plan.already+'\nLe cartelle sono nell’archivio locale '+(storage.isTest?'PROVA':'LUMEN')+' del Mac; l’archivio precedente non è stato azzerato. La copia dei dati di sessione resta separata.');
  }catch(e){status('result','IMPORTAZIONE NON COMPLETATA O NON VERIFICATA: '+e.message+'\nConserva entrambi i file di backup. Non ripetere l’operazione prima di un controllo.')}
 };
 })();
