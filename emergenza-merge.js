@@ -30,11 +30,17 @@ function resolve(target,packet){
   }
   if(collision){conflicts.push("Stessa visita con dati differenti: "+source.id+" / "+packet.data);continue}
   if(!incoming.length)continue;
+  const counts={...(dest?.conteggioVisits||{})};let countConflict=false;
+  for(const [date,entry] of Object.entries(source.conteggioVisits||{})){
+   if(counts[date]&&canonical(counts[date])!==canonical(entry)){countConflict=true;break}
+   counts[date]=entry;
+  }
+  if(countConflict){conflicts.push("Conteggio amministrativo discordante: "+source.id);continue}
   const all=[...old,...incoming].sort((a,b)=>dateOf(a).localeCompare(dateOf(b))||String(a.savedAt||"").localeCompare(String(b.savedAt||"")));
   if(all.length>26){conflicts.push("Storico oltre 25 versioni: "+source.id+" (unione manuale necessaria)");continue}
   const curr=all[all.length-1];
   const out=dest?{...dest,data:curr.data,history:all.slice(0,-1),updatedAt:new Date().toISOString()}:{...source,data:curr.data,history:all.slice(0,-1),updatedAt:source.updatedAt||new Date().toISOString()};
-  updates.push(out);addedVisits+=incoming.length;
+  if(Object.keys(counts).length)out.conteggioVisits=counts;updates.push(out);addedVisits+=incoming.length;
  }
  return {updates,conflicts,already,addedVisits,newWorkers:updates.filter(x=>!oldById.has(x.id)).length};
 }
