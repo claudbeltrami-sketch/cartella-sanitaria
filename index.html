@@ -1402,6 +1402,11 @@ function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 const originalSaveCartellaVerified=saveCartellaVerified;
 saveCartellaVerified=async function(){try{const x=await saveToLocalArchive();showSaveInfo('ok',x.isUpdate?'✓ CARTELLA AGGIORNATA NELL’ARCHIVIO':'✓ CARTELLA INSERITA NELL’ARCHIVIO',(x.rec.cognome||'')+' '+(x.rec.nome||'')+'\nCF: '+(x.rec.cf||'NON PRESENTE')+'\nVersioni conservate: '+x.versioni+'\nOra: '+clock());setStatus(x.isUpdate?'CARTELLA AGGIORNATA NELL’ARCHIVIO LOCALE.':'CARTELLA SALVATA NELL’ARCHIVIO LOCALE.')}catch(e){showSaveInfo('error','ARCHIVIO LOCALE NON AGGIORNATO',e.message||String(e));return}await originalSaveCartellaVerified()}
 document.getElementById('btnArchivioCartelle').onclick=()=>{document.getElementById('archiveModal').classList.add('show');document.getElementById('archiveQuery').value='';clearArchiveRoles();renderArchive('');setTimeout(()=>document.getElementById('archiveQuery').focus(),50)};
+// Un link del recupero iPhone apre solo l'archivio di PROVA, mai quello reale.
+// Non avvia alcun salvataggio o importazione, e non altera i dati esistenti.
+if(lumenStorage.isTest&&new URLSearchParams(location.search).get('apriArchivio')==='1'){
+ requestAnimationFrame(()=>document.getElementById('btnArchivioCartelle').click());
+}
 document.getElementById('btnChiudiArchivio').onclick=()=>document.getElementById('archiveModal').classList.remove('show');
 document.getElementById('btnCercaArchivio').onclick=()=>renderArchive(document.getElementById('archiveQuery').value);
 document.getElementById('btnTutteArchivio').onclick=()=>{document.getElementById('archiveQuery').value='';clearArchiveRoles();renderArchive('')};
