@@ -22,6 +22,21 @@ async function run(engine,name){
   assert.equal(await ghost.evaluate(()=>lumenStorage.local.getItem('beltrami_workers_v8')),null);
   assert.equal((await ghost.evaluate(()=>lumenFirmaOffline.list())).length,0);
   await ghost.locator('#mansione').fill('COLLAUDO');await ghost.locator('#btnSalva').click();await ghost.waitForFunction(async()=>{const a=lumenBatchCertApi;return (await a.getCartellaRecord(a.cartellaId(a.collect())))?.data.mansione==='COLLAUDO'});
+  // The emergency JSON must be prepared without leaving the browser/clinical form.
+  await ghost.locator('#btnEsportaProvaJson').click();await ghost.locator('#provaExportBox').waitFor({state:'visible'});
+  assert.match(await ghost.locator('#provaExportStatus').textContent(),/JSON PREPARATO, MA NON ANCORA SALVATO/);
+  assert.equal(ghost.url(),url+'?prova=fantasma');
+  const pendingJson=ghost.waitForEvent('download');await ghost.locator('#provaScaricaJson').click();
+  const downloadedJson=await pendingJson;const jsonBuffer=fs.readFileSync(await downloadedJson.path());
+  const emergency=JSON.parse(jsonBuffer.toString('utf8'));
+  assert.equal(emergency.tipo,'LUMEN_EMERGENZA_SESSIONE_V1');assert.equal(emergency.lumen_prova,true);
+  assert.equal(emergency.cartelle.length,1);assert.equal(emergency.cartelle[0].data.mansione,'COLLAUDO');
+  await ghost.locator('#provaVerificaJson').setInputFiles({name:downloadedJson.suggestedFilename(),mimeType:'application/json',buffer:jsonBuffer});
+  await ghost.waitForFunction(()=>document.getElementById('provaVerificaEsito').textContent.includes('JSON VERIFICATO IN FILE'));
+  // A changed, unsaved clinical field must block the export of an out-of-date JSON.
+  await ghost.locator('#mansione').fill('NON SALVATO');await ghost.locator('#btnEsportaProvaJson').click();
+  await ghost.waitForFunction(()=>document.getElementById('status').textContent.includes('NON COINCIDE')||document.getElementById('saveDetail')?.textContent.includes('NON COINCIDE'));
+  assert.equal(await ghost.locator('#provaExportBox').isVisible(),false);
   await ghost.reload();await ghost.waitForFunction(()=>document.getElementById('mansione').value==='COLLAUDO');
   const qr=await ghost.evaluate(async()=>{
    window.QRCode=function(_,options){window.testQr=options.text};window.QRCode.CorrectLevel={M:1};openAutomaticSignatureReceiver=async()=>'';
