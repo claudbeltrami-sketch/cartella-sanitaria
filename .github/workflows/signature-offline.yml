@@ -21,6 +21,10 @@ jobs:
         run: |
           npm install --prefix /tmp/lumen-tests --no-save playwright@1.51.1
           node /tmp/lumen-tests/node_modules/playwright/cli.js install --with-deps chromium webkit
+      - name: Collaudo PROVA FANTASMA JSON su Chromium e WebKit
+        env:
+          NODE_PATH: /tmp/lumen-tests/node_modules
+        run: node tests/prova-fantasma.cjs
       - name: Verifica archivio, trasporto e recupero
         run: |
           node tests/collatina.cjs
@@ -29,9 +33,7 @@ jobs:
       - name: Simula rete assente e archivi pieni in Chromium e WebKit
         env:
           NODE_PATH: /tmp/lumen-tests/node_modules
-        run: |
-          node tests/signature-offline.cjs
-          node tests/prova-fantasma.cjs
+        run: node tests/signature-offline.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
