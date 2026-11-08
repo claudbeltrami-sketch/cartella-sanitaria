@@ -72,12 +72,95 @@
   reset.disabled=true;
   try{await mode.reset();location.replace(location.pathname+'?prova=fantasma')}catch(e){reset.disabled=false;alert(e.message)}
  };
+ // Export is deliberately kept on the clinical page: an in-app browser
+ // or another iOS tab may have a different, empty IndexedDB archive.
  const exportBtn=document.createElement('button');exportBtn.type='button';exportBtn.id='btnEsportaProvaJson';
- exportBtn.textContent='2 · ESPORTA JSON / AIRDROP';
- const exportUrl=new URL('emergenza-iphone-mac.html?prova=fantasma',location.href).href;
- exportBtn.onclick=()=>location.assign(exportUrl);
- const exportHint=document.createElement('p');exportHint.textContent='SALVA PROVA conserva la cartella in questo browser. Per creare un vero file JSON, premi ESPORTA JSON, poi SALVA SU FILE / AIRDROP. Non cancellare i dati dal browser prima di aver controllato il file in File.';
- banner.append(title,note,hint,exportHint,exportBtn,reset);document.body.prepend(banner);entry.hidden=true;
+ exportBtn.textContent='2 · PREPARA JSON SENZA CAMBIARE PAGINA';
+ const exportHint=document.createElement('p');exportHint.textContent='SALVA PROVA verifica solo l’archivio di questo browser. Poi prepara e salva il JSON qui, senza aprire un altro browser. Verifica il file con il controllo sottostante.';
+ const exportBox=document.createElement('div');exportBox.id='provaExportBox';exportBox.hidden=true;
+ const exportStatus=document.createElement('p');exportStatus.id='provaExportStatus';exportStatus.setAttribute('role','status');
+ const shareBtn=document.createElement('button');shareBtn.type='button';shareBtn.id='provaCondividiJson';shareBtn.textContent='3 · SALVA SU FILE / AIRDROP';
+ const download=document.createElement('a');download.id='provaScaricaJson';download.textContent='SCARICA COPIA JSON (ALTERNATIVA)';download.style.cssText='display:block;margin:8px 0;padding:10px;color:#174c77;font-weight:bold';
+ const verifyLabel=document.createElement('label');verifyLabel.textContent='4 · VERIFICA IL JSON SALVATO IN FILE';
+ const verifyInput=document.createElement('input');verifyInput.type='file';verifyInput.accept='.json,application/json';verifyInput.id='provaVerificaJson';
+ verifyInput.style.cssText='display:block;width:100%;margin:8px 0';
+ const verifyStatus=document.createElement('p');verifyStatus.id='provaVerificaEsito';verifyStatus.setAttribute('role','status');verifyStatus.textContent='FILE NON ANCORA VERIFICATO.';
+ exportBox.append(exportStatus,shareBtn,download,verifyLabel,verifyInput,verifyStatus);
+ banner.append(title,note,hint,exportHint,exportBtn,exportBox,reset);document.body.prepend(banner);entry.hidden=true;
+ let prepared=null,preparedUrl=null;
+ function fileBlobBase64(blob){return new Promise((resolve,reject)=>{
+  const reader=new FileReader();reader.onload=()=>resolve(reader.result);
+  reader.onerror=()=>reject(reader.error||Error('Allegato non leggibile'));reader.readAsDataURL(blob);
+ })}
+ async function testOriginals(){
+  return new Promise((resolve,reject)=>{
+   let nonexistent=false;
+   const req=mode.indexedDB.open('beltrami_lumen_files_v1');
+   req.onupgradeneeded=()=>{nonexistent=true;req.transaction.abort()};
+   req.onerror=()=>nonexistent?resolve([]):reject(req.error||Error('Archivio allegati non leggibile'));
+   req.onsuccess=()=>{
+    const db=req.result;
+    if(!db.objectStoreNames.contains('originali')){db.close();reject(Error('Archivio allegati incompleto'));return}
+    const tx=db.transaction('originali','readonly'),all=tx.objectStore('originali').getAll();
+    all.onsuccess=()=>resolve(all.result||[]);
+    all.onerror=()=>reject(all.error||Error('Lettura allegati non riuscita'));
+    tx.oncomplete=tx.onabort=()=>db.close();
+   };
+  });
+ }
+ exportBtn.onclick=async()=>{
+  if(exportBtn.disabled)return;
+  exportBtn.disabled=true;exportBox.hidden=true;prepared=null;
+  if(preparedUrl){URL.revokeObjectURL(preparedUrl);preparedUrl=null}
+  try{
+   const current=api.collect();mode.checkData(current);
+   const rec=await api.getCartellaRecord(api.cartellaId(mode.identity));
+   if(!rec||!rec.data)throw Error('NON RISULTA ALCUNA CARTELLA SALVATA IN QUESTO BROWSER. Prima premi 1 · SALVA PROVA.');
+   if(JSON.stringify(rec.data)!==JSON.stringify(current))
+    throw Error('LA CARTELLA MOSTRATA NON COINCIDE CON QUELLA SALVATA. Premi 1 · SALVA PROVA, poi riprova.');
+   const day=rec.data.data_giudizio||rec.data.data_cartella||'';
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Imposta la data della visita prima di salvare.');
+   const sameDay=s=>s&&s.data&&(s.data.data_giudizio||s.data.data_cartella)===day;
+   const selected={...rec,history:(rec.history||[]).filter(sameDay),
+    conteggioVisits:rec.conteggioVisits?.[day]?{[day]:rec.conteggioVisits[day]}:{}};
+   const docs=(await testOriginals()).filter(x=>x.workerKey===rec.id&&(!x.visit||x.visit===day));
+   const originals=[];
+   for(const row of docs){
+    if(!(row.blob instanceof Blob))throw Error('Allegato non incorporato: '+(row.name||row.id||'sconosciuto')+'. JSON non preparato.');
+    const {blob,...other}=row;originals.push({...other,blob:await fileBlobBase64(blob)});
+   }
+   const packet={tipo:'LUMEN_EMERGENZA_SESSIONE_V1',versione:1,data:day,creato:new Date().toISOString(),
+    lumen_prova:true,cartelle:[selected],originali:originals,sessione:null};
+   const filename='LUMEN_EMERGENZA_'+day+'_PROVA.json';
+   const file=new File([JSON.stringify(packet)],filename,{type:'application/json'});
+   prepared={file,packet};preparedUrl=URL.createObjectURL(file);
+   download.href=preparedUrl;download.download=filename;
+   shareBtn.hidden=!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}));
+   exportStatus.textContent='JSON PREPARATO, MA NON ANCORA SALVATO. Data: '+day+
+    '. Cartelle: 1. Allegati: '+originals.length+'. Dimensione: '+file.size+' byte. Scegli SALVA SU FILE oppure SCARICA.';
+   verifyStatus.textContent='FILE NON ANCORA VERIFICATO.';verifyInput.value='';exportBox.hidden=false;
+  }catch(e){api.showSaveInfo('error','ESPORTAZIONE NON ESEGUITA',e.message||String(e));api.setStatus('NESSUN FILE JSON CREATO: '+(e.message||String(e)))}
+  finally{exportBtn.disabled=false}
+ };
+ shareBtn.onclick=async()=>{
+  if(!prepared)return;
+  try{await navigator.share({files:[prepared.file],title:'LUMEN PROVA FANTASMA'});
+   verifyStatus.textContent='Condivisione terminata, ma salvataggio NON CONFERMATO. Seleziona il file con 4 · VERIFICA.';}
+  catch(e){verifyStatus.textContent='Condivisione NON confermata: '+(e.message||String(e))+' — puoi usare SCARICA COPIA JSON.'}
+ };
+ verifyInput.onchange=async()=>{
+  const file=verifyInput.files?.[0];
+  if(!file||!prepared)return;
+  try{
+   if(file.name!==prepared.file.name||file.size!==prepared.file.size||await file.text()!==await prepared.file.text())
+    throw Error('Il file selezionato non coincide con quello preparato.');
+   const parsed=JSON.parse(await file.text());
+   if(parsed.tipo!=='LUMEN_EMERGENZA_SESSIONE_V1'||!parsed.lumen_prova||!parsed.cartelle?.length)
+    throw Error('Contenuto JSON non valido.');
+   verifyStatus.textContent='✓ JSON VERIFICATO IN FILE: '+file.name+' ('+file.size+' byte). Pronto per il trasferimento.';
+  }catch(e){verifyStatus.textContent='FILE NON VERIFICATO: '+(e.message||String(e))}
+  finally{verifyInput.value=''}
+ };
  // Administrative lists/imports are not part of the single fictional record.
  for(const id of ['fileApri','fileImportaCartellaPdf','btnSopralluogo','btnInviaCartellaCompletaIphone','fileRipristinaBackup','btnRipristinaDaArchivio','btnAzzera']){
   const el=document.getElementById(id);if(el){el.disabled=true;(el.closest('label')||el).hidden=true;}
@@ -97,10 +180,10 @@
    if(!readBack||JSON.stringify(readBack.data)!==JSON.stringify(snapshot))
     throw Error('La rilettura dei dati non coincide con la cartella compilata.');
    api.showSaveInfo('ok','✓ PROVA SALVATA NELL’ARCHIVIO LOCALE',
-    'PROVA FANTASMA memorizzata e riletta su questo dispositivo.\\nNON È ANCORA UN FILE JSON.\\nPremi ESPORTA JSON / AIRDROP e scegli Salva su File. Controlla il file prima di chiudere.',[
-      {label:'2 · ESPORTA JSON / AIRDROP',className:'success',onclick:()=>location.assign(exportUrl)}
+    'PROVA FANTASMA memorizzata e riletta su questo dispositivo.\\nNON È ANCORA UN FILE JSON.\\nPremi 2 · PREPARA JSON, poi Salva su File. Controlla il file prima di chiudere.',[
+      {label:'2 · PREPARA JSON',className:'success',onclick:()=>exportBtn.click()}
     ]);
-   api.setStatus('PROVA SALVATA E RILETTA NEL BROWSER. PER OTTENERE IL FILE: 2 · ESPORTA JSON / AIRDROP.');
+   api.setStatus('PROVA SALVATA E RILETTA NEL BROWSER. PER OTTENERE IL FILE: 2 · PREPARA JSON.');
   }catch(e){
    api.showSaveInfo('error','PROVA NON SALVATA O NON VERIFICATA',e.message||String(e));
    api.setStatus('SALVATAGGIO PROVA NON CONFERMATO.');
