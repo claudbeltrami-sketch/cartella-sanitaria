@@ -79,7 +79,7 @@ async function exportDay(){
  const day=$('day').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Imposta una data valida.');
  const all=await readRows(charts,dbChart);
  const selected=all.map(r=>{const snap=api.snapshots(r).filter(s=>api.dateOf(s)===day);if(!snap.length)return null;
- const last=snap[snap.length-1];return {...r,data:last.data,history:snap.slice(0,-1),updatedAt:last.savedAt||r.updatedAt}
+ const last=snap[snap.length-1];return {...r,data:last.data,history:snap.slice(0,-1),updatedAt:last.savedAt||r.updatedAt,conteggioVisits:r.conteggioVisits?.[day]?{[day]:r.conteggioVisits[day]}:{}}
  }).filter(Boolean);
  if(!selected.length)throw Error('Nessuna visita archiviata per il '+day+'. Salva le cartelle in LUMEN e riprova nello stesso browser.');
  const originals=await readRows(files,dbFile),ids=new Set(selected.map(x=>x.id));
