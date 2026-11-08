@@ -66,6 +66,30 @@
  const title=document.createElement('strong');title.textContent='PROVA FANTASMA · MODALITÀ PROVA';
  const note=document.createElement('p');note.textContent='Cartella e firme di prova restano separate. Escluse da archivio di lavoro, conteggi, scadenze e Allegato 3B.';
  const hint=document.createElement('p');hint.textContent='Sul Mac premi INVIA A IPHONE. Il QR apre automaticamente la modalità prova anche sull’iPhone. Per tornare al lavoro, chiudi questa scheda e riapri quella di LUMEN.';
+ const nextBtn=document.createElement('button');nextBtn.type='button';nextBtn.id='btnNuovaCartellaProva';
+ nextBtn.textContent='NUOVA CARTELLA DI PROVA';
+ nextBtn.onclick=async()=>{
+  if(nextBtn.disabled)return;
+  nextBtn.disabled=true;
+  try{
+   const current=api.collect();mode.checkData(current);
+   const saved=await api.getCartellaRecord(api.cartellaId(current));
+   if(!saved||JSON.stringify(saved.data)!==JSON.stringify(current))
+    throw Error('Prima premi 1 · SALVA PROVA, e verifica il salvataggio della cartella attuale.');
+   let next=0;
+   for(let n=2;n<=20;n++){
+    const candidate={cognome:'PROVA',nome:'FANTASMA '+n,codice_fiscale:'',data_nascita:''};
+    if(!await api.getCartellaRecord(api.cartellaId(candidate))){next=n;break}
+   }
+   if(!next)throw Error('Limite di 20 cartelle di prova raggiunto.');
+   mode.setTestIdentity(next);
+   api.apply({...mode.identity,lumen_prova:true,stato_rapporto:'ATTIVO',firma_lavoratore_png:'',
+    data_cartella:current.data_cartella||current.data_giudizio||'',data_giudizio:current.data_giudizio||current.data_cartella||''});
+   api.setStatus('NUOVA CARTELLA DI PROVA '+next+' APERTA. PROVA PRECEDENTE CONSERVATA NELL’ARCHIVIO DI PROVA.');
+   window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){api.showSaveInfo('warn','NUOVA CARTELLA NON APERTA',e.message||String(e))}
+  finally{nextBtn.disabled=false}
+ };
  const reset=document.createElement('button');reset.type='button';reset.id='btnAzzeraProva';reset.textContent='AZZERA PROVA';
  reset.onclick=async()=>{
   if(!confirm('Azzerare cartella e firme di PROVA FANTASMA su questo dispositivo? Le cartelle dei lavoratori restano invariate.'))return;
@@ -86,7 +110,7 @@
  verifyInput.style.cssText='display:block;width:100%;margin:8px 0';
  const verifyStatus=document.createElement('p');verifyStatus.id='provaVerificaEsito';verifyStatus.setAttribute('role','status');verifyStatus.textContent='FILE NON ANCORA VERIFICATO.';
  exportBox.append(exportStatus,shareBtn,download,verifyLabel,verifyInput,verifyStatus);
- banner.append(title,note,hint,exportHint,exportBtn,exportBox,reset);document.body.prepend(banner);entry.hidden=true;
+ banner.append(title,note,hint,exportHint,exportBtn,exportBox,nextBtn,reset);document.body.prepend(banner);entry.hidden=true;
  let prepared=null,preparedUrl=null;
  function fileBlobBase64(blob){return new Promise((resolve,reject)=>{
   const reader=new FileReader();reader.onload=()=>resolve(reader.result);
@@ -114,30 +138,39 @@
   if(preparedUrl){URL.revokeObjectURL(preparedUrl);preparedUrl=null}
   try{
    const current=api.collect();mode.checkData(current);
-   const rec=await api.getCartellaRecord(api.cartellaId(mode.identity));
+   const rec=await api.getCartellaRecord(api.cartellaId(current));
    if(!rec||!rec.data)throw Error('NON RISULTA ALCUNA CARTELLA SALVATA IN QUESTO BROWSER. Prima premi 1 · SALVA PROVA.');
    if(JSON.stringify(rec.data)!==JSON.stringify(current))
     throw Error('LA CARTELLA MOSTRATA NON COINCIDE CON QUELLA SALVATA. Premi 1 · SALVA PROVA, poi riprova.');
    const day=rec.data.data_giudizio||rec.data.data_cartella||'';
    if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Imposta la data della visita prima di salvare.');
    const sameDay=s=>s&&s.data&&(s.data.data_giudizio||s.data.data_cartella)===day;
-   const selected={...rec,history:(rec.history||[]).filter(sameDay),
-    conteggioVisits:rec.conteggioVisits?.[day]?{[day]:rec.conteggioVisits[day]}:{}};
-   const docs=(await testOriginals()).filter(x=>x.workerKey===rec.id&&(!x.visit||x.visit===day));
+   const selected=[];
+   for(let n=1;n<=20;n++){
+    const testIdentity={cognome:'PROVA',nome:n===1?'FANTASMA':'FANTASMA '+n,codice_fiscale:'',data_nascita:''};
+    const item=await api.getCartellaRecord(api.cartellaId(testIdentity));
+    if(item?.data&&sameDay(item)){
+     selected.push({...item,history:(item.history||[]).filter(sameDay),
+      conteggioVisits:item.conteggioVisits?.[day]?{[day]:item.conteggioVisits[day]}:{}});
+    }
+   }
+   if(!selected.length)throw Error('Nessuna cartella di prova salvata per la data '+day+'.');
+   const keys=new Set(selected.map(item=>item.id));
+   const docs=(await testOriginals()).filter(x=>keys.has(x.workerKey)&&(!x.visit||x.visit===day));
    const originals=[];
    for(const row of docs){
     if(!(row.blob instanceof Blob))throw Error('Allegato non incorporato: '+(row.name||row.id||'sconosciuto')+'. JSON non preparato.');
     const {blob,...other}=row;originals.push({...other,blob:await fileBlobBase64(blob)});
    }
    const packet={tipo:'LUMEN_EMERGENZA_SESSIONE_V1',versione:1,data:day,creato:new Date().toISOString(),
-    lumen_prova:true,cartelle:[selected],originali:originals,sessione:null};
-   const filename='LUMEN_EMERGENZA_'+day+'_PROVA.json';
+    lumen_prova:true,cartelle:selected,originali:originals,sessione:null};
+   const filename='LUMEN_EMERGENZA_'+day+'_PROVA'+(selected.length>1?'_'+selected.length+'_CARTELLE':'')+'.json';
    const file=new File([JSON.stringify(packet)],filename,{type:'application/json'});
    prepared={file,packet};preparedUrl=URL.createObjectURL(file);
    download.href=preparedUrl;download.download=filename;
    shareBtn.hidden=!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}));
    exportStatus.textContent='JSON PREPARATO, MA NON ANCORA SALVATO. Data: '+day+
-    '. Cartelle: 1. Allegati: '+originals.length+'. Dimensione: '+file.size+' byte. Scegli SALVA SU FILE oppure SCARICA.';
+    '. Cartelle: '+selected.length+'. Allegati: '+originals.length+'. Dimensione: '+file.size+' byte. Scegli SALVA SU FILE oppure SCARICA.';
    verifyStatus.textContent='FILE NON ANCORA VERIFICATO.';verifyInput.value='';exportBox.hidden=false;
   }catch(e){api.showSaveInfo('error','ESPORTAZIONE NON ESEGUITA',e.message||String(e));api.setStatus('NESSUN FILE JSON CREATO: '+(e.message||String(e)))}
   finally{exportBtn.disabled=false}
@@ -200,7 +233,7 @@
   try{
    const record=await api.getCartellaRecord(api.cartellaId(mode.identity));
    api.apply(record?.data||{...mode.identity,lumen_prova:true,stato_rapporto:'ATTIVO',firma_lavoratore_png:''});
-   api.setStatus(record?'PROVA FANTASMA RIAPERTA. DATI E FIRME DI PROVA SEPARATI.':'PROVA FANTASMA PRONTA. PUOI COMPILARE LA CARTELLA O PROVARE LA FIRMA.');
+   api.setStatus(record?'CARTELLA '+mode.identity.nome+' RIAPERTA. DATI E FIRME DI PROVA SEPARATI.':'CARTELLA '+mode.identity.nome+' PRONTA. PUOI COMPILARLA O PROVARE LA FIRMA.');
   }catch(e){api.showSaveInfo('error','PROVA NON APERTA',e.message)}
  }
  // Wait for the normal load handlers (including QR import) to finish.
