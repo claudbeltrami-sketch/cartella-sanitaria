@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LUMEN — Recupero iPhone / Mac (COLLAUDO)</title>
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#15243b;background:#eef2f7}
+*{box-sizing:border-box}body{max-width:800px;margin:0 auto;padding:16px}
+header,.panel{background:#fff;border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid #cbd5e1}
+h1{font-size:23px;margin:4px 0 8px}h2{font-size:19px;margin:0 0 10px}p{line-height:1.5}
+.note{background:#fff3dc;border:1px solid #a8772b;border-radius:10px;padding:10px}
+button,.button{display:block;padding:13px 16px;margin:10px 0;border-radius:9px;border:0;background:#175d97;color:#fff;font-size:15px;font-weight:700;cursor:pointer;text-align:center;width:100%}
+button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#3f596e}.danger{background:#893d32}
+input[type=date],input[type=file]{display:block;width:100%;padding:9px;margin:9px 0}
+label{display:block;font-weight:600}.check{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.check input{margin-top:5px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.5;padding:12px;border-radius:10px;background:#eef4f9}
+.ok{color:#165d30}.warn{color:#8a3e20}
+@media print{button,input,.note{display:none}}
+</style>
+<script src="prova-storage.js"></script>
+<script src="emergenza-merge.js"></script>
+</head><body>
+<header>
+<h1>LUMEN — Emergenza iPhone → Mac</h1>
+<p><strong>VERSIONE SPERIMENTALE, NON OPERATIVA.</strong> Strumento separato per verificare l'esportazione e la riunione sicura degli archivi. Non sostituisce il normale programma.</p>
+<p class="note">Durante il blocco del Mac, compila e firma in LUMEN sull'iPhone con <strong>ACQUISISCI FIRMA</strong>; la firma non richiede QR. Dopo la seduta esporta dal medesimo browser. Prima dell'importazione, salva un backup verificato del Mac.</p>
+<p id="mode">Lettura modalità…</p>
+</header>
+<section class="panel">
+<h2>1 — iPhone: esporta visite della data</h2>
+<label for="day">Data delle visite</label><input type="date" id="day">
+<button type="button" id="export">PREPARA VISITE E ALLEGATI</button>
+<div id="exportActions" hidden><button type="button" id="share">SALVA SU FILE / AIRDROP</button><a class="button secondary" id="download" download>SCARICA COPIA</a></div>
+<pre id="exportStatus" role="status">Nessuna esportazione preparata.</pre>
+</section>
+<section class="panel">
+<h2>2 — Mac: controlla prima di importare</h2>
+<label for="importFile">Seleziona il file proveniente dall'iPhone</label>
+<input type="file" id="importFile" accept=".json,application/json">
+<pre id="preview" role="status">Ancora nessun file selezionato.</pre>
+<label class="check"><input type="checkbox" id="backupChecked"> Ho creato sul Mac un backup aggiornato e ho verificato che il file sia realmente salvato.</label>
+<button type="button" id="apply" disabled>IMPORTA SENZA SOSTITUIRE L'ARCHIVIO</button>
+<pre id="result" role="status"></pre>
+</section>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id), api=window.lumenEmergencyMerge,storage=window.lumenStorage;
+const charts='beltrami_cartelle_db_v1',files='beltrami_lumen_files_v1',dbChart='cartelle',dbFile='originali';
+let prepared=null,preparedUrl=null,selected=null;
+$('day').value=new Date().toLocaleDateString('sv-SE');
+$('mode').textContent=storage.isTest?'MODALITÀ PROVA FANTASMA: archivi separati dai dati reali.':'MODALITÀ ORDINARIA: NON IMPORTARE DATI REALI FINO AL COLLAUDO SU ENTRAMBI I DISPOSITIVI.';
+function status(id,msg){$(id).textContent=msg}
+function localGet(key,fallback){try{const v=storage.local.getItem(key);return v?JSON.parse(v):fallback}catch{return fallback}}
+function transferFile(file,filename){const a=document.createElement('a'),url=URL.createObjectURL(file);a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
+function openDB(name,store){return new Promise((resolve,reject)=>{let absent=false;
+ const req=storage.indexedDB.open(name);
+ req.onupgradeneeded=()=>{absent=true;req.transaction.abort()};
+ req.onerror=()=>absent?resolve(null):reject(req.error||Error('Apertura archivio non riuscita: '+name));
+ req.onblocked=()=>reject(Error('Archivio occupato. Chiudi le altre schede di LUMEN.'));
+ req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains(store)){db.close();reject(Error('Archivio incompleto: '+name));return}resolve(db)}
+})}
+async function readRows(name,store){
+ const db=await openDB(name,store);if(!db)return [];
+ try{return await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).getAll();
+ r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||Error('Lettura non riuscita'))})}finally{db.close()}
+}
+async function putRows(name,store,rows){
+ if(!rows.length)return;
+ const db=await openDB(name,store);if(!db)throw Error('Archivio destinazione non presente: apri prima LUMEN nello stesso browser.');
+ try{await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');for(const row of rows)tx.objectStore(store).put(row);
+ tx.oncomplete=()=>resolve();tx.onabort=tx.onerror=()=>reject(tx.error||Error('Scrittura archivio non riuscita'))})}finally{db.close()}
+}
+function b64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error||Error('File non leggibile'));reader.readAsDataURL(blob)})}
+function fromB64(raw){const m=/^data:([^;,]*);base64,([A-Za-z0-9+/=]*)$/.exec(raw||'');if(!m)throw Error('Allegato con codifica non valida');const bytes=atob(m[2]),arr=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);return new Blob([arr],{type:m[1]||'application/octet-stream'})}
+async function digest(blob){if(!(blob instanceof Blob))throw Error('Documento non disponibile');const bytes=await blob.arrayBuffer(),hash=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('')}
+function sourceSession(day){const s=localGet('beltrami_v9_sessione_attiva',null),history=localGet('beltrami_v9_sessioni',[]);
+ const found=s?.data===day?s:Array.isArray(history)?history.find(x=>x.data===day):null;
+ return found?{session:found,workers:localGet('beltrami_workers_v8',null),esiti:localGet('beltrami_v9_esiti',{})}:null}
+async function exportDay(){
+ const day=$('day').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Imposta una data valida.');
+ const all=await readRows(charts,dbChart);
+ const selected=all.map(r=>{const snap=api.snapshots(r).filter(s=>api.dateOf(s)===day);if(!snap.length)return null;
+ const last=snap[snap.length-1];return {...r,data:last.data,history:snap.slice(0,-1),updatedAt:last.savedAt||r.updatedAt}
+ }).filter(Boolean);
+ if(!selected.length)throw Error('Nessuna visita archiviata per il '+day+'. Salva le cartelle in LUMEN e riprova nello stesso browser.');
+ const originals=await readRows(files,dbFile),ids=new Set(selected.map(x=>x.id));
+ const associated=originals.filter(row=>row.workerKey&&ids.has(row.workerKey)&&(!row.visit||row.visit===day));
+ const out=[];
+ for(let i=0;i<associated.length;i++){const r=associated[i];if(!(r.blob instanceof Blob))throw Error('Allegato esterno non incorporato: '+r.name+'. Esportazione interrotta, nessuna copia incompleta.');
+ status('exportStatus','Preparazione allegato '+(i+1)+' di '+associated.length+'…');
+ const {blob,...metadata}=r;out.push({...metadata,blob:await b64(blob)});}
+ const packet={tipo:'LUMEN_EMERGENZA_SESSIONE_V1',versione:1,data:day,creato:new Date().toISOString(),lumen_prova:storage.isTest,cartelle:selected,originali:out,sessione:sourceSession(day)};
+ const name='LUMEN_EMERGENZA_'+day+'.json',file=new File([JSON.stringify(packet)],name,{type:'application/json'});
+ return {packet,file,name};
+}
+$('export').onclick=async()=>{if($('export').disabled)return;$('export').disabled=true;$('exportActions').hidden=true;
+ try{
+ const r=await exportDay();prepared=r;preparedUrl&&URL.revokeObjectURL(preparedUrl);preparedUrl=URL.createObjectURL(r.file);
+ $('download').href=preparedUrl;$('download').download=r.name;$('exportActions').hidden=false;
+ $('share').hidden=!(navigator.canShare&&navigator.canShare({files:[r.file]}));
+ status('exportStatus','COPIA PREPARATA, NON ANCORA SALVATA.\nData: '+r.packet.data+'\nCartelle: '+r.packet.cartelle.length+'\nAllegati: '+r.packet.originali.length+'\nFirma: inclusa quando presente nella cartella.\nDimensione: '+(r.file.size/1024/1024).toFixed(2)+' MB.\nSalva e controlla il file in File prima di chiudere LUMEN.');
+ }catch(e){status('exportStatus','ESPORTAZIONE NON ESEGUITA: '+e.message)}finally{$('export').disabled=false}};
+$('share').onclick=async()=>{if(!prepared)return;try{await navigator.share({files:[prepared.file],title:'LUMEN emergenza'});status('exportStatus','Condivisione conclusa. Controlla manualmente in File che la copia sia stata salvata.')}catch(e){status('exportStatus','Salvataggio/condivisione non confermati: '+e.message)}};
+async function previewPacket(packet){
+ if(Boolean(packet.lumen_prova)!==storage.isTest)throw Error('File di prova e archivio reale non possono essere mescolati.');
+ const existing=await readRows(charts,dbChart),plan=api.resolve(existing,packet);
+ const originals=await readRows(files,dbFile),oldMap=new Map(originals.map(x=>[x.id,x])),addDocs=[],docConflicts=[];
+ for(const row of packet.originali){if(!row||!row.id||typeof row.blob!=='string'){docConflicts.push('Documento incompleto');continue}
+ const newBlob=fromB64(row.blob),old=oldMap.get(row.id);
+ if(old){if(!(old.blob instanceof Blob)||await digest(old.blob)!==await digest(newBlob))docConflicts.push('Allegato con identificatore già usato e contenuto differente: '+row.id)}
+ else addDocs.push({...row,blob:newBlob});
+ }
+ return {plan,addDocs,docConflicts,baseline:api.canonical(existing),documentIds:new Set(originals.map(x=>x.id))};
+}
+$('importFile').onchange=async()=>{selected=null;$('apply').disabled=true;const file=$('importFile').files?.[0];if(!file)return;
+ try{
+ if(file.size>140*1024*1024)throw Error('File troppo grande per questa procedura. Non procedere senza verifica manuale.');
+ const packet=JSON.parse(await file.text()),result=await previewPacket(packet);
+ selected={file,packet,result};
+ const n=result.plan;
+ status('preview','DATA: '+packet.data+'\nCartelle nel file: '+packet.cartelle.length+'\nNuove visite/versioni: '+n.addedVisits+'\nLavoratori nuovi: '+n.newWorkers+'\nVisite già presenti: '+n.already+'\nAllegati nuovi: '+result.addDocs.length+'\nConflitti: '+(n.conflicts.length+result.docConflicts.length)+'\n'+[...n.conflicts,...result.docConflicts].join('\n'));
+ if(!n.conflicts.length&&!result.docConflicts.length)$('apply').disabled=false;
+ }catch(e){status('preview','FILE RIFIUTATO: '+e.message)}
+};
+$('apply').onclick=async()=>{
+ if(!selected||!$('backupChecked').checked){status('result','OPERAZIONE BLOCCATA: verifica prima il backup del Mac.');return}
+ if(!confirm('Importare le nuove visite senza sostituire quelle già archiviate? Questa operazione non cancella gli archivi esistenti.'))return;
+ $('apply').disabled=true;
+ try{
+ const fresh=await previewPacket(selected.packet);
+ if(fresh.plan.conflicts.length||fresh.docConflicts.length)throw Error('Conflitti rilevati. Nessun dato modificato.');
+ if(api.canonical(await readRows(charts,dbChart))!==fresh.baseline)throw Error('Archivio modificato durante il controllo. Riapri il file e riprova.');
+ await putRows(files,dbFile,fresh.addDocs);
+ await putRows(charts,dbChart,fresh.plan.updates);
+ const current=await readRows(charts,dbChart);
+ for(const row of fresh.plan.updates){const now=current.find(x=>x.id===row.id);if(!now||api.canonical(now)!==api.canonical(row))throw Error('Verifica finale non superata: '+row.id)}
+ const after=await readRows(files,dbFile);
+ for(const row of fresh.addDocs){if(!after.find(x=>x.id===row.id))throw Error('Allegato mancante dopo importazione: '+row.id)}
+ // La sessione di iPhone si conserva come copia consultabile, senza sovrascrivere la sessione attiva del Mac.
+ if(selected.packet.sessione){const key='beltrami_emergenza_sessioni_importate_v1',log=localGet(key,[]);
+ const tag=selected.packet.data+'|'+selected.packet.creato;
+ if(!log.some(x=>x.tag===tag)){log.push({tag,data:selected.packet.data,origine:'IPHONE',contenuto:selected.packet.sessione});storage.local.setItem(key,JSON.stringify(log))}}
+ status('result','IMPORTAZIONE VERIFICATA.\nVisite aggiunte: '+fresh.plan.addedVisits+'\nAllegati aggiunti: '+fresh.addDocs.length+'\nVisite già presenti non modificate: '+fresh.plan.already+'\nL’archivio esistente non è stato azzerato. La sessione importata è conservata separatamente.');
+ }catch(e){status('result','IMPORTAZIONE NON COMPLETATA O NON VERIFICATA: '+e.message+'\nConserva entrambi i file di backup. Non ripetere l’operazione prima di un controllo.')}
+};
+})();
+</script>
+</body></html>
