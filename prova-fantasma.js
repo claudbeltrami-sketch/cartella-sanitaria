@@ -56,7 +56,7 @@
  const style=document.createElement('style');style.textContent=`
  html[data-lumen-prova] [hidden],html[data-lumen-prova] #v9Panel,html[data-lumen-prova] #listPanel{display:none!important}
  #provaBanner{max-width:980px;margin:0 auto 12px;padding:16px;border:3px solid #864b00;border-radius:10px;background:#fff3cf;color:#462700;font:17px/1.4 Arial}
- #provaBanner strong{display:block;font-size:22px}#provaBanner button{margin:8px 8px 0 0;background:#864b00}#provaBanner p{margin:6px 0}
+ #provaBanner strong{display:block;font-size:22px}#provaBanner button{margin:8px 8px 0 0;background:#864b00}#provaBanner p{margin:6px 0}#provaBanner .prova-main-step{display:block;width:100%;max-width:560px;text-align:left;padding:12px 15px;margin:9px 0}#provaBanner details{margin-top:20px;padding-top:10px;border-top:1px solid #cead7a}#provaBanner details summary{cursor:pointer;font-weight:700}
  html[data-lumen-prova] .page:before{content:'PROVA FANTASMA — DOCUMENTO DI PROVA';display:block;text-align:center;color:#864b00;font-weight:bold;border:2px solid #864b00;padding:6px;margin-bottom:8px}
  @media print{#provaBanner{display:none}}
 
@@ -66,8 +66,13 @@
  const title=document.createElement('strong');title.textContent='PROVA FANTASMA · MODALITÀ PROVA';
  const note=document.createElement('p');note.textContent='Cartella e firme di prova restano separate. Escluse da archivio di lavoro, conteggi, scadenze e Allegato 3B.';
  const hint=document.createElement('p');hint.textContent='Sul Mac premi INVIA A IPHONE. Il QR apre automaticamente la modalità prova anche sull’iPhone. Per tornare al lavoro, chiudi questa scheda e riapri quella di LUMEN.';
+ const saveInBanner=document.createElement('button');saveInBanner.type='button';saveInBanner.id='provaSalvaPasso1';
+ saveInBanner.className='prova-main-step';
+ saveInBanner.textContent='1 · SALVA CARTELLA ATTUALE';
+ saveInBanner.onclick=()=>document.getElementById('btnSalva').click();
  const nextBtn=document.createElement('button');nextBtn.type='button';nextBtn.id='btnNuovaCartellaProva';
- nextBtn.textContent='NUOVA CARTELLA DI PROVA';
+ nextBtn.className='prova-main-step';
+ nextBtn.textContent='2 · NUOVA CARTELLA (SE SERVE)';
  nextBtn.onclick=async()=>{
   if(nextBtn.disabled)return;
   nextBtn.disabled=true;
@@ -99,18 +104,22 @@
  // Export is deliberately kept on the clinical page: an in-app browser
  // or another iOS tab may have a different, empty IndexedDB archive.
  const exportBtn=document.createElement('button');exportBtn.type='button';exportBtn.id='btnEsportaProvaJson';
- exportBtn.textContent='2 · PREPARA JSON SENZA CAMBIARE PAGINA';
- const exportHint=document.createElement('p');exportHint.textContent='SALVA PROVA verifica solo l’archivio di questo browser. Poi prepara e salva il JSON qui, senza aprire un altro browser. Verifica il file con il controllo sottostante.';
+ exportBtn.className='prova-main-step';exportBtn.textContent='3 · PREPARA JSON DELLA SEDUTA';
+ const exportHint=document.createElement('p');exportHint.textContent='Per ogni lavoratore: 1 · SALVA e, se serve, 2 · NUOVA CARTELLA. Soltanto a fine seduta: 3 · PREPARA JSON, 4 · SALVA SU FILE e 5 · VERIFICA. Il salvataggio della cartella non crea automaticamente il JSON.';
  const exportBox=document.createElement('div');exportBox.id='provaExportBox';exportBox.hidden=true;
  const exportStatus=document.createElement('p');exportStatus.id='provaExportStatus';exportStatus.setAttribute('role','status');
- const shareBtn=document.createElement('button');shareBtn.type='button';shareBtn.id='provaCondividiJson';shareBtn.textContent='3 · SALVA SU FILE / AIRDROP';
- const download=document.createElement('a');download.id='provaScaricaJson';download.textContent='SCARICA COPIA JSON (ALTERNATIVA)';download.style.cssText='display:block;margin:8px 0;padding:10px;color:#174c77;font-weight:bold';
- const verifyLabel=document.createElement('label');verifyLabel.textContent='4 · VERIFICA IL JSON SALVATO IN FILE';
+ const shareBtn=document.createElement('button');shareBtn.type='button';shareBtn.id='provaCondividiJson';shareBtn.textContent='4 · SALVA JSON SU FILE / AIRDROP';
+ const download=document.createElement('a');download.id='provaScaricaJson';download.textContent='4 · SCARICA JSON (ALTERNATIVA)';download.style.cssText='display:block;margin:8px 0;padding:10px;color:#174c77;font-weight:bold';
+ const verifyLabel=document.createElement('label');verifyLabel.textContent='5 · VERIFICA IL JSON SALVATO IN FILE';
  const verifyInput=document.createElement('input');verifyInput.type='file';verifyInput.accept='.json,application/json';verifyInput.id='provaVerificaJson';
  verifyInput.style.cssText='display:block;width:100%;margin:8px 0';
  const verifyStatus=document.createElement('p');verifyStatus.id='provaVerificaEsito';verifyStatus.setAttribute('role','status');verifyStatus.textContent='FILE NON ANCORA VERIFICATO.';
  exportBox.append(exportStatus,shareBtn,download,verifyLabel,verifyInput,verifyStatus);
- banner.append(title,note,hint,exportHint,exportBtn,exportBox,nextBtn,reset);document.body.prepend(banner);entry.hidden=true;
+ const advanced=document.createElement('details');
+ const advancedTitle=document.createElement('summary');advancedTitle.textContent='ALTRE OPERAZIONI (AZZERA PROVA)';
+ advanced.append(advancedTitle,reset);
+ banner.append(title,note,hint,saveInBanner,nextBtn,exportHint,exportBtn,exportBox,advanced);
+ document.body.prepend(banner);entry.hidden=true;
  let prepared=null,preparedUrl=null;
  function fileBlobBase64(blob){return new Promise((resolve,reject)=>{
   const reader=new FileReader();reader.onload=()=>resolve(reader.result);
@@ -178,7 +187,7 @@
  shareBtn.onclick=async()=>{
   if(!prepared)return;
   try{await navigator.share({files:[prepared.file],title:'LUMEN PROVA FANTASMA'});
-   verifyStatus.textContent='Condivisione terminata, ma salvataggio NON CONFERMATO. Seleziona il file con 4 · VERIFICA.';}
+   verifyStatus.textContent='Condivisione terminata, ma salvataggio NON CONFERMATO. Seleziona il file con 5 · VERIFICA.';}
   catch(e){verifyStatus.textContent='Condivisione NON confermata: '+(e.message||String(e))+' — puoi usare SCARICA COPIA JSON.'}
  };
  verifyInput.onchange=async()=>{
@@ -213,10 +222,10 @@
    if(!readBack||JSON.stringify(readBack.data)!==JSON.stringify(snapshot))
     throw Error('La rilettura dei dati non coincide con la cartella compilata.');
    api.showSaveInfo('ok','✓ PROVA SALVATA NELL’ARCHIVIO LOCALE',
-    'PROVA FANTASMA memorizzata e riletta su questo dispositivo.\\nNON È ANCORA UN FILE JSON.\\nPremi 2 · PREPARA JSON, poi Salva su File. Controlla il file prima di chiudere.',[
-      {label:'2 · PREPARA JSON',className:'success',onclick:()=>exportBtn.click()}
+    'PROVA FANTASMA memorizzata e riletta su questo dispositivo.\\nNON È ANCORA UN FILE JSON.\\nPer un’altra cartella usa 2 · NUOVA CARTELLA. A fine seduta premi 3 · PREPARA JSON, poi 4 · SALVA SU FILE e 5 · VERIFICA.',[
+      {label:'3 · PREPARA JSON (A FINE SEDUTA)',className:'success',onclick:()=>exportBtn.click()}
     ]);
-   api.setStatus('PROVA SALVATA E RILETTA NEL BROWSER. PER OTTENERE IL FILE: 2 · PREPARA JSON.');
+   api.setStatus('PROVA SALVATA E RILETTA NEL BROWSER. PER UN’ALTRA VISITA: 2 · NUOVA CARTELLA. A FINE SEDUTA: 3 · PREPARA JSON.');
   }catch(e){
    api.showSaveInfo('error','PROVA NON SALVATA O NON VERIFICATA',e.message||String(e));
    api.setStatus('SALVATAGGIO PROVA NON CONFERMATO.');
