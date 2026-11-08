@@ -72,13 +72,40 @@
   reset.disabled=true;
   try{await mode.reset();location.replace(location.pathname+'?prova=fantasma')}catch(e){reset.disabled=false;alert(e.message)}
  };
- banner.append(title,note,hint,reset);document.body.prepend(banner);entry.hidden=true;
+ const exportBtn=document.createElement('button');exportBtn.type='button';exportBtn.id='btnEsportaProvaJson';
+ exportBtn.textContent='2 · ESPORTA JSON / AIRDROP';
+ const exportUrl=new URL('emergenza-iphone-mac.html?prova=fantasma',location.href).href;
+ exportBtn.onclick=()=>location.assign(exportUrl);
+ const exportHint=document.createElement('p');exportHint.textContent='SALVA PROVA conserva la cartella in questo browser. Per creare un vero file JSON, premi ESPORTA JSON, poi SALVA SU FILE / AIRDROP. Non cancellare i dati dal browser prima di aver controllato il file in File.';
+ banner.append(title,note,hint,exportHint,exportBtn,reset);document.body.prepend(banner);entry.hidden=true;
  // Administrative lists/imports are not part of the single fictional record.
  for(const id of ['fileApri','fileImportaCartellaPdf','btnSopralluogo','btnInviaCartellaCompletaIphone','fileRipristinaBackup','btnRipristinaDaArchivio','btnAzzera']){
   const el=document.getElementById(id);if(el){el.disabled=true;(el.closest('label')||el).hidden=true;}
  }
  for(const id of Object.keys(mode.identity))document.getElementById(id).readOnly=true;
- document.getElementById('btnSalva').textContent='SALVA PROVA';
+ const saveBtn=document.getElementById('btnSalva');saveBtn.textContent='1 · SALVA PROVA';
+ // On iOS a delayed synthetic download is not a verified file save. Save and
+ // re-read the isolated IndexedDB record; offer export as a fresh user gesture.
+ // This overrides only test mode, never the production save handler.
+ saveBtn.onclick=async()=>{
+  if(saveBtn.disabled)return;
+  saveBtn.disabled=true;
+  try{
+   const snapshot=api.collect();mode.checkData(snapshot);
+   const x=await api.saveToLocalArchive(snapshot);
+   const readBack=await api.getCartellaRecord(x.rec.id);
+   if(!readBack||JSON.stringify(readBack.data)!==JSON.stringify(snapshot))
+    throw Error('La rilettura dei dati non coincide con la cartella compilata.');
+   api.showSaveInfo('ok','✓ PROVA SALVATA NELL’ARCHIVIO LOCALE',
+    'PROVA FANTASMA memorizzata e riletta su questo dispositivo.\\nNON È ANCORA UN FILE JSON.\\nPremi ESPORTA JSON / AIRDROP e scegli Salva su File. Controlla il file prima di chiudere.',[
+      {label:'2 · ESPORTA JSON / AIRDROP',className:'success',onclick:()=>location.assign(exportUrl)}
+    ]);
+   api.setStatus('PROVA SALVATA E RILETTA NEL BROWSER. PER OTTENERE IL FILE: 2 · ESPORTA JSON / AIRDROP.');
+  }catch(e){
+   api.showSaveInfo('error','PROVA NON SALVATA O NON VERIFICATA',e.message||String(e));
+   api.setStatus('SALVATAGGIO PROVA NON CONFERMATO.');
+  }finally{saveBtn.disabled=false}
+ };
  document.getElementById('btnArchivioCartelle').textContent='ARCHIVIO DI PROVA';
  document.getElementById('btnBackupCompleto').textContent='ESPORTA BACKUP DI PROVA';
  // Preserve the app's ordinary save and signature flow; label its messages explicitly.
