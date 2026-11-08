@@ -134,10 +134,10 @@ async function auditArchive(packet=null){
   return (r.cognome||r.data?.cognome||'')+' '+(r.nome||r.data?.nome||'')+' — visite: '+(dates.join(', ')||'nessuna data');
  });
  const visitCount=packet?found.reduce((n,r)=>n+api.snapshots(r).filter(s=>api.dateOf(s)===packet.data).length,0):null;
- status('archiveProofResult','ARCHIVIO LUMEN PROVA SU QUESTO MAC (sola lettura).\\nCartelle/lavoratori: '+found.length+
+ status('archiveProofResult','ARCHIVIO LUMEN PROVA SU QUESTO MAC (sola lettura).\nCartelle/lavoratori: '+found.length+
   (packet?' di '+expected.size+' dal file; visite della data '+packet.data+': '+visitCount:'')+
-  (missing.length?'\\nATTENZIONE: '+missing.length+' cartelle mancanti.':'\\n'+(packet?'Tutte le cartelle importate sono consultabili.':'Elenco delle cartelle presenti:'))+
-  (lines.length?'\\n'+lines.join('\\n'):'\\nNessuna cartella presente.'));
+  (missing.length?'\nATTENZIONE: '+missing.length+' cartelle mancanti.':'\n'+(packet?'Tutte le cartelle importate sono consultabili.':'Elenco delle cartelle presenti:'))+
+  (lines.length?'\n'+lines.join('\n'):'\nNessuna cartella presente.'));
  if(missing.length)throw Error('La lettura di controllo non trova tutte le cartelle importate.');
 }
 $('verifyArchive').onclick=()=>auditArchive().catch(e=>status('archiveProofResult','VERIFICA NON RIUSCITA: '+(e.message||String(e))));
