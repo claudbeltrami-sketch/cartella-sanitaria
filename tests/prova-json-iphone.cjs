@@ -12,7 +12,7 @@ async function test(engine,name,url){
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},acceptDownloads:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('**/*',r=>r.request().url.startsWith(url)?r.continue():r.abort());
+  await page.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());
   await page.goto(url+'?prova=fantasma');
   await page.waitForFunction(()=>window.lumenBatchCertApi&&document.getElementById('nome')?.value==='FANTASMA');
   await page.locator('#mansione').fill('COLLAUDO IPHONE');
