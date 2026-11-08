@@ -28,7 +28,12 @@ label{display:block;font-weight:600}.check{display:flex;gap:10px;align-items:fle
 <h2>1 — iPhone: esporta visite della data</h2>
 <label for="day">Data delle visite</label><input type="date" id="day">
 <button type="button" id="export">PREPARA VISITE E ALLEGATI</button>
-<div id="exportActions" hidden><button type="button" id="share">SALVA SU FILE / AIRDROP</button><a class="button secondary" id="download" download>SCARICA COPIA</a></div>
+<div id="exportActions" hidden><button type="button" id="share">SALVA SU FILE / AIRDROP (IPHONE)</button><a class="button secondary" id="download" download>SCARICA COPIA JSON (ALTERNATIVA)</a>
+<label for="verifyFile">3 — Seleziona il JSON appena salvato in File per verificarlo</label>
+<input type="file" id="verifyFile" accept=".json,application/json">
+<pre id="verifyStatus" role="status">Il file non è ancora stato verificato.</pre>
+</div>
+<p class="note">Procedura iPhone: 1. PREPARA VISITE E ALLEGATI; 2. SALVA SU FILE / AIRDROP e scegli <strong>Salva su File</strong> nella condivisione iOS; 3. riapri il file con la verifica qui sotto. La preparazione da sola NON salva un file.</p>
 <pre id="exportStatus" role="status">Nessuna esportazione preparata.</pre>
 </section>
 <section class="panel">
@@ -81,7 +86,7 @@ async function exportDay(){
  const selected=all.map(r=>{const snap=api.snapshots(r).filter(s=>api.dateOf(s)===day);if(!snap.length)return null;
  const last=snap[snap.length-1];return {...r,data:last.data,history:snap.slice(0,-1),updatedAt:last.savedAt||r.updatedAt,conteggioVisits:r.conteggioVisits?.[day]?{[day]:r.conteggioVisits[day]}:{}}
  }).filter(Boolean);
- if(!selected.length)throw Error('Nessuna visita archiviata per il '+day+'. Salva le cartelle in LUMEN e riprova nello stesso browser.');
+ if(!selected.length){const dates=[...new Set(all.flatMap(r=>api.snapshots(r).map(api.dateOf).filter(Boolean)))].sort().reverse();throw Error('Nessuna visita archiviata per il '+day+'. Date presenti in questo browser: '+(dates.join(', ')||'nessuna')+'. Verifica che la PROVA sia stata salvata e che data e browser coincidano.')}
  const originals=await readRows(files,dbFile),ids=new Set(selected.map(x=>x.id));
  const associated=originals.filter(row=>row.workerKey&&ids.has(row.workerKey)&&(!row.visit||row.visit===day));
  const out=[];
@@ -94,12 +99,24 @@ async function exportDay(){
 }
 $('export').onclick=async()=>{if($('export').disabled)return;$('export').disabled=true;$('exportActions').hidden=true;
  try{
- const r=await exportDay();prepared=r;preparedUrl&&URL.revokeObjectURL(preparedUrl);preparedUrl=URL.createObjectURL(r.file);
+ const r=await exportDay();prepared=r;preparedUrl&&URL.revokeObjectURL(preparedUrl);preparedUrl=URL.createObjectURL(r.file);$('verifyFile').value='';status('verifyStatus','File non ancora verificato.');
  $('download').href=preparedUrl;$('download').download=r.name;$('exportActions').hidden=false;
  $('share').hidden=!(navigator.canShare&&navigator.canShare({files:[r.file]}));
  status('exportStatus','COPIA PREPARATA, NON ANCORA SALVATA.\nData: '+r.packet.data+'\nCartelle: '+r.packet.cartelle.length+'\nAllegati: '+r.packet.originali.length+'\nFirma: inclusa quando presente nella cartella.\nDimensione: '+(r.file.size/1024/1024).toFixed(2)+' MB.\nSalva e controlla il file in File prima di chiudere LUMEN.');
  }catch(e){status('exportStatus','ESPORTAZIONE NON ESEGUITA: '+e.message)}finally{$('export').disabled=false}};
-$('share').onclick=async()=>{if(!prepared)return;try{await navigator.share({files:[prepared.file],title:'LUMEN emergenza'});status('exportStatus','Condivisione conclusa. Controlla manualmente in File che la copia sia stata salvata.')}catch(e){status('exportStatus','Salvataggio/condivisione non confermati: '+e.message)}};
+$('share').onclick=async()=>{if(!prepared)return;try{await navigator.share({files:[prepared.file],title:'LUMEN emergenza'});status('exportStatus','Condivisione chiusa. Il sistema NON conferma ancora il salvataggio: scegli il JSON dal pulsante di verifica per controllarlo.')}catch(e){status('exportStatus','Salvataggio/condivisione NON confermati: '+e.message)}};
+$('verifyFile').onchange=async()=>{
+ const source=$('verifyFile').files?.[0];if(!source||!prepared)return;
+ try{
+  if(source.name!==prepared.name)throw Error('Nome file diverso: atteso '+prepared.name);
+  if(source.size!==prepared.file.size)throw Error('Dimensione del JSON diversa da quella preparata.');
+  const actual=await source.text(),expected=await prepared.file.text();
+  if(actual!==expected)throw Error('Il contenuto non coincide con il JSON preparato.');
+  const decoded=JSON.parse(actual);
+  if(decoded.tipo!=='LUMEN_EMERGENZA_SESSIONE_V1'||decoded.data!==prepared.packet.data)throw Error('Contenuto di sessione inatteso.');
+  status('verifyStatus','✓ FILE JSON VERIFICATO: '+source.name+' ('+source.size+' byte).\nIl file selezionato è identico alla copia preparata. Può essere trasferito al Mac.');
+ }catch(e){status('verifyStatus','FILE NON VERIFICATO: '+e.message)}finally{$('verifyFile').value=''}
+};
 async function previewPacket(packet){
  if(Boolean(packet.lumen_prova)!==storage.isTest)throw Error('File di prova e archivio reale non possono essere mescolati.');
  const existing=await readRows(charts,dbChart),plan=api.resolve(existing,packet);
