@@ -3,7 +3,25 @@
  'use strict';
  const isTest=new URLSearchParams(location.search).get('prova')==='fantasma';
  const prefix='lumen_prova_fantasma_v1:';
- const identity={cognome:'PROVA',nome:'FANTASMA',codice_fiscale:'',data_nascita:''};
+ const initialIdentity={cognome:'PROVA',nome:'FANTASMA',codice_fiscale:'',data_nascita:''};
+ let identity={...initialIdentity},activeNumber=1;
+ const activeKey='active-prova-number-v1';
+ function numberOf(name){
+  if(name==='FANTASMA')return 1;
+  const match=/^FANTASMA ([2-9]|1[0-9]|20)$/.exec(String(name||''));
+  return match?Number(match[1]):0;
+ }
+ function setTestIdentity(number){
+  if(!isTest||!Number.isInteger(number)||number<1||number>20)throw Error('Identità di prova non valida.');
+  activeNumber=number;
+  identity={...initialIdentity,nome:number===1?'FANTASMA':'FANTASMA '+number};
+  scoped(window.localStorage).setItem(activeKey,String(number));
+  return identity;
+ }
+ if(isTest){
+  const restored=Number(scoped(window.localStorage).getItem(activeKey));
+  if(Number.isInteger(restored)&&restored>=2&&restored<=20)setTestIdentity(restored);
+ }
  const connections=new Set();
  function scoped(storage){
   if(!isTest)return storage;
@@ -20,7 +38,11 @@
  }
  function checkData(data){
   checkPacket(data);
-  if(isTest&&(data?.cognome!=='PROVA'||data?.nome!=='FANTASMA'||data?.codice_fiscale||data?.data_nascita))throw Error('La modalità prova usa soltanto PROVA FANTASMA.');
+  if(isTest){
+   const n=data?.cognome==='PROVA'&&!data?.codice_fiscale&&!data?.data_nascita?numberOf(data?.nome):0;
+   if(!n)throw Error('La modalità prova usa soltanto identità fittizie PROVA FANTASMA numerate.');
+   if(n!==activeNumber)setTestIdentity(n);
+  }
  }
  async function reset(){
   if(!isTest)throw Error('Azzeramento disponibile solo in modalità prova.');
@@ -31,6 +53,6 @@
   }
   scoped(window.localStorage).clear();scoped(window.sessionStorage).clear();
  }
- window.lumenStorage={isTest,identity,local:scoped(window.localStorage),session:scoped(window.sessionStorage),indexedDB:db,checkData,checkPacket,reset};
+ window.lumenStorage={isTest,get identity(){return identity},setTestIdentity,local:scoped(window.localStorage),session:scoped(window.sessionStorage),indexedDB:db,checkData,checkPacket,reset};
  if(isTest)document.documentElement.dataset.lumenProva='true';
 })();
