@@ -25,30 +25,30 @@ label{display:block;font-weight:600}.check{display:flex;gap:10px;align-items:fle
 <p id="mode">Lettura modalità…</p>
 </header>
 <section class="panel">
-<h2>1 — iPhone: esporta visite della data</h2>
+<h2>iPhone — esporta la seduta completata</h2>
 <label for="day">Data delle visite</label><input type="date" id="day">
-<button type="button" id="export">PREPARA VISITE E ALLEGATI</button>
-<div id="exportActions" hidden><button type="button" id="share">SALVA SU FILE / AIRDROP (IPHONE)</button><a class="button secondary" id="download" download>SCARICA COPIA JSON (ALTERNATIVA)</a>
-<label for="verifyFile">3 — Seleziona il JSON appena salvato in File per verificarlo</label>
+<button type="button" id="export">1 · PREPARA JSON VISITE E ALLEGATI</button>
+<div id="exportActions" hidden><button type="button" id="share">2 · SALVA JSON SU FILE / AIRDROP (IPHONE)</button><a class="button secondary" id="download" download>2 · SCARICA JSON (ALTERNATIVA)</a>
+<label for="verifyFile">3 · VERIFICA IL JSON APPENA SALVATO IN FILE</label>
 <input type="file" id="verifyFile" accept=".json,application/json">
 <pre id="verifyStatus" role="status">Il file non è ancora stato verificato.</pre>
 </div>
-<p class="note">Procedura iPhone: 1. PREPARA VISITE E ALLEGATI; 2. SALVA SU FILE / AIRDROP e scegli <strong>Salva su File</strong> nella condivisione iOS; 3. riapri il file con la verifica qui sotto. La preparazione da sola NON salva un file.</p>
+<p class="note">Procedura iPhone a fine seduta: 1. PREPARA JSON; 2. SALVA SU FILE / AIRDROP e scegli <strong>Salva su File</strong> nella condivisione iOS; 3. SELEZIONA IL JSON SALVATO per verificarlo. La preparazione da sola NON salva un file.</p>
 <pre id="exportStatus" role="status">Nessuna esportazione preparata.</pre>
 </section>
 <section class="panel">
-<h2>2 — Mac: controlla prima di importare</h2>
-<label for="importFile">Seleziona il file proveniente dall'iPhone</label>
+<h2>Mac — importa senza sovrascrivere</h2>
+<label class="check"><input type="checkbox" id="backupChecked"> 1 · HO GIÀ SALVATO E VERIFICATO UN BACKUP DEL MAC (questa spunta non crea il backup).</label>
+<label for="importFile">2 · SELEZIONA IL JSON PROVENIENTE DALL’IPHONE</label>
 <input type="file" id="importFile" accept=".json,application/json">
-<pre id="preview" role="status">Ancora nessun file selezionato.</pre>
-<label class="check"><input type="checkbox" id="backupChecked"> Ho creato sul Mac un backup aggiornato e ho verificato che il file sia realmente salvato.</label>
-<button type="button" id="apply" disabled>IMPORTA SENZA SOSTITUIRE L'ARCHIVIO</button>
+<pre id="preview" role="status">Ancora nessun file selezionato. Dopo la selezione controlla l'anteprima prima di importare.</pre>
+<button type="button" id="apply" disabled>3 · IMPORTA SENZA SOVRASCRIVERE L'ARCHIVIO</button>
 <pre id="result" role="status"></pre>
 <div id="archiveProof" hidden>
  <p class="note">Le cartelle di PROVA FANTASMA restano separate dai dati clinici reali. Questo controllo legge soltanto l'archivio prova sul Mac, senza modificarlo.</p>
- <button type="button" id="verifyArchive" class="secondary">VERIFICA LE CARTELLE NELL'ARCHIVIO PROVA</button>
+ <button type="button" id="verifyArchive" class="secondary">4 · VERIFICA LE CARTELLE NELL'ARCHIVIO PROVA</button>
  <pre id="archiveProofResult" role="status">Controllo non ancora eseguito.</pre>
- <a class="button secondary" href="index.html?prova=fantasma&amp;apriArchivio=1">APRI ARCHIVIO CARTELLE IN LUMEN PROVA</a>
+ <a class="button secondary" href="index.html?prova=fantasma&amp;apriArchivio=1">5 · APRI ARCHIVIO CARTELLE IN LUMEN PROVA</a>
 </div>
 </section>
 <script>
