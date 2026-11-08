@@ -24,7 +24,7 @@ jobs:
       - name: Collaudo PROVA FANTASMA JSON su Chromium e WebKit
         env:
           NODE_PATH: /tmp/lumen-tests/node_modules
-        run: node tests/prova-fantasma.cjs
+        run: node tests/prova-json-iphone.cjs
       - name: Verifica archivio, trasporto e recupero
         run: |
           node tests/collatina.cjs
