@@ -1,7 +1,7 @@
 /* Local certificate correspondence. No network requests and no sending API. */
 (function(root){
  'use strict';
- const VERSION='20261102-email-1';
+ const VERSION='20261111-email-fine-visita-1';
  const clean=v=>String(v??'').trim();
  const header=v=>{const s=clean(v);if(/[\r\n\x00-\x1f\x7f]/.test(s))throw Error('Il campo contiene caratteri non ammessi.');return s;};
  function email(v){
@@ -53,7 +53,7 @@
  function buildUi(){
   if(dialog)return;
   const css=document.createElement('style');css.textContent=`#certMailDialog{box-sizing:border-box;width:min(760px,calc(100vw - 20px));max-height:92vh;overflow:auto;padding:20px;border:2px solid #287a46;border-radius:12px;background:#fff;color:#111}#certMailDialog::backdrop{background:#0009}#certMailDialog h2{font-size:20px;font-style:normal;margin:0 0 10px}#certMailDialog label{display:block;font-weight:700;margin:12px 0}#certMailDialog input,#certMailDialog textarea{display:block;width:100%;box-sizing:border-box;font:16px Arial;padding:9px;border:1px solid #888;border-radius:5px;margin-top:5px;text-transform:none}#certMailDialog textarea{min-height:160px;line-height:1.4}#certMailDialog .cert-mail-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}#certMailDialog .cert-mail-link{display:inline-block;margin:8px 12px 8px 0;color:#174d7b;font-weight:bold}#certMailStatus{white-space:pre-line;font-weight:700}#certMailSummary{white-space:pre-line;padding:10px;background:#eef5f0;border-radius:6px}#certMailDialog .cert-mail-note{font-size:13px;line-height:1.4}#certMailDialog [hidden]{display:none!important}@media print{#certMailDialog{display:none!important}}`;document.head.append(css);
-  dialog=document.createElement('dialog');dialog.id='certMailDialog';dialog.setAttribute('aria-labelledby','certMailTitle');dialog.innerHTML=`<h2 id="certMailTitle">PREPARA EMAIL CERTIFICATI</h2><p id="certMailSummary"></p><div id="certMailClientBox"><label>Committente / rubrica<input id="certMailClient" list="certMailClients" autocomplete="off"></label><datalist id="certMailClients"></datalist><button type="button" id="certMailRecall" class="secondary">RICHIAMA CONTATTO</button></div><label>Destinatario email<input type="email" id="certMailTo" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label>Referente / saluto<input id="certMailRef" autocomplete="off"></label><div class="cert-mail-actions"><button type="button" id="certMailSave" class="secondary">SALVA CONTATTO DEL COMMITTENTE</button><button type="button" id="certMailText" class="secondary">AGGIORNA TESTO DAL REFERENTE</button></div><label>Oggetto<input id="certMailSubject"></label><label>Testo email<textarea id="certMailBody"></textarea></label><p id="certMailAttachment"></p><a id="certMailPreview" target="_blank" rel="noopener">CONTROLLA PDF ALLEGATO</a><p class="cert-mail-note">EMAIL CON PDF scarica un file .eml con destinatario, testo e PDF già incluso. Sul Mac aprilo con Mail; se compare in lettura, scegli Messaggio → Invia di nuovo. Controlla il messaggio e premi Invia in Mail.</p><div class="cert-mail-actions"><button type="button" id="certMailCreate" class="success">PREPARA EMAIL CON PDF</button><button type="button" id="certMailSimple" class="secondary">APRI EMAIL · ALLEGA PDF A MANO</button><button type="button" id="certMailClose" class="secondary">CHIUDI</button></div><p class="cert-mail-note">Con APRI EMAIL il PDF viene scaricato separatamente: va aggiunto al messaggio. Nessuna email viene inviata da LUMEN.</p><div id="certMailReady"></div><p id="certMailStatus" role="status" aria-live="polite"></p>`;document.body.append(dialog);
+  dialog=document.createElement('dialog');dialog.id='certMailDialog';dialog.setAttribute('aria-labelledby','certMailTitle');dialog.innerHTML=`<h2 id="certMailTitle">PREPARA EMAIL CERTIFICATI</h2><p id="certMailSummary"></p><div id="certMailClientBox"><label>Committente / rubrica<input id="certMailClient" list="certMailClients" autocomplete="off"></label><datalist id="certMailClients"></datalist><button type="button" id="certMailRecall" class="secondary">RICHIAMA CONTATTO</button></div><label>Destinatario email<input type="email" id="certMailTo" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label>Referente / saluto<input id="certMailRef" autocomplete="off"></label><div class="cert-mail-actions"><button type="button" id="certMailSave" class="secondary">SALVA CONTATTO DEL COMMITTENTE</button><button type="button" id="certMailText" class="secondary">AGGIORNA TESTO DAL REFERENTE</button></div><label>Oggetto<input id="certMailSubject"></label><label>Testo email<textarea id="certMailBody"></textarea></label><p id="certMailAttachment"></p><a id="certMailPreview" target="_blank" rel="noopener">CONTROLLA PDF ALLEGATO</a><p class="cert-mail-note">EMAIL CON PDF scarica un file .eml con destinatario, testo e PDF già incluso. Sul Mac aprilo con Mail; se compare in lettura, scegli Messaggio → Invia di nuovo. Controlla il messaggio e premi Invia in Mail.</p><div class="cert-mail-actions"><button type="button" id="certMailShare" class="success" hidden>CONDIVIDI PDF CON MAIL</button><button type="button" id="certMailCreate" class="success">PREPARA EMAIL CON PDF</button><button type="button" id="certMailSimple" class="secondary">APRI EMAIL · ALLEGA PDF A MANO</button><button type="button" id="certMailClose" class="secondary">CHIUDI</button></div><p class="cert-mail-note">Con APRI EMAIL il PDF viene scaricato separatamente: va aggiunto al messaggio. Nessuna email viene inviata da LUMEN.</p><div id="certMailReady"></div><p id="certMailStatus" role="status" aria-live="polite"></p>`;document.body.append(dialog);
   ['certMailTo','certMailRef','certMailClient','certMailSubject','certMailBody'].forEach(id=>$(id).addEventListener('input',invalidate));
   $('certMailClient').addEventListener('change',fillClient);$('certMailRecall').onclick=fillClient;
   $('certMailText').onclick=()=>{if(!confirm('Sostituire oggetto e testo con il modello aggiornato?'))return;const d=template(current,$('certMailRef').value);$('certMailSubject').value=d.subject;$('certMailBody').value=d.body;invalidate();};
@@ -61,6 +61,16 @@
    const name=header($('certMailClient').value),to=email($('certMailTo').value),ref=header($('certMailRef').value);if(!name)throw Error('Indica il committente.');
    root.lumenCertificateMailSettings.saveClient({nome:name,email:to,referente:ref});status('Contatto del committente salvato. Indirizzo e referente restano modificabili.');
   }catch(e){status(e.message)}};
+  $('certMailShare').onclick=async()=>{
+   try{
+    const file=new File([current.blob],current.fileName,{type:'application/pdf'});
+    setBusy(true);
+    await root.navigator.share({files:[file]});
+    status('Controlla il destinatario e premi Invia in Mail.');
+   }catch(e){
+    if(e.name!=='AbortError')status('Condivisione non disponibile. Usa PREPARA EMAIL CON PDF o APRI EMAIL.');
+   }finally{setBusy(false)}
+  };
   $('certMailCreate').onclick=async()=>{
    const expected=revision;
    try{
@@ -103,10 +113,18 @@
   $('certMailSummary').textContent=worker?'Lavoratore: '+info.workerName+'\nVisita: '+fmt(info.date):'Committente: '+info.client+'\nVisita: '+fmt(info.date)+' · '+info.count+' certificati inclusi'+(info.people?.length?'\n'+info.people.join(' · '):'');
   $('certMailAttachment').textContent='PDF allegato: '+info.fileName+' ('+Math.ceil(info.blob.size/1024)+' KB)';
   pdfUrl=URL.createObjectURL(info.blob);$('certMailPreview').href=pdfUrl;
-  status('Controlla destinatario, testo e PDF prima di preparare l’email.');if(!dialog.open)dialog.showModal();$('certMailTo').focus();
+  const share=$('certMailShare');
+  share.hidden=!worker||!root.navigator?.share||!root.navigator.canShare?.({
+   files:[new File([info.blob],info.fileName,{type:'application/pdf'})]
+  });
+  status(share.hidden?'Controlla destinatario, testo e PDF prima di preparare l’email.':'Scegli Mail dal menu di condivisione e inserisci il destinatario in Mail.');
+  if(!dialog.open)dialog.showModal();
+  (share.hidden?$('certMailTo'):share).focus();
  }
- async function single(){
-  const batch=root.lumenBatchCertApi,button=$('btnEmailCert');if(!batch||!root.lumenCertificatePdf)return;
+ async function single(event){
+  const batch=root.lumenBatchCertApi,button=event?.currentTarget||$('btnEmailCert');
+  if(!batch||!root.lumenCertificatePdf){root.alert('Modulo PDF non disponibile. Ricarica LUMEN e riprova.');return;}
+  const label=button.textContent;
   try{
    if(!batch.verificaPrimaDelPdf('CERTIFICATO')||!batch.completaLuogoCertificato())return;
    const data=batch.collect(),identity=JSON.stringify(data),selection=batch.selectionVersion();button.disabled=true;button.textContent='PREPARAZIONE PDF…';
@@ -114,9 +132,9 @@
    if(selection!==batch.selectionVersion()||identity!==JSON.stringify(batch.collect()))throw Error('Cartella modificata durante la preparazione: riprova.');
    const workerName=[data.cognome,data.nome].filter(Boolean).join(' '),date=data.data_giudizio||data.data_cartella;
    open({kind:'worker',blob,fileName:filename('CERTIFICATO_'+workerName+'_'+date+'.pdf'),workerName,date,to:data.email_lavoratore||'',count:1});
-  }catch(e){root.alert('Email non preparata: '+e.message)}finally{button.disabled=false;button.textContent='PREPARA EMAIL AL LAVORATORE';}
+  }catch(e){root.alert('Email non preparata: '+e.message)}finally{button.disabled=false;button.textContent=label;}
  }
  api.open=open;api.single=single;
- function boot(){const toolbar=$('certificate')?.querySelector('.toolbar');if(!toolbar||$('btnEmailCert'))return;const b=document.createElement('button');b.id='btnEmailCert';b.type='button';b.className='success';b.textContent='PREPARA EMAIL AL LAVORATORE';b.onclick=single;toolbar.insertBefore(b,$('btnTorna'));}
+ function boot(){const endVisit=$('btnEmailFineVisita');if(endVisit)endVisit.onclick=single;const toolbar=$('certificate')?.querySelector('.toolbar');if(!toolbar||$('btnEmailCert'))return;const b=document.createElement('button');b.id='btnEmailCert';b.type='button';b.className='success';b.textContent='PREPARA EMAIL AL LAVORATORE';b.onclick=single;toolbar.insertBefore(b,$('btnTorna'));}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })(typeof window!=='undefined'?window:globalThis);
