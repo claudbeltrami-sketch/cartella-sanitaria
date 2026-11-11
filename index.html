@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="lumen-workflow-build" content="20261111-cartella-seduta-1">
+<meta name="lumen-workflow-build" content="20261111-cartella-seduta-2">
 <meta name="lumen-certificate-build" content="20261031-firma-etichetta-2">
 <meta name="lumen-signature-build" content="20261031-firma-chunks-2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -1653,7 +1653,7 @@ document.getElementById('btnBackupInPagina').onclick=()=>creaBackupCompleto(docu
 document.getElementById('btnBackupCompleto').onclick=e=>{e.preventDefault();e.stopPropagation();const toggle=document.getElementById('btnAltriComandi');if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();creaBackupCompleto('light')};
 document.getElementById('btnRipristinaDaArchivio').onclick=()=>document.getElementById('fileRipristinaBackup').click();
 document.getElementById('fileRipristinaBackup').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await ripristinaBackupCompleto(f)}catch(err){showSaveInfo('error','RIPRISTINO NON ESEGUITO',err.message||String(err));setStatus('COPIA NON VALIDA O DANNEGGIATA.')}finally{e.target.value=''}};
-const workersBody=document.getElementById('workersBody'),workersSummary=document.getElementById('workersSummary');
+const workersBody=document.getElementById('workersBody');
 const norm=v=>String(v??'').trim().toLocaleUpperCase('it-IT');
 function isoDate(v){if(!v)return'';if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);let x=String(v).trim();let m=x.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');if(/^\d{4}-\d{2}-\d{2}$/.test(x))return x;let n=Number(x);if(Number.isFinite(n)&&n>20000&&n<80000){let d=new Date(Date.UTC(1899,11,30)+n*86400000);return d.toISOString().slice(0,10)}return''}
 function headerKey(v){return norm(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'')}
@@ -2137,14 +2137,15 @@ function esiti(){return read(K_ESITI,{})}
 function keyOf(w,i){return w.id||[w.cognome,w.nome,w.data_nascita,i].join('|')}
 function stats(){const ws=workersData(),e=esiti();let visitati=0,assenti=0;ws.forEach((w,i)=>{const x=e[keyOf(w,i)];if(x==='ASSENTE')assenti++;else if(w.visited)visitati++});return{totale:ws.length,visitati,assenti,daGestire:Math.max(0,ws.length-visitati-assenti)}}
 function renderCard(s=read(K_SESS,null)){const st=stats();
- workersSummary.textContent=st.totale
-  ?st.totale+' in lista · '+st.visitati+' visitati · '+st.daGestire+' da visitare · '+st.assenti+' assenti'+(attachedSourceName?' · Fonte: '+attachedSourceName:'')
+ const sourceName=read('beltrami_workers_v8',{}).attachedSourceName;
+ $('workersSummary').textContent=st.totale
+  ?st.totale+' in lista · '+st.visitati+' visitati · '+st.daGestire+' da visitare · '+st.assenti+' assenti'+(sourceName?' · Fonte: '+sourceName:'')
   :'NESSUNA LISTA CARICATA.';
  $('v9Card').innerHTML=s?'<strong>SESSIONE ATTIVA</strong> <span class="v9-badge">'+safe(s.stato)+'</span><br><b>Data:</b> '+safe(fmt(s.data))+(s.fascia?' — '+safe(s.fascia):'')+'<br><b>Committente:</b> '+safe(s.committente||'—')+' &nbsp; <b>Sede:</b> '+safe(s.sede||'—')+' &nbsp; <b>Azienda:</b> '+safe(s.azienda||'—')+'<br><b>Lista:</b> totale '+st.totale+' — visitati '+st.visitati+' — assenti '+st.assenti+' — senza esito '+st.daGestire+(s.listaOriginale?'<br><b>File originale:</b> '+safe(s.listaOriginale.name)+' <button type="button" id="v14Originale" class="secondary" style="min-height:30px;padding:4px 8px;font-size:11px">APRI / SALVA ORIGINALE</button>':''):'NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.';const ob=$('v14Originale');if(ob)ob.onclick=()=>window.beltramiOriginalFiles.downloadOriginal(s.listaOriginale)}
 function saveSession(){const s=collectSession();if(!s.committente)return alert('Inserire il committente.');if(!s.sede)return alert('Inserire la sede di visita.');if(!s.azienda&&(!workersData().length||workersData().some(w=>!String(w.datore_lavoro||'').trim())))return alert('Inserire l’azienda dei lavoratori oppure indicare il datore in ogni riga della lista.');if(s.stato==='PREPARAZIONE')s.stato='IN CORSO';$('v9Stato').value=s.stato;$('v9Panel').dataset.sid=s.id;write(K_SESS,s);rememberClient(s,true);if(s.azienda)upsert('aziende',{nome:s.azienda});renderCard(s);const dl=$('datore_lavoro');if(dl&&!dl.value)dl.value=s.azienda;const cm=$('committente');if(cm&&!cm.value&&!$('cognome').value&&!$('nome').value)cm.value=s.committente;alert('SESSIONE SALVATA. I DATI RESTANO SU QUESTO DISPOSITIVO.')}
 $('v9Avvia').onclick=saveSession;
 $('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';lumenStorage.local.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});renderArchives();persistSessionDraft()};
-function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);renderWorkers()}
+function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);window.lumenAnagraficheBridge.renderWorkers()}
 function decorateRows(){const ws=workersData(),e=esiti();document.querySelectorAll('#workersBody tr').forEach(tr=>{const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0||!ws[n])return;const td=tr.lastElementChild;if(!td||td.querySelector('.v9-assente-btn'))return;const k=keyOf(ws[n],n),abs=e[k]==='ASSENTE';if(abs){tr.classList.add('v9-absent');tr.children[1].textContent='ASSENTE'}const b=document.createElement('button');b.type='button';b.className='v9-assente-btn '+(abs?'secondary':'v9-orange');b.style.marginLeft='5px';b.textContent=abs?'ANNULLA ASSENTE':'SEGNA ASSENTE';b.onclick=()=>setAbsent(n,!abs);td.appendChild(b)})}
 document.addEventListener('lumen:lista-rendered',()=>{decorateRows();renderCard()});
 function buildReport(preparazione=false){
