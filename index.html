@@ -374,6 +374,11 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .archive-role-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.archive-role-filters label{display:flex;flex-direction:column;gap:5px;font-weight:bold}.archive-role-filters input{width:100%;min-width:0;min-height:44px;padding:8px;font-size:16px;border:1px solid #888;border-radius:7px;text-transform:uppercase}
 @media(max-width:950px){.archive-table th:nth-child(4),.archive-table td:nth-child(4){display:table-cell}}
 @media(max-width:950px){#archiveResults .archive-table{min-width:0}.archive-role-filters{grid-template-columns:1fr}.archive-table td:nth-child(n){display:block}.archive-table td:nth-child(n)::before{content:attr(data-label) ": "}.archive-table td:last-child{display:flex}.archive-table td:last-child::before{content:""}}
+@media screen and (max-width:950px){
+ .field.rapporto-aziendale{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;gap:5px}
+ .rapporto-aziendale label{white-space:normal}
+ #stato_rapporto{min-width:0;min-height:44px;padding:6px 9px;border:1px solid #888;border-radius:7px;color:#111}
+}
 @media print{.lumen-admin-role{display:none!important}}
 </style>
 <style>
@@ -628,7 +633,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="field full"><label>Medico curante</label><input id="medico_curante" data-upper placeholder="NOME E COGNOME DEL MEDICO"></div><div class="field"><label>Via</label><input id="via_medico" data-upper></div>
  <div class="field"><label>Telefono medico</label><input id="telefono_medico"></div><div></div>
  <div class="field full lumen-admin-role"><label for="committente">Committente</label><input id="committente" data-upper list="committentiCartella" placeholder="ES. SERMOLAB / GRUPPO ORIZZONTE"></div>
- <div class="field full lumen-admin-role"><label for="stato_rapporto">Stato rapporto con questa azienda (scadenzario)</label><select id="stato_rapporto"><option value="">NON INDICATO</option><option selected>ATTIVO</option><option>CESSATO</option></select></div>
+ <div class="field full lumen-admin-role rapporto-aziendale"><label for="stato_rapporto">Stato rapporto con questa azienda (scadenzario)</label><select id="stato_rapporto"><option value="">NON INDICATO</option><option selected>ATTIVO</option><option>CESSATO</option></select></div>
  <datalist id="committentiCartella"><option value="SERMOLAB"><option value="GRUPPO ORIZZONTE"><option value="BUSINESS GROUP"></datalist>
  <input type="hidden" id="datore_lavoro_originale"><input type="hidden" id="ruoli_azienda_versione" value="1">
  <div class="field full"><label for="datore_lavoro">Datore di lavoro</label><input id="datore_lavoro" data-upper placeholder="AZIENDA DEL LAVORATORE"></div>
