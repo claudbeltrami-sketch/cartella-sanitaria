@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<meta name="lumen-workflow-build" content="20261111-cartella-seduta-1">
 <meta name="lumen-certificate-build" content="20261031-firma-etichetta-2">
 <meta name="lumen-signature-build" content="20261031-firma-chunks-2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -374,7 +375,12 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 .archive-role-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.archive-role-filters label{display:flex;flex-direction:column;gap:5px;font-weight:bold}.archive-role-filters input{width:100%;min-width:0;min-height:44px;padding:8px;font-size:16px;border:1px solid #888;border-radius:7px;text-transform:uppercase}
 @media(max-width:950px){.archive-table th:nth-child(4),.archive-table td:nth-child(4){display:table-cell}}
 @media(max-width:950px){#archiveResults .archive-table{min-width:0}.archive-role-filters{grid-template-columns:1fr}.archive-table td:nth-child(n){display:block}.archive-table td:nth-child(n)::before{content:attr(data-label) ": "}.archive-table td:last-child{display:flex}.archive-table td:last-child::before{content:""}}
-@media print{.lumen-admin-role{display:none!important}}
+.lumen-save-confirmation{margin:6px 0;color:#205b35;font-weight:700}
+.lumen-save-confirmation:empty{display:none}
+#stato_rapporto{min-height:44px}
+.lumen-recent-actions{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.lumen-recent-actions button{min-height:44px;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+@media print{.lumen-admin-role,.lumen-save-confirmation{display:none!important}}
 </style>
 <style>
 /* Archive rows stay compact; secondary commands expand only on request. */
@@ -434,6 +440,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <button id="btnRecuperaFirme" class="signature-command" type="button" onclick="window.lumenFirmaOffline.openRecovery()">RECUPERA FIRME</button>
 <label class="file-label signature-command">RICEVI DA IPHONE<input type="file" id="fileImportaFirmaIphone" accept="application/json,.json"></label>
  </div>
+ <p id="lumenSaveConfirmation" class="lumen-save-confirmation" role="status"></p>
  <div id="toolbarExtra" aria-label="Altri comandi" hidden>
  <section class="tool-group visit">
   <div class="tool-group-title">1 · VISITA</div>
@@ -486,6 +493,10 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <div class="save-info" id="saveInfo"><div class="save-title" id="saveTitle"></div><div class="save-detail" id="saveDetail"></div><div class="mini-actions" id="saveActions"></div></div>
 <div class="archive-modal" id="archiveModal" aria-hidden="true"><div class="archive-box">
  <div class="archive-head"><h3 style="margin:0">ARCHIVIO LOCALE CARTELLE SANITARIE</h3><button type="button" id="btnChiudiArchivio" class="secondary">CHIUDI</button></div>
+ <section id="lumenRecentCharts" aria-labelledby="lumenRecentTitle" hidden>
+  <strong id="lumenRecentTitle">Ultime cartelle aperte</strong>
+  <div class="lumen-recent-actions"></div>
+ </section>
  <div class="archive-role-filters"><label for="archiveClient">COMMITTENTE<input id="archiveClient" list="committentiCartella" placeholder="TUTTI I COMMITTENTI"></label><label for="archiveEmployer">DATORE DI LAVORO<input id="archiveEmployer" placeholder="TUTTE LE AZIENDE"></label></div>
  <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
@@ -607,6 +618,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
 <h1>CARTELLA SANITARIA E DI RISCHIO</h1><h2>Decreto Legislativo 81/08 e s.m.i Decreto Legislativo 106/09</h2>
 <div class="row">
  <div class="field"><label>Cognome</label><input id="cognome" data-upper></div><div class="field"><label>Nome</label><input id="nome" data-upper></div>
+ <div class="field full lumen-admin-role"><label for="stato_rapporto">Stato del rapporto</label><select id="stato_rapporto"><option value="">NON INDICATO</option><option selected>ATTIVO</option><option>CESSATO</option></select></div>
  <input type="hidden" id="lavoratore">
  <div class="field"><label>Luogo di nascita</label><input id="luogo_nascita" data-upper></div><div class="field"><label>Data di nascita</label><input id="data_nascita" type="date"></div>
  <div class="field"><label>Sesso</label><select id="sesso"><option></option><option>M</option><option>F</option></select></div><div class="field full cf-barcode-wrap"><div style="flex:1 1 320px"><label>Codice fiscale</label><input id="codice_fiscale" maxlength="16" data-upper></div><div class="cf-barcode-box"><div class="cf-barcode-label">BARCODE CODICE FISCALE</div><svg id="cf_barcode" class="cf-barcode-svg" role="img" aria-label="Barcode Codice Fiscale"></svg></div></div>
@@ -628,7 +640,6 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div class="field full"><label>Medico curante</label><input id="medico_curante" data-upper placeholder="NOME E COGNOME DEL MEDICO"></div><div class="field"><label>Via</label><input id="via_medico" data-upper></div>
  <div class="field"><label>Telefono medico</label><input id="telefono_medico"></div><div></div>
  <div class="field full lumen-admin-role"><label for="committente">Committente</label><input id="committente" data-upper list="committentiCartella" placeholder="ES. SERMOLAB / GRUPPO ORIZZONTE"></div>
- <div class="field full lumen-admin-role"><label for="stato_rapporto">Stato rapporto con questa azienda (scadenzario)</label><select id="stato_rapporto"><option value="">NON INDICATO</option><option selected>ATTIVO</option><option>CESSATO</option></select></div>
  <datalist id="committentiCartella"><option value="SERMOLAB"><option value="GRUPPO ORIZZONTE"><option value="BUSINESS GROUP"></datalist>
  <input type="hidden" id="datore_lavoro_originale"><input type="hidden" id="ruoli_azienda_versione" value="1">
  <div class="field full"><label for="datore_lavoro">Datore di lavoro</label><input id="datore_lavoro" data-upper placeholder="AZIENDA DEL LAVORATORE"></div>
@@ -1007,7 +1018,7 @@ function restoreWorkerSignature(d){if(!d.firma_lavoratore_png)return;const key=w
 function collect(){if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaBmi();syncLavoratore();rememberMansione();const d={};allFields().forEach(e=>{d[e.id]=e.type==='checkbox'?e.checked:(e.id==='prossima_visita'&&e.value===e.dataset.suggestedDate?'':e.value)});d.rischi=[...document.querySelectorAll('#rischi input:checked')].map(x=>x.value);d.protocollo=[...document.querySelectorAll('#protocollo input:checked')].map(x=>x.value);d.giudizio=([ ...document.querySelectorAll('input[name="giudizio"]:checked')][0]||{}).value||'';const signatureKey=workerSignatureIdentity(d);d.firma_lavoratore_png=currentWorkerSignature(d);d.luogo_visita=luogoVisitaCorrente();if(window.lumenAnagrafiche){const verification=window.lumenAnagrafiche.collect();if(verification)d.verifica_anagrafica=verification;}if(lumenStorage.isTest){Object.assign(d,lumenStorage.identity);d.lumen_prova=true}return d}
 function splitLegacyName(value){const parts=(value||'').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return {cognome:value||'',nome:''};return {cognome:parts.shift(),nome:parts.join(' ')}}
 // A complete load always replaces the visible record, including absent fields.
-let workerSelectionVersion=0;
+let workerSelectionVersion=0,saveConfirmationRevision=0;
 let loadedWorkerSignature=null;
 function signatureVisit(d){return String(d.data_giudizio||d.data_cartella||'')}
 function currentWorkerSignature(d){
@@ -1040,6 +1051,8 @@ function apply(source){
  autoCFValue='';
  const d=lumenRuoliAzienda.normalize(normalizzaEmailLavoratore(source));
  workerSelectionVersion++;
+ clearSaveConfirmation();
+ if(d.cessato===true)d.stato_rapporto='CESSATO';
  if(d.pressione&&(!d.pas&&!d.pad)){const p=String(d.pressione).trim().split(/[\/\-\s]+/);d.pas=p[0]||'';d.pad=p[1]||''}
  if(!d.cognome&&!d.nome){if(d.cf_cognome||d.cf_nome){d.cognome=d.cf_cognome||'';d.nome=d.cf_nome||''}else if(d.lavoratore){Object.assign(d,splitLegacyName(d.lavoratore))}}
  form.reset();
@@ -1345,16 +1358,52 @@ function cartellaIdentity(data){const cf=normArchive(data.codice_fiscale);const 
 function cartellaId(data){const x=cartellaIdentity(data);return x.cf?'CF_'+x.cf:'ANAG_'+x.nomeKey}
 async function getCartellaRecord(id){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
 async function putCartellaRecord(rec){const db=await openCartelleDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite');tx.objectStore(CARTELLE_STORE).put(rec);tx.oncomplete=()=>{db.close();resolve(rec)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function saveToLocalArchive(archiveData){const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+function clearSaveConfirmation(){
+ saveConfirmationRevision++;
+ document.getElementById('lumenSaveConfirmation').textContent='';
+}
+function showSaveConfirmation(record){
+ document.getElementById('lumenSaveConfirmation').textContent='Salvata alle '+new Date(record.updatedAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+form.addEventListener('input',clearSaveConfirmation);
+form.addEventListener('change',clearSaveConfirmation);
+window.addEventListener('beltrami-signature-updated',clearSaveConfirmation);
+async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v)}
 function archiveHaystack(r){const d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,lumenRuoliAzienda.forRecord(r).committente,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query='',roles={}){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))&&lumenRuoliAzienda.matches(lumenRuoliAzienda.forRecord(r),roles)}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
 function fmtArchiveDate(v){try{return new Date(v).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}catch(_){return v||''}}
-async function openArchiveRecord(id){
+const recentChartsKey='lumen_recent_charts_v1';
+function recentChartIds(){
+ try{
+  const ids=JSON.parse(lumenStorage.local.getItem(recentChartsKey)||'[]');
+  return Array.isArray(ids)?ids.filter(id=>typeof id==='string').slice(0,3):[];
+ }catch(_){return [];}
+}
+function rememberRecentChart(id){
+ try{lumenStorage.local.setItem(recentChartsKey,JSON.stringify([id,...recentChartIds().filter(previous=>previous!==id)].slice(0,3)));}catch(_){}
+}
+function renderRecentCharts(rows){
+ const section=document.getElementById('lumenRecentCharts'),actions=section.querySelector('.lumen-recent-actions');
+ const byId=new Map(rows.map(row=>[row.id,row]));
+ actions.replaceChildren();
+ for(const id of recentChartIds()){
+  const row=byId.get(id);
+  if(!row)continue;
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='secondary';
+  button.textContent=[row.cognome,row.nome,fmt(row.dataNascita)].filter(Boolean).join(' · ');
+  button.onclick=()=>openArchiveRecord(id,true);
+  actions.appendChild(button);
+ }
+ section.hidden=!actions.childElementCount;
+}
+async function openArchiveRecord(id,quick=false){
  const r=await getCartellaRecord(id);
  if(!r)return alert('Cartella non trovata.');
  const nome=((r.cognome||'')+' '+(r.nome||'')).trim();
- if(!confirm('Aprire la cartella di '+nome+'?\nCF: '+(r.cf||(r.data||{}).codice_fiscale||'NON PRESENTE')+'\nDATA DI NASCITA: '+(fmt(r.dataNascita||(r.data||{}).data_nascita)||'NON PRESENTE')+'\n\nI dati attualmente visibili verranno sostituiti.'))return;
+ if(!(quick&&form.classList.contains('hidden')&&!text('cognome')&&!text('nome')&&!text('codice_fiscale'))&&!confirm('Aprire la cartella di '+nome+'?\nCF: '+(r.cf||(r.data||{}).codice_fiscale||'NON PRESENTE')+'\nDATA DI NASCITA: '+(fmt(r.dataNascita||(r.data||{}).data_nascita)||'NON PRESENTE')+'\n\nI dati attualmente visibili verranno sostituiti.'))return;
  // Usa sempre l'identità della riga scelta. In questo modo un'identità rimasta
  // nella schermata (o in una vecchia copia interna) non può bloccare l'archivio
  // sull'ultimo lavoratore aperto.
@@ -1376,6 +1425,7 @@ async function openArchiveRecord(id){
   alert('APERTURA NON COMPLETATA: la cartella selezionata non corrisponde ai dati caricati. Riprovare.');
   return;
  }
+ rememberRecentChart(r.id);
  document.getElementById('archiveModal').classList.remove('show');
  window.scrollTo({top:0,behavior:'smooth'});
  setStatus('CARTELLA DI '+nome+' RIAPERTA DALL’ARCHIVIO LOCALE — ULTIMO AGGIORNAMENTO '+fmtArchiveDate(r.updatedAt)+'.');
@@ -1399,11 +1449,11 @@ let archiveRenderVersion=0,archiveActiveQuery='',archiveActiveRoles={};
 function archiveRoleInputs(){return {committente:document.getElementById('archiveClient').value.trim(),datore_lavoro:document.getElementById('archiveEmployer').value.trim()}}
 function clearArchiveRoles(){document.getElementById('archiveClient').value='';document.getElementById('archiveEmployer').value=''}
 
-async function renderArchive(query=''){const version=++archiveRenderVersion,roles=archiveRoleInputs(),rows=await listCartelleArchive(query,roles);const indicators=window.lumenArchiveReferti?await window.lumenArchiveReferti.statuses(rows):new Map();if(version!==archiveRenderVersion)return;archiveActiveQuery=String(query||'').trim();archiveActiveRoles=roles;const box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length+(query?' — Ricerca: “'+query+'”':'')+(roles.committente?' — Committente: '+roles.committente:'')+(roles.datore_lavoro?' — Datore: '+roles.datore_lavoro:'');if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA. CONTROLLARE IL TESTO INSERITO O PREMERE MOSTRA TUTTE.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>DATORE DI LAVORO</th><th>COMMITTENTE</th><th>DATA VISITA</th><th>ANALISI</th><th>DRUG TEST</th><th>AGGIORNATA</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const flags=indicators.get(r.id)||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'},recordId=r.id,tr=document.createElement('tr'),d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'',vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong><br><small>Nascita: '+escapeHtml(r.dataNascita||'—')+'</small></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(d.datore_lavoro||'DA COMPLETARE')+'</td><td>'+escapeHtml(d.committente||'NON INDICATO')+'</td><td>'+escapeHtml(archiveDateText(visit)||'—')+'</td>'+['analisi','drug'].map(k=>'<td data-referto="'+k+'"><span class="archive-referto" data-state="'+flags[k]+'">'+flags[k]+'</span></td>').join('')+'<td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.dataset.archiveId=recordId;b1.onclick=e=>{e.preventDefault();e.stopPropagation();openArchiveRecord(recordId)};td.className='archive-actions';td.appendChild(b1);const menu=document.createElement('details');menu.className='archive-actions-menu';const summary=document.createElement('summary');summary.textContent='ALTRE AZIONI ▾';const commands=document.createElement('div');commands.className='archive-action-commands';menu.append(summary,commands);td.appendChild(menu);menu.addEventListener('toggle',()=>{if(menu.open)td.closest('tbody').querySelectorAll('.archive-actions-menu[open]').forEach(other=>{if(other!==menu)other.open=false})});commands.addEventListener('click',e=>{if(e.target.closest('button'))menu.open=false});if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(recordId);commands.appendChild(b2)}const b3=document.createElement('button');b3.type='button';b3.className='danger';b3.textContent='ELIMINA';b3.style.marginLeft='5px';b3.onclick=()=>deleteArchiveRecord(recordId);commands.appendChild(b3);['LAVORATORE','CF','DATORE DI LAVORO','COMMITTENTE','DATA VISITA','ANALISI','DRUG TEST','AGGIORNATA','AZIONI'].forEach((label,i)=>tr.children[i].dataset.label=label);tb.appendChild(tr)});box.innerHTML='';box.appendChild(t);window.lumenArchiveReferti?.decorate();window.lumenArchiveReferti?.checkPending(rows)}
+async function renderArchive(query=''){const version=++archiveRenderVersion,roles=archiveRoleInputs(),rows=await listCartelleArchive(query,roles);const indicators=window.lumenArchiveReferti?await window.lumenArchiveReferti.statuses(rows):new Map();if(version!==archiveRenderVersion)return;renderRecentCharts(rows);archiveActiveQuery=String(query||'').trim();archiveActiveRoles=roles;const box=document.getElementById('archiveResults'),sum=document.getElementById('archiveSummary');sum.textContent='Cartelle trovate: '+rows.length+(query?' — Ricerca: “'+query+'”':'')+(roles.committente?' — Committente: '+roles.committente:'')+(roles.datore_lavoro?' — Datore: '+roles.datore_lavoro:'');if(!rows.length){box.innerHTML='<div class="archive-empty">NESSUNA CARTELLA TROVATA. CONTROLLARE IL TESTO INSERITO O PREMERE MOSTRA TUTTE.</div>';return}const t=document.createElement('table');t.className='archive-table';t.innerHTML='<thead><tr><th>COGNOME E NOME</th><th>CF</th><th>DATORE DI LAVORO</th><th>COMMITTENTE</th><th>DATA VISITA</th><th>ANALISI</th><th>DRUG TEST</th><th>AGGIORNATA</th><th>AZIONI</th></tr></thead><tbody></tbody>';const tb=t.querySelector('tbody');rows.forEach(r=>{const flags=indicators.get(r.id)||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'},recordId=r.id,tr=document.createElement('tr'),d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'',vers=(r.history?.length||0)+1;tr.innerHTML='<td><strong>'+escapeHtml(r.cognome||'')+' '+escapeHtml(r.nome||'')+'</strong><br><small>Nascita: '+escapeHtml(r.dataNascita||'—')+'</small></td><td>'+escapeHtml(r.cf||'—')+'</td><td>'+escapeHtml(d.datore_lavoro||'DA COMPLETARE')+'</td><td>'+escapeHtml(d.committente||'NON INDICATO')+'</td><td>'+escapeHtml(archiveDateText(visit)||'—')+'</td>'+['analisi','drug'].map(k=>'<td data-referto="'+k+'"><span class="archive-referto" data-state="'+flags[k]+'">'+flags[k]+'</span></td>').join('')+'<td>'+escapeHtml(fmtArchiveDate(r.updatedAt))+'</td><td></td>';const td=tr.lastElementChild,b1=document.createElement('button');b1.type='button';b1.className='success';b1.textContent='APRI';b1.dataset.archiveId=recordId;b1.onclick=e=>{e.preventDefault();e.stopPropagation();openArchiveRecord(recordId)};td.className='archive-actions';td.appendChild(b1);const menu=document.createElement('details');menu.className='archive-actions-menu';const summary=document.createElement('summary');summary.textContent='ALTRE AZIONI ▾';const commands=document.createElement('div');commands.className='archive-action-commands';menu.append(summary,commands);td.appendChild(menu);menu.addEventListener('toggle',()=>{if(menu.open)td.closest('tbody').querySelectorAll('.archive-actions-menu[open]').forEach(other=>{if(other!==menu)other.open=false})});commands.addEventListener('click',e=>{if(e.target.closest('button'))menu.open=false});if(vers>1){const b2=document.createElement('button');b2.type='button';b2.className='secondary';b2.textContent='STORICO';b2.style.marginLeft='5px';b2.onclick=()=>showArchiveHistory(recordId);commands.appendChild(b2)}const b3=document.createElement('button');b3.type='button';b3.className='danger';b3.textContent='ELIMINA';b3.style.marginLeft='5px';b3.onclick=()=>deleteArchiveRecord(recordId);commands.appendChild(b3);['LAVORATORE','CF','DATORE DI LAVORO','COMMITTENTE','DATA VISITA','ANALISI','DRUG TEST','AGGIORNATA','AZIONI'].forEach((label,i)=>tr.children[i].dataset.label=label);tb.appendChild(tr)});box.innerHTML='';box.appendChild(t);window.lumenArchiveReferti?.decorate();window.lumenArchiveReferti?.checkPending(rows)}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 const originalSaveCartellaVerified=saveCartellaVerified;
 saveCartellaVerified=async function(){try{const x=await saveToLocalArchive();showSaveInfo('ok',x.isUpdate?'✓ CARTELLA AGGIORNATA NELL’ARCHIVIO':'✓ CARTELLA INSERITA NELL’ARCHIVIO',(x.rec.cognome||'')+' '+(x.rec.nome||'')+'\nCF: '+(x.rec.cf||'NON PRESENTE')+'\nVersioni conservate: '+x.versioni+'\nOra: '+clock());setStatus(x.isUpdate?'CARTELLA AGGIORNATA NELL’ARCHIVIO LOCALE.':'CARTELLA SALVATA NELL’ARCHIVIO LOCALE.')}catch(e){showSaveInfo('error','ARCHIVIO LOCALE NON AGGIORNATO',e.message||String(e));return}await originalSaveCartellaVerified()}
-document.getElementById('btnArchivioCartelle').onclick=()=>{document.getElementById('archiveModal').classList.add('show');document.getElementById('archiveQuery').value='';clearArchiveRoles();renderArchive('');setTimeout(()=>document.getElementById('archiveQuery').focus(),50)};
+document.getElementById('btnArchivioCartelle').onclick=()=>{document.getElementById('archiveModal').classList.add('show');document.getElementById('archiveQuery').value='';clearArchiveRoles();renderRecentCharts([]);renderArchive('');setTimeout(()=>document.getElementById('archiveQuery').focus(),50)};
 // Un link del recupero iPhone apre solo l'archivio di PROVA, mai quello reale.
 // Non avvia alcun salvataggio o importazione, e non altera i dati esistenti.
 if(lumenStorage.isTest&&new URLSearchParams(location.search).get('apriArchivio')==='1'){
@@ -1699,8 +1749,8 @@ function renderWorkers(){
   b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);
   const v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);tr.appendChild(td);workersBody.appendChild(tr);
  });
- const done=workers.filter(w=>w.visited).length;
- workersSummary.textContent=workers.length?'TOTALE: '+workers.length+' — VISITATI: '+done+' — DA VISITARE: '+(workers.length-done)+(attachedSourceName?' — FONTE: '+attachedSourceName:''):'NESSUNA LISTA CARICATA.';saveWorkersLocal();
+ saveWorkersLocal();
+ document.dispatchEvent(new Event('lumen:lista-rendered'));
  if(window.lumenAnagrafiche)void sincronizzaAnagraficaVisitati();
 }
 const workerDrafts=new Map(),workerDraftRows=new WeakMap();
@@ -1767,7 +1817,7 @@ async function autosaveCurrentCartella(reason='CAMBIO LAVORATORE'){
  if(emptyWorkerScreen&&JSON.stringify(data)===emptyWorkerScreen)return {saved:false,skipped:'non modificata'};
  try{
   const old=await getCartellaRecord(cartellaId(data));
-  if(old&&JSON.stringify(old.data)===JSON.stringify(data))return {saved:false,skipped:'gia salvata'};
+  if(old&&JSON.stringify(old.data)===JSON.stringify(data))return {saved:false,skipped:'gia salvata',record:old};
   const saved=await saveToLocalArchive(data),verified=await getCartellaRecord(saved.rec.id);
   if(!verified||JSON.stringify(verified.data)!==JSON.stringify(data))throw new Error('Verifica del salvataggio automatico non riuscita.');
   const nome=[data.cognome,data.nome].filter(Boolean).join(' ');
@@ -1809,6 +1859,7 @@ async function chiudiCartella(){
   window.lumenCambiaLista?.saveCurrentIntoActive();
   document.querySelector('.cartella').classList.add('hidden');
   saveInfo.style.display='none';
+  if(result.record)showSaveConfirmation(result.record);
   setStatus('CARTELLA CHIUSA. ARCHIVIO E LISTA CONSERVATI. SELEZIONA UN LAVORATORE O APRI ARCHIVIO CARTELLE.');
   document.getElementById('workersSummary').scrollIntoView({behavior:'smooth',block:'center'});
  }catch(e){setStatus('CARTELLA NON CHIUSA: '+(e.message||String(e)))}
@@ -1846,10 +1897,11 @@ async function selectWorker(i){
  try{
   const found=await findWorkerArchive(base);
   if(version!==workerSelectionVersion||JSON.stringify(collect())!==initial)return;
-  const candidates=found.records.flatMap(rec=>[{data:rec.data},...(rec.history||[]).slice().reverse()].filter(x=>x.data).map(x=>workerRecordData(rec,x.data)));
-  const saved=candidates.find(d=>workerMatch(base,d)===2&&workerDate(signatureVisit(d))===workerDate(dataVisita));
+  const candidates=found.records.flatMap(rec=>[rec.data,...(rec.history||[]).slice().reverse().map(h=>h.data)].filter(Boolean).map(data=>({id:rec.id,data:workerRecordData(rec,data)})));
+  const saved=candidates.find(({data})=>workerMatch(base,data)===2&&workerDate(signatureVisit(data))===workerDate(dataVisita));
   if(saved){
-   apply(mergeWorkerData({stato_rapporto:'',...saved},base));emptyWorkerScreen=null;
+   apply(mergeWorkerData({stato_rapporto:'',...saved.data},base));emptyWorkerScreen=null;
+   rememberRecentChart(saved.id);
    activeDraftWorker=w;activeDraftVersion=workerSelectionVersion;
    setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' — CF: '+(text('codice_fiscale')||'NON PRESENTE')+' — RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.');
   }else if(w.visited||found.records.length||found.possible.length){
@@ -2084,13 +2136,17 @@ function workersData(){const d=read('beltrami_workers_v8',{workers:[]});return A
 function esiti(){return read(K_ESITI,{})}
 function keyOf(w,i){return w.id||[w.cognome,w.nome,w.data_nascita,i].join('|')}
 function stats(){const ws=workersData(),e=esiti();let visitati=0,assenti=0;ws.forEach((w,i)=>{const x=e[keyOf(w,i)];if(x==='ASSENTE')assenti++;else if(w.visited)visitati++});return{totale:ws.length,visitati,assenti,daGestire:Math.max(0,ws.length-visitati-assenti)}}
-function renderCard(s=read(K_SESS,null)){const st=stats();$('v9Card').innerHTML=s?'<strong>SESSIONE ATTIVA</strong> <span class="v9-badge">'+safe(s.stato)+'</span><br><b>Data:</b> '+safe(fmt(s.data))+(s.fascia?' — '+safe(s.fascia):'')+'<br><b>Committente:</b> '+safe(s.committente||'—')+' &nbsp; <b>Sede:</b> '+safe(s.sede||'—')+' &nbsp; <b>Azienda:</b> '+safe(s.azienda||'—')+'<br><b>Lista:</b> totale '+st.totale+' — visitati '+st.visitati+' — assenti '+st.assenti+' — senza esito '+st.daGestire+(s.listaOriginale?'<br><b>File originale:</b> '+safe(s.listaOriginale.name)+' <button type="button" id="v14Originale" class="secondary" style="min-height:30px;padding:4px 8px;font-size:11px">APRI / SALVA ORIGINALE</button>':''):'NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.';const ob=$('v14Originale');if(ob)ob.onclick=()=>window.beltramiOriginalFiles.downloadOriginal(s.listaOriginale)}
+function renderCard(s=read(K_SESS,null)){const st=stats();
+ workersSummary.textContent=st.totale
+  ?st.totale+' in lista · '+st.visitati+' visitati · '+st.daGestire+' da visitare · '+st.assenti+' assenti'+(attachedSourceName?' · Fonte: '+attachedSourceName:'')
+  :'NESSUNA LISTA CARICATA.';
+ $('v9Card').innerHTML=s?'<strong>SESSIONE ATTIVA</strong> <span class="v9-badge">'+safe(s.stato)+'</span><br><b>Data:</b> '+safe(fmt(s.data))+(s.fascia?' — '+safe(s.fascia):'')+'<br><b>Committente:</b> '+safe(s.committente||'—')+' &nbsp; <b>Sede:</b> '+safe(s.sede||'—')+' &nbsp; <b>Azienda:</b> '+safe(s.azienda||'—')+'<br><b>Lista:</b> totale '+st.totale+' — visitati '+st.visitati+' — assenti '+st.assenti+' — senza esito '+st.daGestire+(s.listaOriginale?'<br><b>File originale:</b> '+safe(s.listaOriginale.name)+' <button type="button" id="v14Originale" class="secondary" style="min-height:30px;padding:4px 8px;font-size:11px">APRI / SALVA ORIGINALE</button>':''):'NESSUNA SESSIONE ATTIVA. COMPILA I CAMPI E PREMI “SALVA / AVVIA SESSIONE”.';const ob=$('v14Originale');if(ob)ob.onclick=()=>window.beltramiOriginalFiles.downloadOriginal(s.listaOriginale)}
 function saveSession(){const s=collectSession();if(!s.committente)return alert('Inserire il committente.');if(!s.sede)return alert('Inserire la sede di visita.');if(!s.azienda&&(!workersData().length||workersData().some(w=>!String(w.datore_lavoro||'').trim())))return alert('Inserire l’azienda dei lavoratori oppure indicare il datore in ogni riga della lista.');if(s.stato==='PREPARAZIONE')s.stato='IN CORSO';$('v9Stato').value=s.stato;$('v9Panel').dataset.sid=s.id;write(K_SESS,s);rememberClient(s,true);if(s.azienda)upsert('aziende',{nome:s.azienda});renderCard(s);const dl=$('datore_lavoro');if(dl&&!dl.value)dl.value=s.azienda;const cm=$('committente');if(cm&&!cm.value&&!$('cognome').value&&!$('nome').value)cm.value=s.committente;alert('SESSIONE SALVATA. I DATI RESTANO SU QUESTO DISPOSITIVO.')}
 $('v9Avvia').onclick=saveSession;
 $('v9Nuova').onclick=()=>{if(!confirm('Creare una nuova sessione? La sessione attuale resta nello storico se è stata chiusa.'))return;$('v9Panel').dataset.sid='';['v9Fascia','v9Committente','v9Email','v9Referente','v9Sede','v9IndirizzoSede','v9Azienda','v9Note'].forEach(id=>$(id).value='');$('v9Data').value=today();$('v9Stato').value='PREPARAZIONE';lumenStorage.local.removeItem(K_SESS);window.beltramiOriginalFiles.clearOriginalMeta();write(K_ESITI,{});renderArchives();persistSessionDraft()};
-function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);decorateRows();renderCard()}
+function setAbsent(i,isAbsent){const ws=workersData(),w=ws[i];if(!w)return;const e=esiti(),k=keyOf(w,i);if(isAbsent)e[k]='ASSENTE';else delete e[k];write(K_ESITI,e);renderWorkers()}
 function decorateRows(){const ws=workersData(),e=esiti();document.querySelectorAll('#workersBody tr').forEach(tr=>{const n=parseInt((tr.children[0]||{}).textContent,10)-1;if(n<0||!ws[n])return;const td=tr.lastElementChild;if(!td||td.querySelector('.v9-assente-btn'))return;const k=keyOf(ws[n],n),abs=e[k]==='ASSENTE';if(abs){tr.classList.add('v9-absent');tr.children[1].textContent='ASSENTE'}const b=document.createElement('button');b.type='button';b.className='v9-assente-btn '+(abs?'secondary':'v9-orange');b.style.marginLeft='5px';b.textContent=abs?'ANNULLA ASSENTE':'SEGNA ASSENTE';b.onclick=()=>setAbsent(n,!abs);td.appendChild(b)})}
-new MutationObserver(()=>{decorateRows();renderCard()}).observe($('workersBody'),{childList:true,subtree:true});
+document.addEventListener('lumen:lista-rendered',()=>{decorateRows();renderCard()});
 function buildReport(preparazione=false){
  $('v9ReportTitle').textContent=preparazione?'LISTA LAVORATORI — PREPARAZIONE VISITE':'RIEPILOGO LISTA LAVORATORI ELABORATA';
  $('v9ReportTable').classList.toggle('preparazione',preparazione);
