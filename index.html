@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="lumen-workflow-build" content="20261111-cartella-seduta-3">
+<meta name="lumen-workflow-build" content="20261112-protocolli-salvati-1">
 <meta name="lumen-certificate-build" content="20261031-firma-etichetta-2">
 <meta name="lumen-signature-build" content="20261031-firma-chunks-2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -1369,7 +1369,7 @@ function showSaveConfirmation(record){
 form.addEventListener('input',clearSaveConfirmation);
 form.addEventListener('change',clearSaveConfirmation);
 window.addEventListener('beltrami-signature-updated',clearSaveConfirmation);
-async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v)}
 function archiveHaystack(r){const d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,lumenRuoliAzienda.forRecord(r).committente,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
 async function listCartelleArchive(query='',roles={}){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))&&lumenRuoliAzienda.matches(lumenRuoliAzienda.forRecord(r),roles)}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
@@ -3592,6 +3592,92 @@ function boot(){
  const empty=()=>!plan().protocollo.length&&fields.every(id=>!document.getElementById(id).value);
  const get=()=>({datore_lavoro:document.getElementById('datore_lavoro').value,sede_lavoro:document.getElementById('sede_lavoro').value,mansione:document.getElementById('mansione').value,data_giudizio:document.getElementById('data_giudizio').value,data_cartella:document.getElementById('data_cartella').value});
  let protectedRecord=!!window.lumenProtocolloSourcePresent,last='',timer;
+ const savedKey='beltrami_protocolli_scelta_libera_v1';
+ const savedFields=[...fields,'altri_accertamenti'];
+ const checks=[...document.querySelectorAll('#protocollo input[type="checkbox"]')];
+ const allowedChecks=checks.map(el=>el.value);
+ const controls=document.createElement('div');
+ controls.id='lumenProtocolloSalvato';
+ controls.hidden=true;
+ controls.innerHTML='<button type="button" class="secondary">Usa protocollo salvato</button><span role="status"></span>';
+ document.getElementById('protocollo').before(controls);
+ const button=controls.querySelector('button'),savedStatus=controls.querySelector('span');
+ style.textContent+=' #lumenProtocolloSalvato{margin:8px 0} #lumenProtocolloSalvato span{display:block} @media print{#lumenProtocolloSalvato{display:none!important}}';
+ const readSaved=()=>JSON.parse(storage.getItem(savedKey)||'{}');
+ const hasContext=d=>[d.datore_lavoro,d.sede_lavoro,d.mansione].every(value=>norm(value));
+ const savedPlan=d=>({
+  protocollo:allowedChecks.filter(value=>Array.isArray(d.protocollo)&&d.protocollo.includes(value)),
+  ...Object.fromEntries(savedFields.map(id=>[id,String(d[id]||'').trim()]))
+ });
+ const currentPlan=()=>savedPlan({...plan(),altri_accertamenti:document.getElementById('altri_accertamenti').value});
+ const samePlan=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ const validPlan=p=>Array.isArray(p?.protocollo)&&p.protocollo.every(value=>allowedChecks.includes(value))
+  && savedFields.every(id=>typeof p[id]==='string')
+  && ['periodicita','periodicita_protocollo'].every(id=>[...document.getElementById(id).options].some(option=>option.value===p[id])
+   && (p[id]!=='ALTRO'||p[id+'_altro'].trim()));
+ const hasPlan=p=>p.protocollo.length||savedFields.some(id=>p[id]);
+ const validDate=date=>/^\d{4}-\d{2}-\d{2}$/.test(date||'');
+ let usedContext='', declinedUpdate='';
+ function findSaved(d){
+  const date=d.data_giudizio||d.data_cartella;
+  if(!hasContext(d)||!validDate(date)||meta.value||choose(read(),d))return null;
+  const entry=readSaved()[context(d)];
+  return entry?.since<=date&&validPlan(entry.plan)?entry:null;
+ }
+ function refreshSaved(){
+  const d=get();
+  let entry;
+  try{entry=findSaved(d);}catch{entry=null;}
+  button.hidden=!entry||samePlan(entry.plan,currentPlan())||(!!usedContext&&usedContext!==context(d));
+  controls.hidden=button.hidden&&!savedStatus.textContent;
+ }
+ button.onclick=()=>{
+  try{
+   const d=get(),entry=findSaved(d);
+   if(!entry)return;
+   const current=currentPlan();
+   if(protectedRecord&&hasPlan(current)&&!samePlan(current,entry.plan)&&!confirm('Sostituire gli accertamenti e le periodicità di questa cartella con il protocollo salvato?'))return;
+   usedContext=context(d);
+   checks.forEach(el=>{el.checked=entry.plan.protocollo.includes(el.value);});
+   for(const id of savedFields)document.getElementById(id).value=entry.plan[id];
+   for(const el of [...checks,...savedFields.map(id=>document.getElementById(id))]){
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+   }
+   savedStatus.textContent='Protocollo salvato applicato.';
+   refreshSaved();
+  }catch{savedStatus.textContent='Impossibile recuperare il protocollo salvato.';controls.hidden=false;}
+ };
+ window.lumenRicordaProtocollo=(data,manual)=>{
+  const date=data.data_giudizio||data.data_cartella;
+  const key=context(data);
+  if(!hasContext(data)||!validDate(date)||data[SNAP]||(usedContext&&usedContext!==key))return;
+  const next=savedPlan(data);
+  if(!validPlan(next)||!hasPlan(next))return;
+  try{
+   if(choose(read(),data))return;
+   const entries=readSaved(),entry=entries[key];
+   if(entry){
+    if(!manual||date<entry.since||samePlan(entry.plan,next))return;
+    const proposal=JSON.stringify([key,date,data.codice_fiscale,data.cognome,data.nome,next]);
+    if(declinedUpdate===proposal)return;
+    if(!confirm('Aggiornare il protocollo salvato per questa azienda, sede e mansione? Premi Annulla per usare la modifica solo in questa visita.')){
+     declinedUpdate=proposal;
+     return;
+    }
+   }
+   storage.setItem(savedKey,JSON.stringify({...entries,[key]:{since:date,plan:next}}));
+   savedStatus.textContent=entry?'Protocollo salvato aggiornato.':'Nuovo protocollo memorizzato.';
+  }catch{savedStatus.textContent='Cartella salvata. Impossibile memorizzare il protocollo.';}
+  refreshSaved();
+ };
+ document.addEventListener('lumen:cartella-applied',()=>{usedContext='';declinedUpdate='';savedStatus.textContent='';});
+ form.addEventListener('input',event=>{
+  if(['datore_lavoro','sede_lavoro','mansione'].includes(event.target.id))savedStatus.textContent='';
+  if(savedFields.includes(event.target.id))refreshSaved();
+ });
+ form.addEventListener('change',event=>{
+  if(checks.includes(event.target)||savedFields.includes(event.target.id))refreshSaved();
+ });
  function update(manual=false){try{
   const d=get();last=JSON.stringify(d);
   if(meta.value){const snapshot=JSON.parse(meta.value);status.textContent=context(snapshot)!==context(d)?'Azienda, sede o mansione cambiate: il protocollo precedente resta registrato; controllare i campi prima di procedere.':'Protocollo della visita: '+snapshot.reference+' · decorrenza '+snapshot.validFrom+'. '+(JSON.stringify(plan())!==JSON.stringify(snapshot.plan)?'Configurazione personalizzata manualmente per questa visita. ':'')+(snapshot.visitDate&&snapshot.visitDate!==(d.data_giudizio||d.data_cartella)?'Data visita cambiata: verificare la validità del protocollo. ':'')+'I campi restano modificabili; le tue correzioni vengono conservate.';return;}
@@ -3622,9 +3708,11 @@ function boot(){
  document.addEventListener('lumen:cartella-applied',e=>{
   const d=e.detail||{};protectedRecord=Object.prototype.hasOwnProperty.call(d,'protocollo')||fields.some(id=>Object.prototype.hasOwnProperty.call(d,id));
   update();
+  refreshSaved();
  });
- for(const id of ['datore_lavoro','sede_lavoro','mansione','data_cartella','data_giudizio','cognome','nome'])document.getElementById(id).addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>update(),300);});
+ for(const id of ['datore_lavoro','sede_lavoro','mansione','data_cartella','data_giudizio','cognome','nome'])document.getElementById(id).addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{update();refreshSaved();},300);});
  update();
+ refreshSaved();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
