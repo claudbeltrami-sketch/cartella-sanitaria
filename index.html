@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261113-nominativi-v4">
+<meta name="lumen-build" content="20261113-nominativi-v5">
 <script src="prova-storage.js?v=20261108-prova-multicartella-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -1697,6 +1697,17 @@ function lumenNomeProvvisorio(w){
  const cognome=norm(w?.cognome),nome=norm(w?.nome);
  return !cognome&&!nome||cognome==='LAVORATORE'&&/^\d+$/.test(nome);
 }
+// Per i collegamenti anagrafici accetta solo equivalenze documentate
+// tra denominazioni della stessa azienda, mai somiglianze generiche.
+// Le cartelle sanitarie e i dati clinici non vengono alterati.
+function lumenDatoreCompatibile(lista,cartella){
+ const key=value=>norm(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'');
+ const a=key(lista),b=key(cartella);
+ if(!a||!b)return false;
+ if(a===b)return true;
+ const alias={INTERCETH:'INTERCERTH',INTERCERTH:'INTERCERTH',INTERCERTHITALIASRL:'INTERCERTH'};
+ return !!alias[a]&&alias[a]===alias[b];
+}
 function lumenDataSedutaLista(){
  const match=String(attachedSourceName||'').match(/(?:^|[^0-9])(\d{1,2})[-_.](\d{1,2})[-_.](20\d{2})(?:[^0-9]|$)/);
  if(match){const value=match[3]+'-'+match[2].padStart(2,'0')+'-'+match[1].padStart(2,'0');
@@ -1791,7 +1802,8 @@ async function lumenRecuperaNomiProvvisori(){
  try{
   const archivi=await listCartelleArchive('');
   if(lista!==workers||fonte!==attachedSourceName||seduta!==lumenDataSedutaLista())return;
-  const session=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessione_attiva')||'null');
+  const attiva=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessione_attiva')||'null');
+  const session=attiva&&workerDate(attiva.data)===seduta?attiva:null;
   for(const row of mancanti){
    if(!workers.includes(row))continue;
    if(mancanti.filter(w=>norm(w.datore_lavoro)===norm(row.datore_lavoro)).length!==1)continue;
@@ -1800,7 +1812,7 @@ async function lumenRecuperaNomiProvvisori(){
     for(const raw of [rec.data,...(rec.history||[]).map(x=>x.data)].filter(Boolean)){
      const d=workerRecordData(rec,raw);
      if(lumenNomeProvvisorio(d)||!norm(d.cognome)||!norm(d.nome))continue;
-     if(workerDate(signatureVisit(d))!==seduta||norm(d.datore_lavoro)!==norm(row.datore_lavoro))continue;
+     if(workerDate(signatureVisit(d))!==seduta||!lumenDatoreCompatibile(row.datore_lavoro,d.datore_lavoro))continue;
      if(session?.committente&&d.committente&&norm(d.committente)!==norm(session.committente))continue;
      if(workers.some(w=>w!==row&&!lumenNomeProvvisorio(w)&&lumenStessaPersonaInLista(w,d)))continue;
      const cf=norm(d.codice_fiscale).replace(/\s+/g,'');
@@ -1831,7 +1843,7 @@ async function lumenAssociaCartellaAllaRiga(row){
    const d=workerRecordData(rec,raw);
    if(!norm(d.cognome)||!norm(d.nome)||lumenNomeProvvisorio(d))continue;
    if(workerDate(signatureVisit(d))!==dataLista)continue;
-   if(row.datore_lavoro&&norm(row.datore_lavoro)!==norm(d.datore_lavoro))continue;
+   if(row.datore_lavoro&&!lumenDatoreCompatibile(row.datore_lavoro,d.datore_lavoro))continue;
    if(sessione?.committente&&d.committente&&norm(sessione.committente)!==norm(d.committente))continue;
    if(row.codice_fiscale&&d.codice_fiscale&&norm(row.codice_fiscale)!==norm(d.codice_fiscale))continue;
    if(row.data_nascita&&d.data_nascita&&workerDate(row.data_nascita)!==workerDate(d.data_nascita))continue;
