@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="lumen-list-build" content="20261012-lista-sessione-v19">
 <meta name="lumen-external-pdf-build" content="20261014-mac-2">
-<meta name="lumen-build" content="20261113-nominativi-v2">
+<meta name="lumen-build" content="20261113-nominativi-v3">
 <script src="prova-storage.js?v=20261108-prova-multicartella-1"></script>
 <script src="ruoli-azienda.js?v=20261007-1"></script>
 <script>
@@ -1814,6 +1814,45 @@ async function lumenRecuperaNomiProvvisori(){
  }catch(e){console.warn('LUMEN: riconciliazione nomi rinviata',e)}
  finally{lumenRecuperoNomiInCorso=false}
 }
+// Una lista con più segnaposto indistinguibili non consente l'abbinamento
+// automatico. La scelta manuale si basa su cartelle della stessa data e azienda.
+async function lumenAssociaCartellaAllaRiga(row){
+ if(!workers.includes(row)||!lumenNomeProvvisorio(row))return;
+ const originalList=workers,fonte=attachedSourceName,dataLista=lumenDataSedutaLista();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dataLista)){alert('DATA DELLA LISTA NON DISPONIBILE: INSERISCI LA DATA DELLA SEDUTA.');return;}
+ let archivi;
+ try{archivi=await listCartelleArchive('')}catch(e){alert('ARCHIVIO NON LEGGIBILE: '+(e.message||e));return;}
+ if(workers!==originalList||fonte!==attachedSourceName||lumenDataSedutaLista()!==dataLista)return;
+ const sessione=JSON.parse(lumenStorage.local.getItem('beltrami_v9_sessione_attiva')||'null');
+ const validi=new Map();
+ for(const rec of archivi){
+  for(const raw of [rec.data,...(rec.history||[]).map(h=>h.data)].filter(Boolean)){
+   const d=workerRecordData(rec,raw);
+   if(!norm(d.cognome)||!norm(d.nome)||lumenNomeProvvisorio(d))continue;
+   if(workerDate(signatureVisit(d))!==dataLista)continue;
+   if(row.datore_lavoro&&norm(row.datore_lavoro)!==norm(d.datore_lavoro))continue;
+   if(sessione?.committente&&d.committente&&norm(sessione.committente)!==norm(d.committente))continue;
+   if(row.codice_fiscale&&d.codice_fiscale&&norm(row.codice_fiscale)!==norm(d.codice_fiscale))continue;
+   if(row.data_nascita&&d.data_nascita&&workerDate(row.data_nascita)!==workerDate(d.data_nascita))continue;
+   if(workers.some(w=>w!==row&&!lumenNomeProvvisorio(w)&&lumenStessaPersonaInLista(w,d)))continue;
+   const cf=norm(d.codice_fiscale).replace(/\s+/g,''),nascita=workerDate(d.data_nascita);
+   if(!cf&&!/^\d{4}-\d{2}-\d{2}$/.test(nascita))continue;
+   validi.set(cf||[norm(d.cognome),norm(d.nome),nascita].join('|'),d);
+  }
+ }
+ const opzioni=[...validi.values()].sort((a,b)=>(norm(a.cognome)+' '+norm(a.nome)).localeCompare(norm(b.cognome)+' '+norm(b.nome)));
+ if(!opzioni.length){alert('NESSUNA CARTELLA COLLEGABILE CON CERTEZZA ALLA SEDUTA DEL '+dataLista+'. IL NOMINATIVO RESTA VUOTO.');return;}
+ const elenco=opzioni.map((d,i)=>(i+1)+'. '+norm(d.cognome)+' '+norm(d.nome)+' — '+(d.codice_fiscale||d.data_nascita)).join('\n');
+ const risposta=prompt('RIGA '+(workers.indexOf(row)+1)+' — VISITA '+dataLista+'\nScegli il NUMERO della cartella da associare (Annulla non modifica nulla):\n\n'+elenco);
+ if(risposta===null)return;
+ const indice=Number(String(risposta).trim());
+ if(!Number.isInteger(indice)||indice<1||indice>opzioni.length){alert('NUMERO NON VALIDO. NESSUNA MODIFICA.');return;}
+ const d=opzioni[indice-1];
+ if(!confirm('CONFERMI '+norm(d.cognome)+' '+norm(d.nome)+' PER LA RIGA '+(workers.indexOf(row)+1)+'?\nIl totale delle visite NON cambia.'))return;
+ if(workers!==originalList||attachedSourceName!==fonte||!workers.includes(row)||!lumenNomeProvvisorio(row))return;
+ if(!lumenAggiornaRigaNominativo(row,d)){alert('ASSOCIAZIONE NON RIUSCITA: IDENTITÀ AMBIGUA O INCOMPATIBILE.');return;}
+ setStatus('NOMINATIVO ASSOCIATO ALLA RIGA '+(workers.indexOf(row)+1)+'. VISITATI: '+workers.filter(w=>w.visited).length+'.');
+}
 window.addEventListener('load',()=>{void lumenRecuperaNomiProvvisori()});
 
 // La lista può conservare campi vuoti dopo che la cartella della stessa visita è stata salvata.
@@ -1881,7 +1920,9 @@ function renderWorkers(){
   for(const value of cells){const td=document.createElement('td');td.textContent=value;tr.appendChild(td)}
   const td=document.createElement('td'),b=document.createElement('button');
   b.type='button';b.textContent='APRI';b.onclick=()=>selectWorker(i);td.appendChild(b);
-  const v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);tr.appendChild(td);workersBody.appendChild(tr);
+  const v=document.createElement('button');v.type='button';v.textContent=w.visited?'RIAPRI':'SEGNA VISITATO';v.className=w.visited?'secondary':'success';v.style.marginLeft='5px';v.onclick=()=>handleWorkerVisit(i);td.appendChild(v);
+  if(provvisorio){const a=document.createElement('button');a.type='button';a.className='success';a.textContent='ASSOCIA CARTELLA';a.style.marginLeft='5px';a.onclick=()=>void lumenAssociaCartellaAllaRiga(w);td.appendChild(a);}
+  tr.appendChild(td);workersBody.appendChild(tr);
  });
  saveWorkersLocal();
  document.dispatchEvent(new Event('lumen:lista-rendered'));
