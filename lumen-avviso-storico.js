@@ -72,7 +72,33 @@
     for (const row of matches) {
       const item = document.createElement('li');
       const date = row.data ? row.data.split('-').reverse().join('/') : 'Data da verificare';
-      item.textContent = [date, row.committente, row.datore, row.sede, row.nota].filter(Boolean).join(' · ');
+      let note = row.nota;
+      const reference = /^Giudizio storico: (?:Non idoneo|Idoneo con )/i.test(note)
+        && note.match(/ · Certificato originale \(Gmail\): (.+)$/u);
+      let certificate;
+      if (reference) {
+        const parts = reference[1].split(' — ');
+        const address = parts[1]?.split(' · ')[0];
+        try {
+          const url = new URL(address);
+          if (url.origin === 'https://mail.google.com' && url.pathname.startsWith('/mail/') &&
+              /^#all\/[0-9a-f]+$/i.test(url.hash) && !url.username && !url.password) {
+            certificate = url.href;
+            note = note.slice(0, reference.index) + ' · Certificato originale: ' + parts[0];
+          }
+        } catch {
+          // Keep the original note readable if the reference cannot be opened.
+        }
+      }
+      item.textContent = [date, row.committente, row.datore, row.sede, note].filter(Boolean).join(' · ');
+      if (certificate) {
+        const link = document.createElement('a');
+        link.href = certificate;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Apri certificato in Gmail';
+        item.append(document.createElement('br'), link);
+      }
       list.append(item);
     }
   }
