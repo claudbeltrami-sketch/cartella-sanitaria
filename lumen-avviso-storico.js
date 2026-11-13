@@ -76,6 +76,7 @@
       const reference = /^Giudizio storico: (?:Non idoneo|Idoneo con )/i.test(note)
         && note.match(/ · Certificato originale \(Gmail\): (.+)$/u);
       let certificate;
+      let gmailSearch;
       if (reference) {
         const parts = reference[1].split(' — ');
         const address = parts[1]?.split(' · ')[0];
@@ -84,6 +85,14 @@
           if (url.origin === 'https://mail.google.com' && url.pathname.startsWith('/mail/') &&
               /^#all\/[0-9a-f]+$/i.test(url.hash) && !url.username && !url.password) {
             certificate = url.href;
+            const sent = parts[0].match(/^(\d{2})\/(\d{2})\/(\d{4}), pag\./);
+            if (sent && row.committente.toLowerCase() === 'sermolab') {
+              const [, day, month, year] = sent;
+              const start = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+              const end = new Date(start.getTime() + 86400000);
+              const format = date => date.toISOString().slice(0, 10).replaceAll('-', '/');
+              gmailSearch = `in:sent to:sermolab.medicinadellavoro@gmail.com has:attachment after:${format(start)} before:${format(end)}`;
+            }
             note = note.slice(0, reference.index) + ' · Certificato originale: ' + parts[0];
           }
         } catch {
@@ -98,6 +107,20 @@
         link.rel = 'noopener noreferrer';
         link.textContent = 'Apri certificato in Gmail';
         item.append(document.createElement('br'), link);
+        if (gmailSearch && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+          const search = document.createElement('button');
+          search.type = 'button';
+          search.textContent = 'Copia ricerca Gmail';
+          search.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(gmailSearch);
+              status.textContent = 'Ricerca copiata. Incollala nella barra Cerca dell’app Gmail.';
+            } catch {
+              status.textContent = 'Copia questa ricerca in Gmail: ' + gmailSearch;
+            }
+          });
+          item.append(document.createElement('br'), search);
+        }
       }
       list.append(item);
     }
