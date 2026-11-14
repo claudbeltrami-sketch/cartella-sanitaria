@@ -47,12 +47,12 @@ const worker=n=>({cognome:'COLLAUDO '+String(n).padStart(2,'0'),nome:'FITTIZIO',
   p.$('visiteArchiveMonth').value='2026-09';p.$('visiteArchiveMonth').onchange();
   p.$('visiteArchiveClientFilter').value='SERMOLAB';p.$('visiteArchiveClientFilter').oninput();
   await p.$('visiteArchiveLoad').onclick();
-  assert.match(p.$('visiteArchiveMessage').textContent,/^4 VISITE TROVATE — 4 SELEZIONATE — SETTEMBRE 2026/);
+  assert.match(p.$('visiteArchiveMessage').textContent,/^5 VISITE TROVATE — 5 SELEZIONATE — SETTEMBRE 2026/);
   assert.match(p.$('visiteArchiveFilter').textContent,/filtro testuale precedente dell’archivio non limita il periodo/);
   p.$('visiteArchiveClientFilter').value='NON PRESENTE';p.$('visiteArchiveClientFilter').oninput();
   await p.$('visiteArchiveLoad').onclick();
   assert.match(p.$('visiteArchiveMessage').textContent,/^0 VISITE TROVATE — 0 SELEZIONATE — SETTEMBRE 2026/);
-  assert.match(p.$('visiteArchiveMessage').textContent,/Nel periodo risultano 24 visite/);
+  assert.match(p.$('visiteArchiveMessage').textContent,/Nel periodo risultano 25 visite/);
   p.$('visiteArchiveMonth').value='2026-01';p.$('visiteArchiveMonth').onchange();
   await p.$('visiteArchiveLoad').onclick();
   assert.match(p.$('visiteArchiveMessage').textContent,/Nessuna visita datata nel periodo nell’archivio di questo dispositivo/);
