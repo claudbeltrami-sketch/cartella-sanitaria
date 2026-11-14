@@ -109,10 +109,18 @@
  }
  const style=document.createElement('style');style.textContent=`#visiteArchiveDialog{box-sizing:border-box;width:min(1050px,calc(100vw - 20px));max-height:92vh;overflow:auto;border:2px solid #27834a;border-radius:12px;padding:18px;background:#fff;color:#222}#visiteArchiveDialog::backdrop{background:#0009}#visiteArchiveDialog [hidden]{display:none!important}#visiteArchiveDialog .visit-controls{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}#visiteArchiveDialog label{display:flex;flex-direction:column;gap:4px;font-weight:bold;flex:1 1 180px}#visiteArchiveDialog input:not([type=checkbox]),#visiteArchiveDialog select{min-height:42px;padding:6px;font-size:16px;box-sizing:border-box;max-width:100%}#visiteArchiveDialog table{width:100%;border-collapse:collapse;font-size:14px}#visiteArchiveDialog td,#visiteArchiveDialog th{padding:8px;border-bottom:1px solid #bbb;text-align:left;overflow-wrap:anywhere}#visiteArchiveDialog input[type=checkbox]{width:22px;height:22px}#visiteArchiveDialog .visit-table{overflow:auto}#visiteArchiveMessage{white-space:pre-line;font-weight:bold;margin:12px 0}#visiteArchiveDialog .visit-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}@media print{#visiteArchiveDialog{display:none!important}}`;document.head.appendChild(style);
  const dialog=document.createElement('dialog');dialog.id='visiteArchiveDialog';dialog.setAttribute('aria-labelledby','visiteArchiveTitle');dialog.innerHTML=`<div class="consent-head"><h3 id="visiteArchiveTitle">VISITE DALL’ARCHIVIO</h3><button type="button" id="visiteArchiveClose" class="secondary">CHIUDI</button></div><p>L’elenco conserva i filtri dell’archivio e ricerca le date delle visite, comprese le versioni storiche. Mostra solo le visite già archiviate su questo dispositivo.</p><p id="visiteArchiveFilter"></p><div class="visit-controls"><label>RICERCA PER<select id="visiteArchiveMode"><option value="giorno">SINGOLO GIORNO</option><option value="mese">MESE</option><option value="anno">ANNO</option><option value="intervallo">DA / A</option></select></label><label id="visiteArchiveDayField">DATA VISITA<input type="date" id="visiteArchiveDate"></label><label id="visiteArchiveMonthField" hidden>MESE<input type="month" id="visiteArchiveMonth"></label><label id="visiteArchiveYearField" hidden>ANNO<input type="number" min="1900" max="2199" step="1" inputmode="numeric" id="visiteArchiveYear"></label><label id="visiteArchiveFromField" hidden>DAL<input type="date" id="visiteArchiveFrom"></label><label id="visiteArchiveToField" hidden>AL<input type="date" id="visiteArchiveTo"></label><label>FILTRA PER COMMITTENTE<input id="visiteArchiveClientFilter" list="committentiCartella" placeholder="TUTTI"></label><label>FILTRA PER DATORE DI LAVORO<input id="visiteArchiveEmployerFilter" placeholder="TUTTE LE AZIENDE"></label><label>COMMITTENTE NELL’ELENCO<input id="visiteArchiveClient" maxlength="100" placeholder="ES. SERMOLAB"></label><button type="button" id="visiteArchiveLoad" class="success">CARICA VISITE</button></div><div id="visiteArchiveMessage" role="status" aria-live="polite"></div><div class="visit-actions"><button type="button" id="visiteArchiveAll" class="secondary">SELEZIONA TUTTE</button><button type="button" id="visiteArchiveNone" class="secondary">DESELEZIONA TUTTE</button><button type="button" id="visiteArchivePdf" class="success">ELENCO PDF</button><button type="button" id="visiteArchiveCertificates" class="success">PREPARA CERTIFICATI</button></div><div id="visiteArchivePdfLink"></div><div class="visit-table" id="visiteArchiveRows"></div>`;document.body.appendChild(dialog);
- let entries=[],selected=new Set(),loadedScope=null,loadedRoles='',archiveQuery='',busy=false,pdfUrl='',referti=new Map();
+ let entries=[],selected=new Set(),loadedScope=null,loadedRoles='',archiveQuery='',busy=false,pdfUrl='',referti=new Map(),periodCount=0,unassignedCount=0;
  function message(s){$('visiteArchiveMessage').textContent=s}
  function lock(value){busy=value;dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=value);if(!value){const none=!selected.size;$('visiteArchivePdf').disabled=none;$('visiteArchiveCertificates').disabled=none||loadedScope?.mode!=='giorno'}}
- function count(){message(entries.length+' VISITE TROVATE — '+selected.size+' SELEZIONATE'+(loadedScope?.mode&&loadedScope.mode!=='giorno'?' — '+loadedScope.label.toUpperCase():''));lock(false)}
+ function count(){
+  let result=entries.length+' VISITE TROVATE — '+selected.size+' SELEZIONATE'+(loadedScope?.mode&&loadedScope.mode!=='giorno'?' — '+loadedScope.label.toUpperCase():'');
+  if(!entries.length&&loadedScope?.mode&&loadedScope.mode!=='giorno'){
+   result+='\n'+(periodCount
+    ? 'Nel periodo risultano '+periodCount+' visite nell’archivio locale, ma nessuna corrisponde ai filtri. '+(unassignedCount?'Di queste, '+unassignedCount+' senza committente riconosciuto. ':'')+'Controlla i filtri e i dati del committente.'
+    : 'Nessuna visita datata nel periodo nell’archivio di questo dispositivo. Le cartelle salvate soltanto su Mac o in un backup non ancora importato qui non sono comprese.');
+  }
+  message(result);lock(false);
+ }
  function clearPdf(){if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl='';$('visiteArchivePdfLink').replaceChildren()}
  function render(){
   const multiple=loadedScope?.mode&&loadedScope.mode!=='giorno';
@@ -125,10 +133,17 @@
  async function load(){
   if(busy)return;
   let wanted;try{wanted=scope()}catch(e){loadedScope=null;entries=[];selected.clear();clearPdf();$('visiteArchiveRows').replaceChildren();lock(false);message(e.message);return}
-  const roles=roleFilters();entries=[];selected.clear();loadedScope=null;clearPdf();$('visiteArchiveRows').replaceChildren();
+  const roles=roleFilters();entries=[];selected.clear();loadedScope=null;periodCount=0;unassignedCount=0;clearPdf();$('visiteArchiveRows').replaceChildren();
   lock(true);message('LETTURA ARCHIVIO…');
   try{
-   entries=visitsInPeriod(await api.list(archiveQuery),wanted.from,wanted.to).filter(r=>window.lumenRuoliAzienda.matches(r.data,roles));
+   // A month/year/range is a new archive-wide query: the previous free-text
+   // search often concerns a different worker or day and must not hide visits.
+   // For a single day, preserve the established archive-filter behaviour.
+   const records=await api.list(wanted.mode==='giorno'?archiveQuery:'');
+   const inPeriod=visitsInPeriod(records,wanted.from,wanted.to);
+   periodCount=inPeriod.length;
+   unassignedCount=inPeriod.filter(r=>!r.data.committente).length;
+   entries=inPeriod.filter(r=>window.lumenRuoliAzienda.matches(r.data,roles));
    loadedRoles=JSON.stringify(roles);
    const clients=[...new Set(entries.map(r=>r.data.committente||''))];
    $('visiteArchiveClient').value=clients.length===1&&clients[0]?clients[0]:'';
@@ -145,7 +160,7 @@
  }
  $('btnElencoVisiteArchivio').onclick=async()=>{
   archiveQuery=api.getFilter();const roles=api.getRoleFilters?.()||{};$('visiteArchiveClientFilter').value=roles.committente||'';$('visiteArchiveEmployerFilter').value=roles.datore_lavoro||'';
-  $('visiteArchiveFilter').textContent=archiveQuery?'FILTRO ARCHIVIO: '+archiveQuery+' — Per cambiarlo, chiudi e modifica la ricerca nell’archivio.':'FILTRO ARCHIVIO: TUTTE LE CARTELLE';
+  updateFilterNote();
   if(!$('visiteArchiveDate').value)$('visiteArchiveDate').value=localToday();
   if(!$('visiteArchiveMonth').value)$('visiteArchiveMonth').value=localToday().slice(0,7);
   if(!$('visiteArchiveYear').value)$('visiteArchiveYear').value=localToday().slice(0,4);
@@ -156,9 +171,16 @@
  };
  $('visiteArchiveLoad').onclick=load;
  function invalidate(){entries=[];selected.clear();loadedScope=null;clearPdf();render();message('Premi CARICA VISITE per applicare periodo e filtri.')}
+ function updateFilterNote(){
+  const note=$('visiteArchiveFilter');
+  note.textContent=$('visiteArchiveMode').value==='giorno'
+   ? (archiveQuery?'FILTRO ARCHIVIO: '+archiveQuery+' — Per cambiarlo, chiudi e modifica la ricerca nell’archivio.':'FILTRO ARCHIVIO: TUTTE LE CARTELLE')
+   : 'RICERCA SU TUTTE LE CARTELLE LOCALI: il filtro testuale precedente dell’archivio non limita il periodo. Si applicano soltanto i filtri per committente e datore di lavoro qui indicati.';
+ }
  function showMode(){
   const mode=$('visiteArchiveMode').value;
   for(const [field,value] of [['visiteArchiveDayField','giorno'],['visiteArchiveMonthField','mese'],['visiteArchiveYearField','anno'],['visiteArchiveFromField','intervallo'],['visiteArchiveToField','intervallo']])$(field).hidden=mode!==value;
+  updateFilterNote();
  }
  $('visiteArchiveMode').onchange=()=>{showMode();invalidate()};
  for(const id of ['visiteArchiveDate','visiteArchiveMonth','visiteArchiveYear','visiteArchiveFrom','visiteArchiveTo'])$(id).onchange=invalidate;
