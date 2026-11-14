@@ -6,18 +6,62 @@
  const fmt=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.split('-').reverse().join('/'):String(v||'');
  const localToday=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  function date(v){const s=String(v||'').trim(),m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?[m[3],m[2],m[1]].join('-'):s}
- function visits(records,wanted){
+ function visitDay(d){return date(d?.data_giudizio||d?.data_cartella)}
+ function visitsInPeriod(records,from,to=from){
   const found=new Map();
   for(const rec of records){
    const versions=[...(rec.history||[]).map(h=>({data:h.data,savedAt:h.savedAt})),{data:rec.data,savedAt:rec.updatedAt||rec.createdAt}];
    for(const v of versions){
-    if(!v.data||date(v.data.data_giudizio||v.data.data_cartella)!==wanted)continue;
-    const d=window.lumenRuoliAzienda.forRecord(rec,v.data);if(d.data_giudizio)d.data_giudizio=date(d.data_giudizio);if(d.data_cartella)d.data_cartella=date(d.data_cartella);
-    const key=cartelle.cartellaId(d),old=found.get(key),entry={id:key,data:d,savedAt:v.savedAt||''};
-    if(!old||entry.savedAt>=old.savedAt)found.set(key,entry);
+    const day=visitDay(v.data);
+    if(!v.data||!day||day<from||day>to)continue;
+    const d=window.lumenRuoliAzienda.forRecord(rec,v.data);
+    if(d.data_giudizio)d.data_giudizio=date(d.data_giudizio);
+    if(d.data_cartella)d.data_cartella=date(d.data_cartella);
+    const id=cartelle.cartellaId(d),visitKey=JSON.stringify([id,day]),old=found.get(visitKey);
+    const entry={id,visitKey,visitDate:day,data:d,savedAt:v.savedAt||''};
+    if(!old||entry.savedAt>=old.savedAt)found.set(visitKey,entry);
    }
   }
-  return [...found.values()].sort((a,b)=>[a.data.cognome,a.data.nome,a.data.codice_fiscale].join(' ').localeCompare([b.data.cognome,b.data.nome,b.data.codice_fiscale].join(' '),'it'));
+  return [...found.values()].sort((a,b)=>a.visitDate.localeCompare(b.visitDate)||
+   [a.data.cognome,a.data.nome,a.data.codice_fiscale].join(' ').localeCompare([b.data.cognome,b.data.nome,b.data.codice_fiscale].join(' '),'it'));
+ }
+ function visits(records,wanted){return visitsInPeriod(records,wanted,wanted)}
+ const visitKeyOf=r=>r.visitKey||JSON.stringify([r.id,visitDay(r.data)]);
+ async function statusesByVisit(rows){
+  const out=new Map();
+  if(!window.lumenArchiveReferti)return out;
+  const groups=new Map();
+  for(const r of rows){if(!groups.has(r.id))groups.set(r.id,[]);groups.get(r.id).push(r)}
+  const unique=[...groups.values()].filter(g=>g.length===1).map(g=>g[0]);
+  if(unique.length){const found=await window.lumenArchiveReferti.statuses(unique);for(const r of unique)out.set(visitKeyOf(r),found.get(r.id))}
+  for(const group of groups.values())if(group.length>1)for(const r of group){
+   const found=await window.lumenArchiveReferti.statuses([r]);
+   out.set(visitKeyOf(r),found.get(r.id));
+  }
+  return out;
+ }
+ function scope(){
+  const mode=$('visiteArchiveMode').value;
+  if(mode==='giorno'){
+   const d=$('visiteArchiveDate').value;
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(d))throw Error('Scegli la data della visita.');
+   return {mode,from:d,to:d,label:fmt(d),stamp:d};
+  }
+  if(mode==='mese'){
+   const v=$('visiteArchiveMonth').value;
+   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(v))throw Error('Scegli il mese.');
+   const [y,m]=v.split('-').map(Number),last=new Date(Date.UTC(y,m,0)).getUTCDate();
+   return {mode,from:v+'-01',to:v+'-'+String(last).padStart(2,'0'),label:new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,1))),stamp:v};
+  }
+  if(mode==='anno'){
+   const v=$('visiteArchiveYear').value;
+   if(!/^(19|20|21)\d{2}$/.test(v))throw Error('Indica un anno valido.');
+   return {mode,from:v+'-01-01',to:v+'-12-31',label:v,stamp:v};
+  }
+  const from=$('visiteArchiveFrom').value,to=$('visiteArchiveTo').value;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to))throw Error('Indica entrambe le date DAL e AL.');
+  if(from>to)throw Error('La data DAL non può essere successiva alla data AL.');
+  return {mode:'intervallo',from,to,label:fmt(from)+' — '+fmt(to),stamp:from+'_'+to};
  }
  async function listPdf(rows,info){
   if(!window.jspdf?.jsPDF)throw Error('Modulo PDF non disponibile. Ricarica LUMEN con la connessione attiva.');
