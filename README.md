@@ -159,6 +159,28 @@ Rollback del codice tramite annullamento del commit; i campi originali e lo
 storico rimangono conservati. Le cartelle locali non sono accessibili da questo
 ambiente: il collaudo non certifica il contenuto dell'archivio dell'utente.
 
+## Ricerca visite per mese, anno o intervallo — 14 novembre 2026
+
+In ARCHIVIO CARTELLE, aprire VISITE DALL'ARCHIVIO e scegliere RICERCA PER:
+SINGOLO GIORNO, MESE, ANNO oppure DA / A. Il campo FILTRA PER COMMITTENTE
+(come SERMOLAB) limita il risultato al solo committente selezionato; il filtro
+testuale gia applicato nell'archivio resta attivo ed e visibile nella finestra.
+CARICA VISITE presenta le visite effettive nel periodo, incluse le versioni
+storiche. La stessa persona visitata in due giornate viene mostrata due volte,
+mentre le revisioni della stessa visita sono deduplicate. Sono mostrate data,
+cognome, committente, datore, mansione, presenza allegati e totale.
+
+ELENCO PDF: A4 verticale per una sola data, A4 orizzontale per periodi
+con data di ogni visita, intestazione del periodo e totale. PREPARA CERTIFICATI
+rimane disponibile solo con una singola data, per rispettare la logica delle
+sedute e non associare per errore certificati di date diverse.
+Le ricerche non modificano cartelle, referti o storico. Risultati limitati
+all'archivio presente sul dispositivo: zero risultati non dimostra l'assenza
+di visite in passato. Verificati con dati sintetici mediante esercizio delle
+quattro modalita, filtro committente, PDF, deduplicazione per visita e gestione
+di due visite della stessa persona in un mese; da validare nell'interfaccia
+reale su iPhone e Mac con backup preventivo.
+
 ## Elenco visite e ricerca archivio — 4 ottobre 2026
 
 L'elenco conserva la ricerca già applicata nell'archivio (azienda, nominativo,
