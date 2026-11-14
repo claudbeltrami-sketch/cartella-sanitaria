@@ -65,29 +65,46 @@
  }
  async function listPdf(rows,info){
   if(!window.jspdf?.jsPDF)throw Error('Modulo PDF non disponibile. Ricarica LUMEN con la connessione attiva.');
-  const indicators=window.lumenArchiveReferti?await window.lumenArchiveReferti.statuses(rows):new Map();
-  const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'}),xs=[14,22,60,90,122,156,177],widths=[8,38,30,32,34,21,19];let y;
+  const multiple=info.period?.mode&&info.period.mode!=='giorno';
+  const indicators=await statusesByVisit(rows);
+  const pdf=new window.jspdf.jsPDF({orientation:multiple?'landscape':'portrait',unit:'mm',format:'a4'});
+  const xs=multiple?[14,23,65,91,139,184,222,248]:[14,22,60,90,122,156,177];
+  const widths=multiple?[9,42,26,48,45,38,26,35]:[8,38,30,32,34,21,19];
+  const printable=multiple?269:182,maxBodyY=multiple?177:263,pageBottom=multiple?198:285;
+  let y;
   function header(){
-   pdf.setTextColor(25,62,46);pdf.setFont('helvetica','bold');pdf.setFontSize(16);pdf.text('ELENCO VISITE EFFETTUATE',14,18);
-   pdf.setTextColor(30);pdf.setFontSize(10);pdf.setFont('helvetica','normal');pdf.text('Data visita: '+fmt(info.data),14,27);
-   const comm=pdf.splitTextToSize('Committente: '+(info.committente||'NON INDICATO'),182);pdf.text(comm,14,34);
-   y=34+comm.length*4+5;pdf.setFontSize(9);pdf.text('Totale selezionato: '+rows.length+' | Ordine alfabetico',14,y);y+=6;
+   pdf.setTextColor(25,62,46);pdf.setFont('helvetica','bold');pdf.setFontSize(16);
+   pdf.text('ELENCO VISITE EFFETTUATE',14,18);
+   pdf.setTextColor(30);pdf.setFontSize(10);pdf.setFont('helvetica','normal');
+   pdf.text((multiple?'Periodo visite: '+info.period.label:'Data visita: '+fmt(info.data)),14,27);
+   const comm=pdf.splitTextToSize('Committente: '+(info.committente||'NON INDICATO'),printable);
+   pdf.text(comm,14,34);y=34+comm.length*4+5;pdf.setFontSize(9);
+   pdf.text('Totale selezionato: '+rows.length+(multiple?' | Ordine per data e cognome':' | Ordine alfabetico'),14,y);y+=6;
    pdf.setFontSize(8);pdf.text('Analisi / Drug test: presenza di referti allegati per questa visita, non esito degli esami.',14,y);y+=4;
    pdf.text('NO = nessun referto riconosciuto; DA VERIFICARE = allegato generico o dati insufficienti.',14,y);y+=5;pdf.setFontSize(9);
-   pdf.setFillColor(231,240,234);pdf.rect(14,y,182,12,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(7);['N.','COGNOME E NOME','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST'].forEach((s,i)=>pdf.text(pdf.splitTextToSize(s,widths[i]-3),xs[i]+1.5,y+4));y+=12;
+   pdf.setFillColor(231,240,234);pdf.rect(14,y,printable,12,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(7);
+   const heads=multiple?['N.','COGNOME E NOME','DATA VISITA','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST']:['N.','COGNOME E NOME','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST'];
+   heads.forEach((t,i)=>pdf.text(pdf.splitTextToSize(t,widths[i]-3),xs[i]+1.5,y+4));y+=12;
   }
   header();
   rows.forEach((r,i)=>{
-   const d=window.lumenRuoliAzienda.normalize(r.data),flags=indicators.get(r.id)||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'},values=[String(i+1),[d.cognome,d.nome].filter(Boolean).join(' '),d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug];
-   pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);const lines=values.map((s,j)=>pdf.splitTextToSize(s,widths[j]-4));const h=Math.max(...lines.map(x=>x.length),1)*4.6+5;
-   if(h>200)throw Error('Un campo della cartella è troppo lungo per l’elenco: '+values[1]);
-   if(y+h>263){pdf.addPage();header();pdf.setFont('helvetica','normal');pdf.setFontSize(7.5)}
-   if(i%2===1){pdf.setFillColor(247,249,247);pdf.rect(14,y,182,h,'F')}
-   lines.forEach((s,j)=>pdf.text(s,xs[j]+2,y+5));pdf.setDrawColor(210);pdf.line(14,y+h,196,y+h);y+=h;
+   const d=window.lumenRuoliAzienda.normalize(r.data),flags=indicators.get(visitKeyOf(r))||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'};
+   const person=[d.cognome,d.nome].filter(Boolean).join(' ');
+   const values=multiple?[String(i+1),person,fmt(visitDay(d)),d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug]:
+    [String(i+1),person,d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug];
+   pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
+   const lines=values.map((v,j)=>pdf.splitTextToSize(v,widths[j]-4));
+   const h=Math.max(...lines.map(x=>x.length),1)*4.6+5;
+   if(h>(multiple?110:200))throw Error('Un campo della cartella è troppo lungo per l’elenco: '+person);
+   if(y+h>maxBodyY){pdf.addPage();header();pdf.setFont('helvetica','normal');pdf.setFontSize(7.5)}
+   if(i%2===1){pdf.setFillColor(247,249,247);pdf.rect(14,y,printable,h,'F')}
+   lines.forEach((line,j)=>pdf.text(line,xs[j]+2,y+5));pdf.setDrawColor(210);pdf.line(14,y+h,14+printable,y+h);y+=h;
   });
-  if(y>243){pdf.addPage();header()}
-  pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.text('Totale visite: '+rows.length,14,y+12);pdf.setFont('helvetica','normal');pdf.text('Dott. Claudio Beltrami',196,y+24,{align:'right'});
-  const total=pdf.getNumberOfPages();for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFont('helvetica','normal');pdf.setFontSize(9);pdf.setTextColor(90);pdf.text('Pagina '+p+' di '+total,196,285,{align:'right'})}
+  if(y>maxBodyY-20){pdf.addPage();header()}
+  pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.text('Totale visite: '+rows.length,14,y+12);
+  pdf.setFont('helvetica','normal');pdf.text('Dott. Claudio Beltrami',14+printable,y+24,{align:'right'});
+  const total=pdf.getNumberOfPages();
+  for(let p=1;p<=total;p++){pdf.setPage(p);pdf.setFont('helvetica','normal');pdf.setFontSize(9);pdf.setTextColor(90);pdf.text('Pagina '+p+' di '+total,14+printable,pageBottom,{align:'right'})}
   return pdf;
  }
  const style=document.createElement('style');style.textContent=`#visiteArchiveDialog{box-sizing:border-box;width:min(1050px,calc(100vw - 20px));max-height:92vh;overflow:auto;border:2px solid #27834a;border-radius:12px;padding:18px;background:#fff;color:#222}#visiteArchiveDialog::backdrop{background:#0009}#visiteArchiveDialog .visit-controls{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}#visiteArchiveDialog label{display:flex;flex-direction:column;gap:4px;font-weight:bold;flex:1 1 180px}#visiteArchiveDialog input:not([type=checkbox]){min-height:42px;padding:6px;font-size:16px;box-sizing:border-box;max-width:100%}#visiteArchiveDialog table{width:100%;border-collapse:collapse;font-size:14px}#visiteArchiveDialog td,#visiteArchiveDialog th{padding:8px;border-bottom:1px solid #bbb;text-align:left;overflow-wrap:anywhere}#visiteArchiveDialog input[type=checkbox]{width:22px;height:22px}#visiteArchiveDialog .visit-table{overflow:auto}#visiteArchiveMessage{white-space:pre-line;font-weight:bold;margin:12px 0}#visiteArchiveDialog .visit-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}@media print{#visiteArchiveDialog{display:none!important}}`;document.head.appendChild(style);
