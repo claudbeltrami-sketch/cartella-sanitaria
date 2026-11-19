@@ -1371,8 +1371,36 @@ form.addEventListener('change',clearSaveConfirmation);
 window.addEventListener('beltrami-signature-updated',clearSaveConfirmation);
 async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);try{sincronizzaNominativoListaSalvata(data)}catch(e){console.warn('LUMEN: cartella salvata, lista non aggiornata',e)}window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v)}
-function archiveHaystack(r){const d=lumenRuoliAzienda.forRecord(r),visit=d.data_giudizio||d.data_cartella||'';return normArchive([r.cf,r.cognome,r.nome,r.dataNascita,d.datore_lavoro,lumenRuoliAzienda.forRecord(r).committente,d.mansione,visit,archiveDateText(visit),r.updatedAt,archiveDateText(String(r.updatedAt||'').slice(0,10))].join(' '))}
-async function listCartelleArchive(query='',roles={}){const db=await openCartelleDb();const all=await new Promise((resolve,reject)=>{const r=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();const terms=String(query||'').trim().split(/\s+/).map(normArchive).filter(Boolean);return all.filter(r=>{const h=archiveHaystack(r);return terms.every(q=>h.includes(q))&&lumenRuoliAzienda.matches(lumenRuoliAzienda.forRecord(r),roles)}).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))}
+function archiveQueryDate(value){
+ const iso=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(iso)return value;
+ const local=value.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})$/);
+ if(!local)return '';
+ const [,day,month,year]=local;
+ return (year.length===2?'20'+year:year)+'-'+month.padStart(2,'0')+'-'+day.padStart(2,'0');
+}
+async function listCartelleArchive(query='',roles={}){
+ const db=await openCartelleDb();
+ const all=await new Promise((resolve,reject)=>{
+  const request=db.transaction(CARTELLE_STORE,'readonly').objectStore(CARTELLE_STORE).getAll();
+  request.onsuccess=()=>resolve(request.result||[]);
+  request.onerror=()=>reject(request.error);
+ });
+ db.close();
+ const dates=[],terms=[];
+ for(const word of String(query||'').trim().split(/\s+/)){
+  const date=archiveQueryDate(word);
+  if(date)dates.push(date);
+  else if(normArchive(word))terms.push(normArchive(word));
+ }
+ return all.filter(row=>{
+  const data=lumenRuoliAzienda.forRecord(row);
+  const visit=data.data_giudizio||data.data_cartella||'';
+  if(!lumenRuoliAzienda.matches(data,roles)||!dates.every(date=>date===archiveQueryDate(String(visit))))return false;
+  const searchable=normArchive([row.cf,row.cognome,row.nome,row.dataNascita,data.datore_lavoro,data.committente,data.mansione,visit,archiveDateText(visit)].join(' '));
+  return terms.every(term=>searchable.includes(term));
+ }).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+}
 function fmtArchiveDate(v){try{return new Date(v).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}catch(_){return v||''}}
 function archiveRelationship(data){
  const state=normArchive(data.stato_rapporto);
