@@ -1606,13 +1606,19 @@ function blobToBackupData(blob){return new Promise((resolve,reject)=>{const r=ne
 function backupDataToBlob(value,type){const m=String(value||'').match(/^data:([^;,]*)(?:;base64)?,(.*)$/);if(!m)throw new Error('Contenuto di un file originale non valido.');const mime=m[1]||type||'application/octet-stream',raw=atob(m[2]),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return new Blob([a],{type:mime})}
 async function readAllFromDb(openDb,store){const db=await openDb();const rows=await new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});db.close();return rows}
 async function replaceAllInDb(openDb,store,rows){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);st.clear();(rows||[]).forEach(x=>st.put(x));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
-function openBackupSaveDialog(mode){
+function revealBackupPanel(){
+ const overlay=document.getElementById('lumenBackupOverlay');
  document.getElementById('lumenBackupDetails').open=true;
- const overlay=document.getElementById('lumenBackupOverlay'),dialog=overlay;
+ overlay.hidden=false;
+ document.getElementById('btnBackupArchivio')?.setAttribute('aria-expanded','true');
+ return overlay;
+}
+function openBackupSaveDialog(mode){
+ const overlay=revealBackupPanel(),dialog=overlay;
  overlay.dataset.active='true';overlay.dataset.mode=mode;
  document.getElementById('mainToolbar').style.position='relative';
  const prepare=document.getElementById('btnBackupInPagina');prepare.disabled=true;prepare.textContent='PREPARAZIONE IN CORSO…';
- overlay.scrollIntoView({block:'start'});
+ requestAnimationFrame(()=>overlay.scrollIntoView({block:'start'}));
  const title=dialog.querySelector('#lumenBackupTitle'),message=dialog.querySelector('#lumenBackupMessage'),share=dialog.querySelector('#lumenBackupShare'),download=dialog.querySelector('#lumenBackupDownload');
  let url=overlay._backupUrl||null,preparing=true;
  if(url){URL.revokeObjectURL(url);overlay._backupUrl=null}
@@ -1620,6 +1626,7 @@ function openBackupSaveDialog(mode){
  const slow=setTimeout(()=>{if(preparing)message.textContent='La preparazione è ancora in corso. Gli allegati possono richiedere tempo. Non è ancora stato salvato alcun file.'},15000);
  function finish(){preparing=false;clearTimeout(slow);prepare.disabled=false;prepare.textContent=mode==='light'?'PREPARA NUOVO BACKUP LEGGERO':'PREPARA NUOVO BACKUP COMPLETO'}
  return {
+  stage(label){message.textContent=label+'\nIl backup non è ancora salvato.'},
   progress(current,total,percent){message.textContent='Preparazione allegato '+current+' di '+total+' — '+percent+'%.\nIl backup non è ancora salvato.'},
   ready(file,cartelle,originali){
    finish();url=URL.createObjectURL(file);overlay._backupUrl=url;download.href=url;download.download=file.name;download.style.display='block';
@@ -1640,22 +1647,31 @@ function openBackupSaveDialog(mode){
    download.onclick=()=>{message.textContent=details+'\n\nDownload richiesto. Completa il salvataggio del browser e controlla il file nella cartella scelta. Questa pagina non può confermarne il salvataggio.'};
    // Do not move focus during an iPhone tap or invoke native UI automatically.
   },
-  error(e){finish();title.textContent='BACKUP NON CREATO';message.textContent='Non è stato preparato alcun file.\n'+(e.message||String(e));}
+  error(e){finish();revealBackupPanel();title.textContent='BACKUP NON CREATO';message.textContent='Non è stato preparato alcun file.\n'+(e.message||String(e));}
  };
 }
+let lumenBackupBusy=false;
 async function creaBackupCompleto(mode='full'){
- const btn=document.getElementById('btnBackupCompleto');if(btn.disabled)return;const view=openBackupSaveDialog(mode);btn.disabled=true;const old=btn.textContent;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
+ const btn=document.getElementById('btnBackupCompleto');
+ if(lumenBackupBusy){revealBackupPanel();return;}
+ const old=btn.textContent;let view;let stage='Apertura pannello';lumenBackupBusy=true;
  try{
+  view=openBackupSaveDialog(mode);btn.disabled=true;btn.textContent='PREPARAZIONE COPIA...';setStatus('PREPARAZIONE DELLA COPIA DI SICUREZZA LOCALE...');
   lumenStorage.session.setItem('lumen_backup_in_corso','1');
   await new Promise(resolve=>setTimeout(resolve,0));
+  stage='Lettura impostazioni';view.stage(stage);
   const local={};for(let i=0;i<lumenStorage.local.length;i++){const k=lumenStorage.local.key(i);if(k&&k.startsWith('beltrami_'))local[k]=lumenStorage.local.getItem(k)}
+  stage='Lettura cartelle';view.stage(stage);
   const cartelle=await readAllFromDb(openCartelleDb,CARTELLE_STORE);
+  stage='Lettura firme';view.stage(stage);
   const firme_da_trasferire=await window.lumenFirmaOffline.list(true);
   const packet={...(lumenStorage.isTest?{lumen_prova:true}:{}),tipo:'BELTRAMI_BACKUP_COMPLETO_V1',versione:1,creato:new Date().toISOString(),contenuto:{localStorage:local,cartelle,firme_da_trasferire,cartella_visibile:collect()}};
   const name=(mode==='light'?'BACKUP_LEGGERO_LUMEN_':'BACKUP_LUMEN_')+backupStamp()+'.json';
+  stage='Verifica allegati e creazione file';view.stage(stage);
+  if(!window.lumenBackupStream?.build)throw Error('Modulo backup non disponibile.');
   const result=await window.lumenBackupStream.build({packet,name,mode,openDb:openOriginalDb,store:ORIGINAL_STORE,progress:view.progress});
   view.ready(result.file,cartelle.length,result.originals);setStatus('BACKUP PRONTO: COMPLETARE IL SALVATAGGIO NEL PANNELLO IN CIMA ALLA PAGINA.');
- }catch(e){view.error(e);setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{lumenStorage.session.removeItem('lumen_backup_in_corso');btn.disabled=false;btn.textContent=old}
+ }catch(e){const error=Error(stage+': '+(e?.message||String(e)));if(view)view.error(error);else{revealBackupPanel();document.getElementById('lumenBackupTitle').textContent='BACKUP NON CREATO';document.getElementById('lumenBackupMessage').textContent=error.message;}setStatus('ERRORE DURANTE LA CREAZIONE DELLA COPIA DI SICUREZZA.')}finally{lumenBackupBusy=false;btn.disabled=false;btn.textContent=old;const prepare=document.getElementById('btnBackupInPagina');prepare.disabled=false;try{lumenStorage.session.removeItem('lumen_backup_in_corso')}catch(_){}}
 }
 async function ripristinaBackupCompleto(file){
  const packet=await window.lumenBackupIO.read(file,backupDataToBlob,p=>setStatus('LETTURA COPIA DI SICUREZZA: '+p+'%'));if(!packet||!['BELTRAMI_BACKUP_COMPLETO_V1','BELTRAMI_BACKUP_LEGGERO_V2'].includes(packet.tipo)||!packet.contenuto)throw new Error('Il file scelto non è una copia di sicurezza LUMEN valida.');
