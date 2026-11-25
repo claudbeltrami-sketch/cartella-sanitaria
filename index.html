@@ -491,6 +491,8 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
  <div id="lumenMiniAids" class="no-print" data-html2canvas-ignore="true"><span id="lumenMiniScadenzeText">Scadenze: aggiornamento in corso…</span><button type="button" id="lumenMiniScadenzeAggiorna">AGGIORNA</button></div>
  <div id="lumenMiniControllo" class="no-print" data-html2canvas-ignore="true" role="status" aria-live="polite" hidden></div>
 <div class="status" id="status">PRONTA. I DATI RESTANO SU QUESTO DISPOSITIVO E NON VENGONO INVIATI SU INTERNET.</div>
+<div class="no-print" id="bozzeVisita" hidden></div>
+<div class="no-print" id="statoBozzaVisita" role="status"></div>
 <div class="save-info" id="saveInfo"><div class="save-title" id="saveTitle"></div><div class="save-detail" id="saveDetail"></div><div class="mini-actions" id="saveActions"></div></div>
 <div class="archive-modal" id="archiveModal" aria-hidden="true"><div class="archive-box">
  <div class="archive-head"><h3 style="margin:0">ARCHIVIO LOCALE CARTELLE SANITARIE</h3><button type="button" id="btnChiudiArchivio" class="secondary">CHIUDI</button></div>
@@ -1049,6 +1051,7 @@ function normalizzaEmailLavoratore(source){
 }
 function apply(source){
  lumenStorage.checkData(source);
+ window.lumenBozzaVisita?.beforeApply();
  autoCFValue='';
  const d=lumenRuoliAzienda.normalize(normalizzaEmailLavoratore(source));
  workerSelectionVersion++;
@@ -1081,6 +1084,7 @@ function apply(source){
  useWorkerSignature(firma);
  window.lumenProtocolloSourcePresent=Object.prototype.hasOwnProperty.call(d,'protocollo')||['periodicita','periodicita_altro','periodicita_protocollo','periodicita_protocollo_altro'].some(id=>Object.prototype.hasOwnProperty.call(d,id));
  document.dispatchEvent(new CustomEvent('lumen:cartella-applied',{detail:d}));
+ window.lumenBozzaVisita?.afterApply();
 }
 
 function filename(prefix,ext){const cognome=(text('cognome')||'SENZA_COGNOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');const nome=(text('nome')||'SENZA_NOME').trim().replace(/[^A-Z0-9À-ÿ]+/gi,'_').replace(/^_+|_+$/g,'');return prefix+'_'+cognome+'_'+nome+'_'+today()+'.'+ext}
@@ -1369,7 +1373,7 @@ function showSaveConfirmation(record){
 form.addEventListener('input',clearSaveConfirmation);
 form.addEventListener('change',clearSaveConfirmation);
 window.addEventListener('beltrami-signature-updated',clearSaveConfirmation);
-async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);try{sincronizzaNominativoListaSalvata(data)}catch(e){console.warn('LUMEN: cartella salvata, lista non aggiornata',e)}window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenBozzaVisita?.archived(data);try{sincronizzaNominativoListaSalvata(data)}catch(e){console.warn('LUMEN: cartella salvata, lista non aggiornata',e)}window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v)}
 function archiveQueryDate(value){
  const iso=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -2086,6 +2090,7 @@ async function chiudiCartella(){
    const row=activeDraftVersion===workerSelectionVersion?activeDraftWorker:null;
    const key=draftKey(data,row);if(key)workerDrafts.set(key,data);
   }
+  window.lumenBozzaVisita?.archived(data);
   apply({firma_lavoratore_png:''});
   currentWorkerIndex=-1;activeDraftWorker=null;activeDraftVersion=-1;emptyWorkerScreen=null;
   renderWorkers();
@@ -2253,7 +2258,16 @@ window.lumenArchiveVisitsApi={list:(query='')=>listCartelleArchive(query),getFil
 window.lumenImportCartelleStorage={open:openCartelleDb,store:CARTELLE_STORE,identity:cartellaIdentity,id:cartellaId,validCF:cf=>/^[0-9]{11}$/.test(cf)||cf.length===16&&controlChar(cf.slice(0,15))===cf[15],calculateCF:calculateCFData};
 window.lumenConteggioStorage={list:()=>listCartelleArchive(''),change:async(id,mutate)=>{const db=await openCartelleDb();return new Promise((resolve,reject)=>{const tx=db.transaction(CARTELLE_STORE,'readwrite'),store=tx.objectStore(CARTELLE_STORE),request=store.get(id);request.onsuccess=()=>{if(request.result){try{mutate(request.result);store.put(request.result)}catch(e){tx.abort();reject(e)}}};tx.oncomplete=()=>{db.close();resolve()};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||new Error('Conteggio non aggiornato'))}})}};
 window.lumenAnagraficheBridge={renderWorkers,autosaveCurrentCartella,saveRow:(d,state)=>{const row=workers[currentWorkerIndex];if(row&&workerMatch(row,d)===2){row.verifica_anagrafica=state;renderWorkers();window.lumenCambiaLista?.saveCurrentIntoActive();}}};
-window.lumenBatchCertApi={cartellaIdentity,workerDate,workerMatch,workerRecordData,archiveDateText,collect,apply,getCartellaRecord,findWorkerArchive,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
+function riprendiBozza(data){
+ const matches=workers.filter(w=>workerMatch(w,data)===2);
+ const row=matches.length===1&&workerDate(text('v9Data'))===workerDate(signatureVisit(data))?matches[0]:null;
+ currentWorkerIndex=row?workers.indexOf(row):-1;
+ apply(data);
+ activeDraftWorker=row;activeDraftVersion=row?workerSelectionVersion:-1;emptyWorkerScreen=null;
+ renderWorkers();
+ document.getElementById('cognome').scrollIntoView({block:'center'});
+}
+window.lumenBatchCertApi={riprendiBozza,cartellaIdentity,workerDate,workerMatch,workerRecordData,archiveDateText,collect,apply,getCartellaRecord,findWorkerArchive,cartellaId,popolaCertificato,showSaveInfo,setStatus,useWorkerSignature,verificaPrimaDelPdf,completaLuogoCertificato,checkedSignatureVisit,saveToLocalArchive,signatureVisit,workerSignatureIdentity,optimizeWorkerSignature,selectionVersion:()=>workerSelectionVersion,sendSignatureDirectly};
 
 window.addEventListener('afterprint',()=>{document.body.className='';if(titleBeforePrint){document.title=titleBeforePrint;titleBeforePrint=''}if(pendingPrint){showSaveInfo('warn','FINESTRA DI STAMPA CHIUSA',pendingPrint+' — '+clock()+'\nNome proposto: '+pdfBaseName('CARTELLA_SANITARIA')+'.pdf\nPer motivi di sicurezza il browser non comunica se hai scelto “Salva come PDF” o se hai annullato. Controlla il PDF nella cartella scelta prima di chiudere la cartella sanitaria.');setStatus('CONTROLLO PDF RICHIESTO: VERIFICARE IL FILE NELLA CARTELLA SCELTA.');pendingPrint=''}});
 })();
@@ -3990,6 +4004,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 <script src="lumen-avviso-storico.js"></script>
+<script src="bozza-visita.js"></script>
 <script>
 /* AUDIT-C: optional visit questionnaire, stored with ordinary clinical chart fields. */
 (function(){
