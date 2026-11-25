@@ -2109,10 +2109,11 @@ async function selectWorker(i){
   const row=activeDraftVersion===workerSelectionVersion&&activeDraftWorker&&workerMatch(activeDraftWorker,previous)>0?activeDraftWorker:null;
   const key=draftKey(previous,row);if(key)workerDrafts.set(key,previous);
  }
- const dataVisita=text('v9Data')||today();
+ const dataVisita=today();
+ const dataDaRiaprire=w.visited?(text('v9Data')||dataVisita):dataVisita;
  const base={note_anagrafiche:w.note_anagrafiche||'',problemi:w.problemi||[],verifica_anagrafica:w.verifica_anagrafica,cognome:w.cognome||'',nome:w.nome||'',luogo_nascita:w.luogo_nascita||'',data_nascita:w.data_nascita||'',codice_fiscale:w.codice_fiscale||'',sesso:w.sesso||'',committente:w.committente||text('v9Committente'),datore_lavoro:w.datore_lavoro||text('v9Azienda'),mansione:w.mansione||'',data_cartella:dataVisita,data_giudizio:dataVisita,data_dichiarazione:dataVisita,stato_rapporto:'ATTIVO',firma_lavoratore_png:''};
  currentWorkerIndex=i;
- const draft=workerDraftFor(base,w);
+ const draft=workerDraftFor(base,w)||(dataDaRiaprire!==dataVisita&&workerDraftFor({...base,data_giudizio:dataDaRiaprire,data_cartella:dataDaRiaprire},w));
  apply(draft?mergeWorkerData(draft,base):base);
  activeDraftWorker=w;activeDraftVersion=workerSelectionVersion;
  const initial=JSON.stringify(collect());
@@ -2131,12 +2132,13 @@ async function selectWorker(i){
   const found=await findWorkerArchive(base);
   if(version!==workerSelectionVersion||JSON.stringify(collect())!==initial)return;
   const candidates=found.records.flatMap(rec=>[rec.data,...(rec.history||[]).slice().reverse().map(h=>h.data)].filter(Boolean).map(data=>({id:rec.id,data:workerRecordData(rec,data)})));
-  const saved=candidates.find(({data})=>workerMatch(base,data)===2&&workerDate(signatureVisit(data))===workerDate(dataVisita));
+  const perData=giorno=>candidates.find(({data})=>workerMatch(base,data)===2&&workerDate(signatureVisit(data))===workerDate(giorno));
+  const saved=perData(dataDaRiaprire)||(dataDaRiaprire!==dataVisita&&perData(dataVisita));
   if(saved){
    apply(mergeWorkerData({stato_rapporto:'',...saved.data},base));emptyWorkerScreen=null;
    rememberRecentChart(saved.id);
    activeDraftWorker=w;activeDraftVersion=workerSelectionVersion;
-   setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' — CF: '+(text('codice_fiscale')||'NON PRESENTE')+' — RIAPERTA PER LA VISITA DEL '+fmt(dataVisita)+'.');
+   setStatus('CARTELLA DI '+base.cognome+' '+base.nome+' — CF: '+(text('codice_fiscale')||'NON PRESENTE')+' — RIAPERTA PER LA VISITA DEL '+fmt(signatureVisit(saved.data))+'.');
   }else if(w.visited||found.records.length||found.possible.length){
    const message='Non è stato possibile recuperare automaticamente la cartella di '+base.cognome+' '+base.nome+' per il '+fmt(dataVisita)+'. In caso di omonimi o dati incompleti, scegli nell’archivio controllando CODICE FISCALE e DATA DI NASCITA. Nessuna cartella salvata è stata modificata.';
    setStatus(message);showWorkerArchiveSearch(base,message);
