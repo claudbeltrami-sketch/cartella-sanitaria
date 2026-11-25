@@ -107,3 +107,10 @@
   html {scroll-padding-top:160px}
  }
 }
+
+@media print {
+  .cartella input::placeholder,
+  .cartella textarea::placeholder {
+    opacity: 0 !important;
+  }
+}
