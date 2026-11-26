@@ -24,10 +24,12 @@
    // A second tab can have recovered the same draft. Preserve both revisions.
    if (!key || storage.getItem(key) !== previous)
     key = prefix + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
-   const value = JSON.stringify({time:Date.now(), data});
+   const time = Date.now();
+   const value = JSON.stringify({time, data});
    storage.setItem(key, value);
    previous = value;
-   notice.textContent = 'Bozza salvata su questo dispositivo alle ' + new Date().toLocaleTimeString('it-IT');
+   notice.textContent = '';
+   document.dispatchEvent(new CustomEvent('lumen:bozza-salvata', {detail:time}));
   } catch {
    notice.textContent = 'Bozza non salvata. Mantieni aperta la cartella e usa Salva cartella.';
   } finally { busy = false; }

@@ -1367,13 +1367,21 @@ function clearSaveConfirmation(){
  saveConfirmationRevision++;
  document.getElementById('lumenSaveConfirmation').textContent='';
 }
-function showSaveConfirmation(record){
- document.getElementById('lumenSaveConfirmation').textContent='Salvata alle '+new Date(record.updatedAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+function showSaveConfirmation(label,time){
+ document.getElementById('lumenSaveConfirmation').textContent=label+' alle '+new Date(time).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 }
-form.addEventListener('input',clearSaveConfirmation);
-form.addEventListener('change',clearSaveConfirmation);
-window.addEventListener('beltrami-signature-updated',clearSaveConfirmation);
-async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);window.lumenBozzaVisita?.archived(data);try{sincronizzaNominativoListaSalvata(data)}catch(e){console.warn('LUMEN: cartella salvata, lista non aggiornata',e)}window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);if(revision===saveConfirmationRevision)showSaveConfirmation(rec);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
+document.addEventListener('lumen:bozza-salvata',event=>showSaveConfirmation('Bozza salvata',event.detail));
+function markSaveRevision(){saveConfirmationRevision++}
+form.addEventListener('input',markSaveRevision);
+form.addEventListener('change',markSaveRevision);
+window.addEventListener('beltrami-signature-updated',markSaveRevision);
+async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);
+ if(revision===saveConfirmationRevision){
+  const visible=archiveData?collect():data;
+  if(cartellaId(visible)===id&&signatureVisit(visible)===signatureVisit(data))showSaveConfirmation('Cartella salvata',Date.now());
+ }
+ try{window.lumenBozzaVisita?.archived(data)}catch(e){console.warn('LUMEN: cartella salvata, bozza non rimossa',e)}
+ try{sincronizzaNominativoListaSalvata(data)}catch(e){console.warn('LUMEN: cartella salvata, lista non aggiornata',e)}window.lumenRicordaProtocollo?.(data, !archiveData && revision===saveConfirmationRevision);document.dispatchEvent(new Event('lumen:precedenti-aggiornati'));if(data.codice_fiscale&&text('codice_fiscale')===data.codice_fiscale)autoCFValue='';window.lumenConteggio?.wake();return {rec,isUpdate:!!old,versioni:history.length+1}}
 function archiveDateText(v){if(!v)return'';const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v)}
 function archiveQueryDate(value){
  const iso=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -4006,6 +4014,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  #lumenWorkerIdentity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
  #lumenWorkerIdentity[hidden]{display:none}
  #lumenCurrentDateTime,#lumenSessionDate{white-space:nowrap;font-variant-numeric:tabular-nums;padding:2px 7px;border:1px solid #b6cce0;border-radius:5px;background:#f7f8fa}
+ #lumenWorkerIdentity .lumen-save-confirmation{margin:0;font-size:13px;white-space:nowrap}
  #lumenSessionDate[data-other-day]{background:#fff1a6;border-color:#bd8d16;color:#503700}
  #lumenWorkerIdentity button{font-size:12px;padding:5px 8px;min-height:30px}
  #lumenHistoryDialog{width:min(520px,92vw);max-height:75vh;overflow:auto}
@@ -4023,7 +4032,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const clock=document.createElement('time');clock.id='lumenCurrentDateTime';
  clock.title='Data e ora del dispositivo';
  const sessionDate=document.createElement('span');sessionDate.id='lumenSessionDate';
- bar.append(name,clock,sessionDate);toolbar.before(bar);
+ bar.append(name,clock,sessionDate,document.getElementById('lumenSaveConfirmation'));toolbar.before(bar);
  const sessionKey='beltrami_v9_sessione_attiva';
  function updateSessionDate(now=new Date()){
   let date;
