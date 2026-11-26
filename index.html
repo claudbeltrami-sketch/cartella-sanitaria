@@ -3970,7 +3970,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  body.lumen-worker-visible #mainToolbar{top:var(--lumen-worker-height,48px)}
  #lumenWorkerIdentity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
  #lumenWorkerIdentity[hidden]{display:none}
- #lumenCurrentDateTime{white-space:nowrap;font-variant-numeric:tabular-nums;padding:2px 7px;border:1px solid #b6cce0;border-radius:5px;background:#f7f8fa}
+ #lumenCurrentDateTime,#lumenSessionDate{white-space:nowrap;font-variant-numeric:tabular-nums;padding:2px 7px;border:1px solid #b6cce0;border-radius:5px;background:#f7f8fa}
+ #lumenSessionDate[data-other-day]{background:#fff1a6;border-color:#bd8d16;color:#503700}
  #lumenWorkerIdentity button{font-size:12px;padding:5px 8px;min-height:30px}
  #lumenHistoryDialog{width:min(520px,92vw);max-height:75vh;overflow:auto}
 }
@@ -3986,7 +3987,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const name=document.createElement('span');
  const clock=document.createElement('time');clock.id='lumenCurrentDateTime';
  clock.title='Data e ora del dispositivo';
- bar.append(name,clock);toolbar.before(bar);
+ const sessionDate=document.createElement('span');sessionDate.id='lumenSessionDate';
+ bar.append(name,clock,sessionDate);toolbar.before(bar);
+ const sessionKey='beltrami_v9_sessione_attiva';
+ function updateSessionDate(now=new Date()){
+  let date;
+  try{date=JSON.parse(lumenStorage.local.getItem(sessionKey)||'null')?.data;}catch(_){}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')){
+   sessionDate.textContent='Seduta: —';
+   sessionDate.removeAttribute('data-other-day');
+   return;
+  }
+  const [year,month,day]=date.split('-').map(Number);
+  sessionDate.textContent='Seduta: '+date.split('-').reverse().join('/');
+  sessionDate.toggleAttribute('data-other-day',year!==now.getFullYear()||month!==now.getMonth()+1||day!==now.getDate());
+ }
  const dateFormat=new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
  const timeFormat=new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
  let clockTimer;
@@ -3994,9 +4009,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   clearTimeout(clockTimer);
   const now=new Date();
   clock.textContent=dateFormat.format(now)+' · '+timeFormat.format(now);
+  updateSessionDate(now);
   clockTimer=setTimeout(updateClock,60000-now.getTime()%60000);
  }
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock()});
+ const sessionCard=document.getElementById('v9Card');
+ if(sessionCard)new MutationObserver(()=>updateSessionDate()).observe(sessionCard,{childList:true,subtree:true,characterData:true});
+ window.addEventListener('storage',e=>{if(e.key===sessionKey||e.key===null)updateSessionDate()});
  updateClock();
  const read=id=>(document.getElementById(id)?.value||'').trim();
  function height(){document.body.style.setProperty('--lumen-worker-height',(bar.getBoundingClientRect().height+8)+'px')}
