@@ -3962,7 +3962,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 </script>
 
-<!-- Identity stays visible while scrolling the clinical chart on desktop. -->
+<!-- Worker identity and device clock stay visible while scrolling. -->
 <style>
 #lumenWorkerIdentity{display:none}
 @media screen{
@@ -3970,6 +3970,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  body.lumen-worker-visible #mainToolbar{top:var(--lumen-worker-height,48px)}
  #lumenWorkerIdentity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
  #lumenWorkerIdentity[hidden]{display:none}
+ #lumenCurrentDateTime{white-space:nowrap;font-variant-numeric:tabular-nums;padding:2px 7px;border:1px solid #b6cce0;border-radius:5px;background:#f7f8fa}
  #lumenWorkerIdentity button{font-size:12px;padding:5px 8px;min-height:30px}
  #lumenHistoryDialog{width:min(520px,92vw);max-height:75vh;overflow:auto}
 }
@@ -3983,14 +3984,28 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  if(!toolbar||!form)return;
  const bar=document.createElement('div');bar.id='lumenWorkerIdentity';bar.hidden=true;
  const name=document.createElement('span');
- bar.append(name);toolbar.before(bar);
+ const clock=document.createElement('time');clock.id='lumenCurrentDateTime';
+ clock.title='Data e ora del dispositivo';
+ bar.append(name,clock);toolbar.before(bar);
+ const dateFormat=new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+ const timeFormat=new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ let clockTimer;
+ function updateClock(){
+  clearTimeout(clockTimer);
+  const now=new Date();
+  clock.textContent=dateFormat.format(now)+' · '+timeFormat.format(now);
+  clockTimer=setTimeout(updateClock,60000-now.getTime()%60000);
+ }
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock()});
+ updateClock();
  const read=id=>(document.getElementById(id)?.value||'').trim();
  function height(){document.body.style.setProperty('--lumen-worker-height',(bar.getBoundingClientRect().height+8)+'px')}
  function update(){
   const label=[read('cognome'),read('nome')].filter(Boolean).join(' ').toLocaleUpperCase('it-IT');
   name.textContent=label?'LAVORATORE: '+label:'';
   bar.dispatchEvent(new Event('lumen:worker-name'));
-  bar.hidden=!label;document.body.classList.toggle('lumen-worker-visible',!!label);height();
+  name.hidden=!label;
+  bar.hidden=false;document.body.classList.add('lumen-worker-visible');height();
  }
  form.addEventListener('input',e=>{if(e.target.id==='cognome'||e.target.id==='nome')update()});
  form.addEventListener('change',e=>{if(e.target.id==='cognome'||e.target.id==='nome')update()});
