@@ -1510,6 +1510,20 @@ document.getElementById('fileApri').onchange=e=>{const f=e.target.files[0];if(!f
 document.getElementById('btnAzzera').onclick=()=>{if(!confirm('Vuoi cancellare tutti i dati della cartella?'))return;apply({stato_rapporto:'ATTIVO',firma_lavoratore_png:''});document.querySelectorAll('.today').forEach(e=>e.value=today());document.getElementById('cfResult').textContent='';convertiAltezzaInCm();aggiornaBmi();if(window.aggiornaAudiometriaAuto)window.aggiornaAudiometriaAuto();if(window.aggiornaSpirometriaAuto)window.aggiornaSpirometriaAuto();aggiornaInvalidita();syncLavoratore();setStatus('CARTELLA AZZERATA.')};
 document.getElementById('btnStampa').onclick=()=>{if(!verificaPrimaDelPdf('CARTELLA'))return;pendingPrint='PDF CARTELLA';titleBeforePrint=document.title;document.title=pdfBaseName('CARTELLA_SANITARIA');document.body.className='print-cartella';window.print()};
 const fmt=v=>{if(!v)return'';if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const [y,m,d]=v.split('-');return d+'/'+m+'/'+y}return v};
+document.addEventListener('click',event=>{
+ const printButton=event.target.closest?.('#btnStampa, #btnPrintCert');
+ if(!printButton)return;
+ const dates=[
+  ['Cartella',text('data_cartella')],
+  ['Dichiarazione',text('data_dichiarazione')],
+  ['Giudizio',text('data_giudizio')]
+ ];
+ if(new Set(dates.map(([,date])=>date)).size===1)return;
+ const summary=dates.map(([label,date])=>label+': '+(fmt(date)||'non indicata')).join('\n');
+ if(window.confirm('Le date della visita non coincidono.\n\n'+summary+'\n\nSe la differenza è voluta, premi OK per proseguire.'))return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+},true);
 function text(id){return(document.getElementById(id)||{}).value||''}
 function checkedValues(sel){return[...document.querySelectorAll(sel+':checked')].map(x=>x.value)}
 function luogoVisitaSessione(dataVisita){
