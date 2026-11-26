@@ -501,7 +501,7 @@ h1{font-size:20px;text-align:center;margin:0 0 2px}h2{font-size:14px;text-align:
   <div class="lumen-recent-actions"></div>
  </section>
  <div class="archive-role-filters"><label for="archiveClient">COMMITTENTE<input id="archiveClient" list="committentiCartella" placeholder="TUTTI I COMMITTENTI"></label><label for="archiveEmployer">DATORE DI LAVORO<input id="archiveEmployer" placeholder="TUTTE LE AZIENDE"></label></div>
- <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
+ <div class="archive-search"><input id="archiveQuery" aria-label="Ricerca libera" placeholder="COGNOME, NOME, CF, MANSIONE O DATA"><button type="button" id="btnCercaArchivio" class="success">CERCA</button><button type="button" id="btnVisiteOggi" class="secondary">VISITE DI OGGI</button><button type="button" id="btnTutteArchivio" class="secondary">MOSTRA TUTTE</button></div>
  <button type="button" id="btnRipristinaDaArchivio" class="success" style="width:100%;margin:0 0 12px">IMPORTA / RIPRISTINA COPIA DI SICUREZZA</button>
  <button type="button" id="btnElencoVisiteArchivio" class="success" style="width:100%;margin:0 0 12px">ELENCO VISITE E CERTIFICATI PER DATA</button>
  <div id="archiveSummary" class="archive-note"></div><p class="archive-note">ANALISI / DRUG TEST: allegati della visita indicata. SÌ = presenza riconosciuta o confermata; NO = esame non rilevato nei documenti leggibili o assenza confermata. Usa CONTROLLA TUTTI GLI ALLEGATI per leggere PDF e scansioni con OCR sul dispositivo. Le cartelle originali firmate sono escluse dal controllo referti. DA VERIFICARE = lettura incerta, data mancante o file non disponibile. Le indicazioni non rappresentano l’esito degli esami. Semaforo analisi/drug test: verde = referti previsti presenti; giallo = parziali o da verificare; rosso = previsti e mancanti; bianco = non previsti. Il confronto usa il protocollo della visita; accertamenti personalizzati richiedono verifica. La lettura dei referti parte automaticamente aprendo l’archivio sul Mac. Le letture e le conferme salvate sono incluse nel backup e restano valide su iPhone; i casi non ancora verificati indicano DA VERIFICARE SUL MAC.</p><div id="archiveResults" class="archive-referti-scroll"></div>
@@ -1507,6 +1507,12 @@ if(lumenStorage.isTest&&new URLSearchParams(location.search).get('apriArchivio')
 }
 document.getElementById('btnChiudiArchivio').onclick=()=>document.getElementById('archiveModal').classList.remove('show');
 document.getElementById('btnCercaArchivio').onclick=()=>renderArchive(document.getElementById('archiveQuery').value);
+document.getElementById('btnVisiteOggi').onclick=()=>{
+ const date=archiveDateText(today());
+ document.getElementById('archiveQuery').value=date;
+ clearArchiveRoles();
+ return renderArchive(date);
+};
 document.getElementById('btnTutteArchivio').onclick=()=>{document.getElementById('archiveQuery').value='';clearArchiveRoles();renderArchive('')};
 ['archiveQuery','archiveClient','archiveEmployer'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')renderArchive(document.getElementById('archiveQuery').value)}));
 document.getElementById('archiveModal').addEventListener('click',e=>{if(e.target.id==='archiveModal')e.currentTarget.classList.remove('show')});
