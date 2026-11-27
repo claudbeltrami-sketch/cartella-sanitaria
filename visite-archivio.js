@@ -6,6 +6,21 @@
  const fmt=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.split('-').reverse().join('/'):String(v||'');
  const localToday=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  function date(v){const s=String(v||'').trim(),m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?[m[3],m[2],m[1]].join('-'):s}
+ function visitType(data){
+  const choices=[
+   ['prima_istituzione','Prima visita',45],
+   ['esaurimento','Periodica',40],
+   ['altri_motivi_check','Successiva',40]
+  ].filter(([key])=>data[key]===true||data[key]==='true');
+  if(choices.length!==1)return {label:'Da verificare',fee:null};
+  const [,label,fee]=choices[0];
+  return {label,fee};
+ }
+ function archiveType(data){
+  const {label,fee}=visitType(data);
+  const orizzonte=/^(?:GRUPPO )?ORIZZONTE(?: GROUP)?$/i.test(String(data.committente||'').trim());
+  return orizzonte&&fee!==null?label+' · '+fee+' €':label;
+ }
  function visitDay(d){return date(d?.data_giudizio||d?.data_cartella)}
  function visitsInPeriod(records,from,to=from){
   const found=new Map();
@@ -83,15 +98,16 @@
    pdf.setFontSize(8);pdf.text('Analisi / Drug test: presenza di referti allegati per questa visita, non esito degli esami.',14,y);y+=4;
    pdf.text('NO = nessun referto riconosciuto; DA VERIFICARE = allegato generico o dati insufficienti.',14,y);y+=5;pdf.setFontSize(9);
    pdf.setFillColor(231,240,234);pdf.rect(14,y,printable,12,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(7);
-   const heads=multiple?['N.','COGNOME E NOME','DATA VISITA','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST']:['N.','COGNOME E NOME','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST'];
+   const heads=multiple?['N.','LAVORATORE / TIPO VISITA','DATA VISITA','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST']:['N.','LAVORATORE / TIPO VISITA','COMMITTENTE','DATORE DI LAVORO','MANSIONE','ANALISI','DRUG TEST'];
    heads.forEach((t,i)=>pdf.text(pdf.splitTextToSize(t,widths[i]-3),xs[i]+1.5,y+4));y+=12;
   }
   header();
   rows.forEach((r,i)=>{
    const d=window.lumenRuoliAzienda.normalize(r.data),flags=indicators.get(visitKeyOf(r))||{analisi:'DA VERIFICARE',drug:'DA VERIFICARE'};
    const person=[d.cognome,d.nome].filter(Boolean).join(' ');
-   const values=multiple?[String(i+1),person,fmt(visitDay(d)),d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug]:
-    [String(i+1),person,d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug];
+   const personAndType=person+'\n'+visitType(r.data).label;
+   const values=multiple?[String(i+1),personAndType,fmt(visitDay(d)),d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug]:
+    [String(i+1),personAndType,d.committente||'NON INDICATO',d.datore_lavoro||'DA COMPLETARE',d.mansione||'',flags.analisi,flags.drug];
    pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
    const lines=values.map((v,j)=>pdf.splitTextToSize(v,widths[j]-4));
    const h=Math.max(...lines.map(x=>x.length),1)*4.6+5;
@@ -124,8 +140,8 @@
  function clearPdf(){if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl='';$('visiteArchivePdfLink').replaceChildren()}
  function render(){
   const multiple=loadedScope?.mode&&loadedScope.mode!=='giorno';
-  $('visiteArchiveRows').innerHTML=entries.length?'<table><thead><tr><th>Includi</th><th>Lavoratore</th>'+(multiple?'<th>Data visita</th>':'')+'<th>Committente</th><th>Datore di lavoro</th><th>Mansione</th><th>Analisi</th><th>Drug Test</th></tr></thead><tbody>'+
-   entries.map((r,i)=>'<tr><td><input type="checkbox" aria-label="Seleziona '+esc([r.data.cognome,r.data.nome].join(' '))+'" data-row="'+i+'" '+(selected.has(visitKeyOf(r))?'checked':'')+'></td><td>'+esc([r.data.cognome,r.data.nome].join(' '))+'</td>'+(multiple?'<td>'+esc(fmt(r.visitDate))+'</td>':'')+'<td>'+esc(r.data.committente||'NON INDICATO')+'</td><td>'+esc(r.data.datore_lavoro||'DA COMPLETARE')+'</td><td>'+esc(r.data.mansione)+'</td><td>'+esc(referti.get(visitKeyOf(r))?.analisi||'DA VERIFICARE')+'</td><td>'+esc(referti.get(visitKeyOf(r))?.drug||'DA VERIFICARE')+'</td></tr>').join('')+'</tbody></table>':'';
+  $('visiteArchiveRows').innerHTML=entries.length?'<table><thead><tr><th>Includi</th><th>Lavoratore</th><th>Tipo visita</th>'+(multiple?'<th>Data visita</th>':'')+'<th>Committente</th><th>Datore di lavoro</th><th>Mansione</th><th>Analisi</th><th>Drug Test</th></tr></thead><tbody>'+
+   entries.map((r,i)=>'<tr><td><input type="checkbox" aria-label="Seleziona '+esc([r.data.cognome,r.data.nome].join(' '))+'" data-row="'+i+'" '+(selected.has(visitKeyOf(r))?'checked':'')+'></td><td>'+esc([r.data.cognome,r.data.nome].join(' '))+'</td><td>'+esc(archiveType(r.data))+'</td>'+(multiple?'<td>'+esc(fmt(r.visitDate))+'</td>':'')+'<td>'+esc(r.data.committente||'NON INDICATO')+'</td><td>'+esc(r.data.datore_lavoro||'DA COMPLETARE')+'</td><td>'+esc(r.data.mansione)+'</td><td>'+esc(referti.get(visitKeyOf(r))?.analisi||'DA VERIFICARE')+'</td><td>'+esc(referti.get(visitKeyOf(r))?.drug||'DA VERIFICARE')+'</td></tr>').join('')+'</tbody></table>':'';
   dialog.querySelectorAll('[data-row]').forEach(e=>e.onchange=()=>{const key=visitKeyOf(entries[Number(e.dataset.row)]);e.checked?selected.add(key):selected.delete(key);clearPdf();count()});
   count();
  }
