@@ -44,6 +44,7 @@
 
  function list() {
   buttons.replaceChildren();
+  let hasDrafts = false;
   try {
    for (let i = 0; i < storage.length; i++) {
     const id = storage.key(i);
@@ -52,6 +53,8 @@
     let draft;
     try { draft = JSON.parse(raw); } catch { continue; }
     if (!draft?.data) continue;
+    hasDrafts = true;
+    if (!disclosure.open) break;
     const label = [draft.data.cognome, draft.data.nome].filter(Boolean).join(' ') || 'Cartella senza nominativo';
     const button = document.createElement('button');
     button.type = 'button';
@@ -68,9 +71,16 @@
     buttons.append(button);
    }
   } catch { notice.textContent = 'Impossibile leggere le bozze locali.'; }
-  panel.hidden = !buttons.childElementCount;
+  panel.hidden = !hasDrafts;
   if (panel.hidden) disclosure.open = false;
  }
+ disclosure.addEventListener('toggle', list);
+ function closeList() {
+  disclosure.open = false;
+  list();
+ }
+ window.addEventListener('pageshow', closeList);
+ document.addEventListener('visibilitychange', () => { if (document.hidden) closeList(); });
  function changed() {
   if (applying || busy) return;
   editing = true;
