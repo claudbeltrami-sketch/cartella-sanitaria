@@ -2611,9 +2611,27 @@ async function preparaInvioCertificati(archiveBatch){
    api.apply({...selezionati[i].rec.data,luogo_visita:norm(selezionati[i].rec.data.luogo_visita||s.sede||'')});api.popolaCertificato(undefined,false);
    await pdf.addCertificate(window.lumenCertificatePdf.snapshot());
   }
-  const base=[s.committente||s.azienda||'SESSIONE',s.sede||'SEDE',(s.data||today()).replace(/-/g,''),selezionati.length+' CERTIFICATI'].map(pulisciNomeFile).filter(Boolean).join('_'),fileName=base+'.pdf',blob=await pdf.toBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
-  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nSelezione confermata: '+selezionati.length+' visitati, '+selezionati.length+' certificati inclusi, nessun assente incluso.\nOra premi PREPARA EMAIL: potrai controllare destinatario e testo e scaricare l’email con il PDF già incluso.',[{label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,selezionati.length,blob,selezionati.map(x=>[x.rec.data.cognome,x.rec.data.nome].filter(Boolean).join(' ')))}]);
+  const sedi=new Set(selezionati.map(x=>pulisciNomeFile(x.rec.data.luogo_visita||s.sede||x.rec.data.sede_lavoro)).filter(Boolean));
+  const sede=sedi.size===1?[...sedi][0]:sedi.size?'PIU_SEDI':'SEDE';
+  const fileName=[pulisciNomeFile(s.committente||s.azienda)||'SESSIONE',sede,s.data||today(),'Giudizi_idoneita'].join('_')+'.pdf';
+  const file=new File([await pdf.toBlob()],fileName,{type:'application/pdf'});
+  function downloadPdf(){
+   const url=URL.createObjectURL(file),a=document.createElement('a');
+   a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
+  }
+  const canShare=navigator.share&&navigator.canShare?.({files:[file]});
+  async function savePdf(){
+   if(canShare){
+    try{await navigator.share({files:[file],title:file.name});return}
+    catch(err){if(err.name==='AbortError')return}
+   }
+   downloadPdf();
+  }
+  if(!canShare)downloadPdf();
+  api.showSaveInfo('ok','PDF CERTIFICATI PRONTO',fileName+'\n\nSelezione confermata: '+selezionati.length+' certificati inclusi. Premi SALVA / CONDIVIDI PDF per salvarlo in File o allegarlo a una mail.',[
+   {label:'SALVA / CONDIVIDI PDF',className:'success',onclick:savePdf},
+   {label:'PREPARA EMAIL',className:'success',onclick:()=>emailCertificati(s,fileName,selezionati.length,file,selezionati.map(x=>[x.rec.data.cognome,x.rec.data.nome].filter(Boolean).join(' ')))}
+  ]);
   api.setStatus('PDF MULTIPAGINA CREATO: '+selezionati.length+' CERTIFICATI. NESSUN ASSENTE INCLUSO.');
   return {fileName,count:selezionati.length};
  }catch(err){alert('NON È STATO POSSIBILE CREARE IL PDF.\n'+(err.message||String(err)));api.setStatus('ERRORE NELLA CREAZIONE DEL PDF DEI CERTIFICATI.')}finally{
