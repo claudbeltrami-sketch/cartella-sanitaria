@@ -1376,6 +1376,7 @@ form.addEventListener('input',markSaveRevision);
 form.addEventListener('change',markSaveRevision);
 window.addEventListener('beltrami-signature-updated',markSaveRevision);
 async function saveToLocalArchive(archiveData){const revision=saveConfirmationRevision;const data=archiveData||collect();lumenStorage.checkData(data);const id=cartellaId(data),ident=cartellaIdentity(data);if(!ident.cognome||!ident.nome){throw new Error('Per archiviare la cartella servono almeno COGNOME e NOME.')}if(!ident.cf&&!lumenStorage.isTest){if(!ident.dn)throw new Error('PRIMA DI SALVARE, COMPLETARE IL CODICE FISCALE O LA DATA DI NASCITA: IL SOLO NOME NON DISTINGUE GLI OMONIMI.');const found=await findWorkerArchive(data);if(workers.filter(w=>workerMatch(data,w)>0).length>1||!found.records.length&&found.possible.length)throw new Error('IDENTITÀ AMBIGUA: COMPLETARE IL CODICE FISCALE DEL LAVORATORE PRIMA DI SALVARE. CONTROLLARE LA CARTELLA NELL’ARCHIVIO.')}const old=await getCartellaRecord(id);const now=new Date().toISOString();const snapshot={savedAt:now,data};let history=old&&Array.isArray(old.history)?old.history.slice():[];if(old&&old.data)history.push({savedAt:old.updatedAt||old.createdAt||now,data:old.data});if(history.length>25)history=history.slice(-25);const conteggioVisits=window.lumenConteggio?.prepare(data,old,id,now)||old?.conteggioVisits;const rec={id,cf:ident.cf,cognome:data.cognome||'',nome:data.nome||'',dataNascita:data.data_nascita||'',nomeKey:ident.nomeKey,createdAt:old?.createdAt||now,updatedAt:now,data,history,...(conteggioVisits&&Object.keys(conteggioVisits).length?{conteggioVisits}:{})};await putCartellaRecord(rec);
+ document.dispatchEvent(new CustomEvent('lumen:attivita-salvata',{detail:rec}));
  if(revision===saveConfirmationRevision){
   const visible=archiveData?collect():data;
   if(cartellaId(visible)===id&&signatureVisit(visible)===signatureVisit(data))showSaveConfirmation('Cartella salvata',Date.now());
@@ -4307,5 +4308,52 @@ const css=document.createElement('style');css.textContent='.lumen-pathological-h
 })();
 </script>
 
+<script>
+(() => {
+ 'use strict';
+ const field=document.getElementById('attivita_azienda');
+ const employer=document.getElementById('datore_lavoro');
+ const client=document.getElementById('committente');
+ const activities=new Map();
+ let automatic=null;
+ const normalize=value=>String(value||'').trim().replace(/\s+/g,' ').toLocaleUpperCase('it-IT');
+ function companyKey(data){
+  const company=normalize(data.datore_lavoro);
+  if(company)return company;
+  return window.lumenRuoliAzienda.client(data.committente)==='GRUPPO ORIZZONTE'?'GRUPPO ORIZZONTE':'';
+ }
+ function remember(data,stamp){
+  if(!data||data.lumen_prova&&!window.lumenStorage?.isTest)return;
+  const normalized=window.lumenRuoliAzienda.normalize(data);
+  const key=companyKey(normalized),value=String(data.attivita_azienda||'').trim();
+  if(key&&value&&(!activities.has(key)||activities.get(key).stamp<=stamp)){
+   activities.set(key,{value,stamp});
+  }
+ }
+ function fill(){
+  const key=companyKey({datore_lavoro:employer.value,committente:client.value});
+  if(automatic&&field.value===automatic.value)field.value='';
+  if(field.value.trim()||!key)return;
+  const explicitOrizzonte= /^(GRUPPO )?ORIZZONTE$/.test(key);
+  const value=activities.get(key)?.value||(explicitOrizzonte?'COMMERCIALE':'');
+  if(value){field.value=value;automatic={key,value};}
+ }
+ field.addEventListener('input',()=>{automatic=null;});
+ for(const element of [employer,client]){
+  element.addEventListener('input',fill);
+  element.addEventListener('change',fill);
+ }
+ document.addEventListener('lumen:cartella-applied',()=>{automatic=null;fill();});
+ document.addEventListener('lumen:attivita-salvata',event=>remember(event.detail.data,event.detail.updatedAt));
+ field.form?.addEventListener('reset',()=>{automatic=null;});
+ window.lumenArchiveVisitsApi.list().then(records=>{
+  for(const record of records){
+   for(const version of record.history||[])remember(version.data,version.savedAt||'');
+   remember(record.data,record.updatedAt||record.createdAt||'');
+  }
+  fill();
+ }).catch(error=>console.warn('LUMEN: recupero attività aziendali non disponibile',error));
+})();
+</script>
 </body></html>
 
