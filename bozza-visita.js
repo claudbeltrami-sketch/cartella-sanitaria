@@ -34,8 +34,16 @@
    notice.textContent = 'Bozza non salvata. Mantieni aperta la cartella e usa Salva cartella.';
   } finally { busy = false; }
  }
+ const disclosure = document.createElement('details');
+ const summary = document.createElement('summary');
+ summary.textContent = 'Bozze da recuperare';
+ disclosure.append(summary);
+ const buttons = document.createElement('div');
+ disclosure.append(buttons);
+ panel.append(disclosure);
+
  function list() {
-  panel.replaceChildren();
+  buttons.replaceChildren();
   try {
    for (let i = 0; i < storage.length; i++) {
     const id = storage.key(i);
@@ -57,10 +65,11 @@
      notice.textContent = 'Bozza recuperata. Puoi proseguire la visita.';
      list();
     };
-    panel.append(button);
+    buttons.append(button);
    }
   } catch { notice.textContent = 'Impossibile leggere le bozze locali.'; }
-  panel.hidden = !panel.childElementCount;
+  panel.hidden = !buttons.childElementCount;
+  if (panel.hidden) disclosure.open = false;
  }
  function changed() {
   if (applying || busy) return;
