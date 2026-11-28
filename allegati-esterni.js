@@ -144,6 +144,13 @@
   }
   return staged;
  }
+ async function reconnectForViewing(){
+  if(!window.showDirectoryPicker)throw Error('Questo browser non supporta il collegamento permanente alla cartella.');
+  const root=await window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'read'});
+  if(root.name!=='LUMEN_ALLEGATI')throw Error('Seleziona esattamente la cartella LUMEN_ALLEGATI.');
+  await remember(root);connection={root};connectionLoaded=true;
+  window.dispatchEvent(new Event('lumen-allegati-esterni-updated'));
+ }
  async function connectForViewing(){
   const previous=connectionLoaded?connection:await connected();
   if(previous?.files)return;
@@ -173,7 +180,7 @@
   await connectForViewing();
   return getBlob(row);
  }
- window.lumenExternalAttachments={valid,getBlob,getBlobForViewing,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew,connectForViewing};
+ window.lumenExternalAttachments={valid,getBlob,getBlobForViewing,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew,connectForViewing,reconnectForViewing};
  // Deliberate, user-initiated local folder access; nothing runs on page load.
  const trigger=document.createElement('button');trigger.type='button';trigger.id='btnArchivioPdfMac';trigger.textContent='ARCHIVIO PDF SUL MAC';
  document.getElementById('btnBackupCompleto').insertAdjacentElement('afterend',trigger);
