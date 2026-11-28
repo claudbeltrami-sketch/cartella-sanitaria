@@ -9,6 +9,18 @@ const server=http.createServer((req,res)=>{
 });
 const A={cognome:'PROVA',nome:'OFFLINE',codice_fiscale:'TEST_OFFLINE',data_nascita:'1980-01-01',data_cartella:'2026-09-28',data_giudizio:'2026-09-28',firma_lavoratore_png:''};
 let url;
+// Follow the real compact toolbar, without forcing a click on hidden controls.
+async function openToolbarGroup(page,group){
+ const toggle=page.locator('#btnAltriComandi');
+ const heading=page.locator('#toolbarExtra '+group+' .lumen-group-toggle');
+ await heading.waitFor({state:'attached'});
+ if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();
+ if(await heading.getAttribute('aria-expanded')!=='true')await heading.click();
+}
+async function openRecovery(page){
+ await openToolbarGroup(page,'.handoff-tools');
+ await page.getByRole('button',{name:'RECUPERA FIRME',exact:true}).click();
+}
 async function prepare(page,id='REQUEST_ONE',date=A.data_giudizio){
  await page.evaluate(({A,id,date})=>{
   window.lumenBatchCertApi.apply({...A,data_cartella:date,data_giudizio:date});
@@ -43,7 +55,7 @@ async function run(engine,name){
   assert.equal((await page.evaluate(()=>window.sharedPacket)).firma_lavoratore_png,image);
   assert.equal((await page.evaluate(()=>window.lumenFirmaOffline.list()))[0].status,'pending');
   // Reload and independent recovery page preserve identity/date/request, not just pixels.
-  await page.reload();await page.getByRole('button',{name:'RECUPERA FIRME',exact:true}).click();
+  await page.reload();await openRecovery(page);
   await page.locator('#lumenPendingSignatures article').waitFor();
   assert.match(await page.locator('#lumenPendingSignatures').innerText(),/2026-09-28/);
   await page.locator('#lumenPendingSignatures').getByRole('button',{name:'CHIUDI',exact:true}).click();
@@ -51,6 +63,7 @@ async function run(engine,name){
   await prepare(page,'REQUEST_TWO','2026-09-29');rows=await page.evaluate(()=>window.lumenFirmaOffline.list());assert.equal(rows.length,2);
   assert.deepEqual(rows.map(r=>r.packet.visita).sort(),['2026-09-28','2026-09-29']);
   // Full backup contains the outbox; restoring merges it without deleting originals.
+  await openToolbarGroup(page,'.archive-tools');
   const downloading=page.waitForEvent('download');await page.locator('#btnBackupCompleto').click();const backup=JSON.parse(fs.readFileSync(await (await downloading).path(),'utf8'));
   assert.equal(backup.contenuto.firme_da_trasferire.length,2);
   await page.evaluate(async rows=>{await window.lumenFirmaOffline.restore(rows)},backup.contenuto.firme_da_trasferire);
@@ -83,7 +96,7 @@ async function run(engine,name){
   await page.waitForFunction(()=>window.emergencyFile);
   assert.match(await page.evaluate(()=>window.emergencyFile.name),/REQUEST_VOLATILE/);
   assert.doesNotMatch(await page.locator('#saveTitle').innerText(),/RICEVUTA DAL MAC/);
-  await page.getByRole('button',{name:'RECUPERA FIRME',exact:true}).click();await page.locator('#lumenPendingSignatures article').first().waitFor();
+  await openRecovery(page);await page.locator('#lumenPendingSignatures article').first().waitFor();
   assert.match(await page.locator('#lumenPendingSignatures').innerText(),/NON SALVATA/);
   fs.mkdirSync(path.join(root,'tmp/signature-offline'),{recursive:true});await page.screenshot({path:path.join(root,'tmp/signature-offline',name+'.png')});
   await context.setOffline(false);
