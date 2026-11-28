@@ -3003,7 +3003,7 @@ input.addEventListener('change',async e=>{
 <script src="importa-referti.js?v=20261014-mac-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
 <script src="backup-stream.js?v=20261014-mac-1"></script>
-<script src="allegati-esterni.js?v=20261101-memoria-3"></script>
+<script src="allegati-esterni.js?v=20261128-permessi-pdf-2"></script>
 <script>
 /* Bundled with the chart so attachment access is available on offline reload. */
 /* Documenti clinici locali. Lo store originali è già incluso nel backup e nella
@@ -3091,22 +3091,26 @@ input.addEventListener('change',async e=>{
     }else{
      if(b.dataset.verify){
       setBusy(true);
-      const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
+      const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlobForViewing(row):null;
       if(!(blob instanceof Blob)||blob.size!==row.size)throw Error('Il file non è accessibile o ha una dimensione diversa.');
       mostraStato(b,{key:'locale',label:'🟢 FILE VERIFICATO SU QUESTO DISPOSITIVO'});
       message('Verifica riuscita: '+row.name+' è accessibile qui.');
      }else{
-     if(b.dataset.open&&!(row.blob instanceof Blob)){
-      opened=window.open('','_blank');
-      if(!opened)throw Error('Il browser ha bloccato la finestra del PDF. Usa SALVA COPIA oppure abilita le finestre per LUMEN.');
-      opened.opener=null;
-     }
-     const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
+     // Directory permission must be obtained before opening a window: window.open consumes user activation.
+     const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlobForViewing(row):null;
      if(!(blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
      const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
-     if(opened){opened.location.replace(url);opened=null}else{
-      if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
-      document.body.appendChild(a);a.click();a.remove();
+     if(b.dataset.download){
+      a.download=row.name;document.body.appendChild(a);a.click();a.remove();
+     }else{
+      // If the permission dialog consumed the click, offer a real link instead of a blank page.
+      opened=window.open('','_blank');
+      if(opened){opened.opener=null;opened.location.replace(url);opened=null}
+      else{
+       message('PDF pronto. Se Chrome blocca l’apertura automatica, premi ');
+       a.target='_blank';a.rel='noopener noreferrer';a.textContent='APRI PDF ORA';
+       $('allegatiMessage').append(a);
+      }
      }setTimeout(()=>URL.revokeObjectURL(url),300000);
      mostraStato(b,{key:'locale',label:'🟢 FILE DISPONIBILE QUI'});
      }
@@ -3344,7 +3348,7 @@ input.addEventListener('change',async e=>{
    const label=document.createElement('span');label.textContent=row.name+' ';
    const open=document.createElement('button');open.type='button';open.textContent='APRI REFERTO';open.dataset.openReferto=row.id;
    open.onclick=async()=>{open.disabled=true;fileMessage.textContent='Apertura del referto…';try{
-    const blob=row.blob instanceof Blob?row.blob:await window.lumenExternalAttachments?.getBlob(row);
+    const blob=row.blob instanceof Blob?row.blob:await window.lumenExternalAttachments?.getBlobForViewing(row);
     if(!(blob instanceof Blob)||!blob.size)throw Error('PDF conservato sul Mac: collega la cartella LUMEN_ALLEGATI per aprirlo.');
     const url=URL.createObjectURL(blob);urls.push(url);preview.src=url;preview.hidden=false;fileMessage.textContent=row.name;
    }catch(e){fileMessage.textContent=e.message}finally{open.disabled=false}};
