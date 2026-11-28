@@ -81,7 +81,7 @@
     const h=await source.root.getFileHandle('_LUMEN_indice_'+crypto.randomUUID()+'.json',{create:true}),w=await h.createWritable();await w.write(manifest(items));await w.close();
    }
    // Persist the directory capability before removing any embedded bytes.
-   await remember(source.root||null);
+   if(source.root)await remember(source.root);
    await commitReferences(items);
    connection=source;connectionLoaded=true;
    window.dispatchEvent(new Event('lumen-allegati-esterni-updated'));
@@ -164,18 +164,30 @@
  document.getElementById('btnBackupCompleto').insertAdjacentElement('afterend',trigger);
  const visibleTrigger=trigger.cloneNode(true);visibleTrigger.id='btnArchivioPdfMacInPagina';visibleTrigger.style.cssText='width:100%;margin:8px 0';document.getElementById('btnBackupInPagina').insertAdjacentElement('beforebegin',visibleTrigger);
  const dialog=document.createElement('dialog');dialog.id='pdfMacDialog';dialog.style.cssText='width:min(650px,94vw);max-height:90vh;overflow:auto;border-radius:12px;padding:22px;box-sizing:border-box';
- dialog.innerHTML=`<h2>PDF sul Mac, backup leggero</h2><p>I documenti vengono salvati nella cartella <strong>LUMEN_ALLEGATI</strong>. Le cartelle sanitarie conservano i collegamenti per consultarli. Firme, storico e risultati OCR restano nei dati.</p><p>Le copie incorporate vengono rimosse soltanto dopo aver riletto e verificato tutti i file salvati. Conserva anche una copia della cartella PDF sulla tua chiavetta: il backup leggero contiene solo i dati e i collegamenti.</p><button type="button" id="pdfMacDirect">SCEGLI CARTELLA E SEPARA I PDF</button><div id="pdfMacFallback"><p>Scarica lo ZIP, aprilo nel Finder e conserva la cartella estratta LUMEN_ALLEGATI sul Mac. Poi seleziona quella cartella qui sotto per verificarla e alleggerire LUMEN.</p><button type="button" id="pdfMacExport">1 · PREPARA CARTELLA PDF</button><a id="pdfMacDownload" hidden>SCARICA LUMEN_ALLEGATI.zip</a></div><p><label>COLLEGA / VERIFICA CARTELLA LUMEN_ALLEGATI<input id="pdfMacFolder" type="file" webkitdirectory multiple></label></p><p>La selezione dei file resta sul dispositivo. Se il browser non ricorda la cartella, selezionala nuovamente per consultare i PDF.</p><p id="pdfMacStatus" role="status" aria-live="polite" style="white-space:pre-line"></p><button type="button" id="pdfMacBackup" hidden>CREA BACKUP LEGGERO</button><button type="button" id="pdfMacFull">BACKUP COMPLETO CON PDF</button><button type="button" id="pdfMacClose">CHIUDI</button>`;
+ dialog.innerHTML=`<h2>PDF sul Mac, backup leggero</h2><p>I documenti vengono salvati nella cartella <strong>LUMEN_ALLEGATI</strong>. Le cartelle sanitarie conservano i collegamenti per consultarli. Firme, storico e risultati OCR restano nei dati.</p><p>Le copie incorporate vengono rimosse soltanto dopo aver riletto e verificato tutti i file salvati. Conserva anche una copia della cartella PDF sulla tua chiavetta: il backup leggero contiene solo i dati e i collegamenti.</p><button type="button" id="pdfMacDirect">SCEGLI CARTELLA E SEPARA I PDF</button><div id="pdfMacFallback"><p>Scarica lo ZIP, aprilo nel Finder e conserva la cartella estratta LUMEN_ALLEGATI sul Mac. Poi seleziona quella cartella qui sotto per verificarla e alleggerire LUMEN.</p><button type="button" id="pdfMacExport">1 · PREPARA CARTELLA PDF</button><a id="pdfMacDownload" hidden>SCARICA LUMEN_ALLEGATI.zip</a></div><p><button type="button" id="pdfMacPersistent">COLLEGA CARTELLA PDF IN MODO PERMANENTE</button></p><p><label>COLLEGA / VERIFICA CARTELLA LUMEN_ALLEGATI<input id="pdfMacFolder" type="file" webkitdirectory multiple></label></p><p>Usa il collegamento permanente per la consultazione sul Mac: non sposta né modifica i PDF. Se Chrome lo richiede, consenti l’accesso anche nelle visite successive. La selezione alternativa dei file vale solo per la sessione corrente.</p><p id="pdfMacStatus" role="status" aria-live="polite" style="white-space:pre-line"></p><button type="button" id="pdfMacBackup" hidden>CREA BACKUP LEGGERO</button><button type="button" id="pdfMacFull">BACKUP COMPLETO CON PDF</button><button type="button" id="pdfMacClose">CHIUDI</button>`;
  document.body.append(dialog);const $=id=>document.getElementById(id);let busy=false,url;
  function message(s){$('pdfMacStatus').textContent=s}
  function lock(value){busy=value;dialog.querySelectorAll('button,input').forEach(el=>el.disabled=value)}
  function result(r){message(r.count+' documenti verificati.\n'+r.removed+' copie incorporate rimosse ('+(r.bytes/1048576).toFixed(1)+' MB).\nOra puoi creare il backup leggero.');$('pdfMacBackup').hidden=false}
  async function run(action){lock(true);try{await action()}catch(e){message(e.name==='AbortError'?'Operazione annullata. Le copie incorporate sono conservate.':e.message||String(e))}finally{lock(false)}}
- trigger.onclick=()=>{message('');$('pdfMacBackup').hidden=true;$('pdfMacDirect').hidden=!window.showDirectoryPicker;dialog.showModal()};
+ trigger.onclick=()=>{message('');$('pdfMacBackup').hidden=true;$('pdfMacDirect').hidden=!window.showDirectoryPicker;$('pdfMacPersistent').hidden=!window.showDirectoryPicker;dialog.showModal()};
  visibleTrigger.onclick=trigger.onclick;
  $('pdfMacDirect').onclick=()=>{
   // Call the native picker synchronously in the click event, before any I/O.
   const picked=window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'readwrite'});
   run(async()=>{const parent=await picked,root=parent.name==='LUMEN_ALLEGATI'?parent:await parent.getDirectoryHandle('LUMEN_ALLEGATI',{create:true});result(await migrate({root},{write:true,progress:message}))});
+ };
+ $('pdfMacPersistent').onclick=()=>{
+  // Native directory permission must be requested during the click.
+  const picked=window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'read'});
+  run(async()=>{
+   const root=await picked;
+   if(root.name!=='LUMEN_ALLEGATI')throw Error('Seleziona esattamente la cartella LUMEN_ALLEGATI.');
+   await remember(root);
+   connection={root};connectionLoaded=true;
+   window.dispatchEvent(new Event('lumen-allegati-esterni-updated'));
+   message('Collegamento alla cartella salvato. Nessun PDF spostato o modificato. La consultazione resta subordinata ai permessi di Chrome.');
+  });
  };
  $('pdfMacExport').onclick=()=>run(async()=>{const file=await exportZip(message);if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);const a=$('pdfMacDownload');a.href=url;a.download=file.name;a.hidden=false;a.style.cssText='display:block;padding:14px;margin:10px 0;background:#1f5f99;color:white';message('ZIP pronto da scaricare. Dopo averlo estratto, seleziona la cartella LUMEN_ALLEGATI qui sotto. Le copie incorporate sono ancora presenti.');});
  $('pdfMacFolder').onchange=()=>{const files=Array.from($('pdfMacFolder').files||[]);if(files.length)run(async()=>result(await migrate(sourceFromFiles(files),{progress:message})));$('pdfMacFolder').value=''};
