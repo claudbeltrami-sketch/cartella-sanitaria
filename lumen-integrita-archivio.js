@@ -14,6 +14,7 @@ function inspect(charts,rows){
   if(!r||!r.id||!r.data){issue('CARTELLA_NON_VALIDA','Record senza identificativo o dati');continue}
   ids.add(r.id);
   if(!Array.isArray(r.history)&&r.history!=null)issue('STORICO_NON_VALIDO',r.id);
+  if(Array.isArray(r.history)&&r.history.length>=25)issue('LIMITE_STORICO_DA_VERIFICARE',r.id+' · almeno 25 versioni: confrontare con backup e registri indipendenti');
   const versions=[...(Array.isArray(r.history)?r.history:[]).map(h=>({data:h?.data,savedAt:h?.savedAt})),{data:r.data,savedAt:r.updatedAt}];
   for(const v of versions){
    const d=v.data;if(!d||typeof d!=='object'){issue('VERSIONE_NON_VALIDA',r.id);continue}
@@ -88,10 +89,27 @@ const button=d.createElement('button');button.type='button';button.textContent='
 const stop=d.createElement('button');stop.type='button';stop.textContent='INTERROMPI';stop.hidden=true;
 const details=d.createElement('details'),summary=d.createElement('summary'),out=d.createElement('pre');summary.textContent='Dettaglio anomalie';out.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto';details.append(summary,out);
 const note=d.createElement('p');note.textContent='La completezza per Allegato 3B richiede il confronto con registri di seduta e fonti indipendenti. Questo controllo non la certifica.';
-panel.append(title,status,button,stop,details,note);anchor.before(panel);
-let running=false,cancel=false,revision=0;
+const sourceLabel=d.createElement('label');sourceLabel.textContent='Confronta elenco indipendente (JSON: id, date, azienda per visita eseguita) ';
+const source=d.createElement('input');source.type='file';source.accept='.json,application/json';sourceLabel.append(source);
+const reconciliation=d.createElement('p');reconciliation.setAttribute('role','status');reconciliation.style.whiteSpace='pre-wrap';reconciliation.textContent='Fonte indipendente non confrontata.';
+panel.append(title,status,button,stop,details,note,sourceLabel,reconciliation);anchor.before(panel);
+let running=false,cancel=false,revision=0,lastReport=null;
+source.onchange=async()=>{
+ const file=source.files?.[0];source.value='';if(!file)return;
+ if(!lastReport||running){reconciliation.textContent='Completare prima il controllo tecnico.';return}
+ const snapshot=lastReport;
+ try{
+  if(file.size>20*1024*1024)throw Error('Elenco oltre 20 MB');
+  const expected=JSON.parse(await file.text());
+  if(snapshot!==lastReport||running)throw Error('Archivio modificato durante la lettura');
+  const result=reconcile(snapshot,expected);
+  const fmt=r=>r.id+' · '+r.date+' · '+r.azienda;
+  reconciliation.textContent='Confronto fonte: '+result.expected+' righe uniche; '+result.missing.length+' mancanti; '+result.ambiguous.length+' aziende discordanti; '+result.duplicate.length+' duplicati nella fonte. Non certifica la completezza della fonte né l’Allegato 3B.'+
+   result.missing.map(r=>'\nMANCANTE — '+fmt(r)).join('')+result.ambiguous.map(r=>'\nAZIENDA DA VERIFICARE — '+fmt(r)).join('');
+ }catch(e){reconciliation.textContent='Confronto non completato: '+e.message}
+};
 async function run(){
- if(running)return;running=true;cancel=false;const start=revision;button.disabled=true;stop.hidden=false;out.textContent='';
+ if(running)return;running=true;cancel=false;lastReport=null;reconciliation.textContent='Fonte indipendente da confrontare dopo il controllo.';const start=revision;button.disabled=true;stop.hidden=false;out.textContent='';
  try{
   status.textContent='Lettura archivio locale…';
   const charts=await timeout(root.lumenArchiveVisitsApi.list(''),30000),rows=await timeout(root.lumenAllegatiStorage.list(),30000);
@@ -105,12 +123,13 @@ async function run(){
   }
   out.textContent=report.issues.map(x=>x.code+' — '+x.detail).join('\n')||'Nessuna anomalia tecnica rilevata nei controlli eseguiti.';
   const incomplete=cancel||start!==revision||!charts.length;
+  if(!incomplete)lastReport=report;
   status.textContent=(incomplete?'CONTROLLO INCOMPLETO O DA RIPETERE':report.issues.length||unverified?'ANOMALIE / VERIFICHE NECESSARIE':'CONTROLLI TECNICI ESEGUITI')+' · '+charts.length+' cartelle · '+report.visits.size+' visite digitali · '+checked+'/'+report.attachments.length+' PDF controllati · '+failed+' PDF non verificati · '+unverified+' senza impronta verificata · '+report.issues.length+' segnalazioni. '+new Date().toLocaleString('it-IT');
  }catch(e){status.textContent='CONTROLLO NON COMPLETATO — '+e.message}
  finally{running=false;button.disabled=false;stop.hidden=true}
 }
 button.onclick=run;stop.onclick=()=>{cancel=true};
-function stale(){revision++;if(!running)status.textContent='Archivio modificato: esito precedente da aggiornare.'}
+function stale(){revision++;lastReport=null;reconciliation.textContent='Archivio modificato: confronto fonte da ripetere.';if(!running)status.textContent='Archivio modificato: esito precedente da aggiornare.'}
 d.addEventListener('lumen:attivita-salvata',stale);
 d.addEventListener('lumen:precedenti-aggiornati',stale);
 root.addEventListener('lumen-allegati-esterni-updated',stale);
