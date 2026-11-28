@@ -1,42 +1,43 @@
-name: Patch audiometria LUMEN v2
-
+# Sostituisce la vecchia patch una tantum, che non deve più riscrivere index.html.
+name: Verifica audiometria LUMEN
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - 'index.html'
       - '.github/workflows/patch-audiometria-v2.yml'
-  issues:
-    types: [opened]
-
+  pull_request:
+    paths:
+      - 'index.html'
+      - '.github/workflows/patch-audiometria-v2.yml'
+      - '.github/workflows/patch-audiometria.yml'
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  patch:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.issue.title == 'TRIGGER PATCH AUDIOMETRIA LUMEN'
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Insert audiometry thresholds
+      - name: Verifica le soglie esistenti senza modificare il programma
         run: |
           python3 - <<'PY'
+          from html.parser import HTMLParser
           from pathlib import Path
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          old = '''<div class="row"><div class="field"><label>Audiometria</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>'''
-          new = '''<div class="section-title" style="margin-top:6px">Audiometria – soglia uditiva (dB)</div>
-<div class="small" style="margin:0 0 5px">Inserire la soglia minima percepita per ciascuna frequenza, separatamente per orecchio destro e sinistro.</div>
-<div class="row"><div class="field"><label>Esito</label><select id="audiometria_esito"><option></option><option>NORMALE</option><option>ALTERATA</option></select></div><div class="field"><label>Difetto riscontrato</label><input id="audiometria_difetto" data-upper></div></div>
-<div class="row3"><div class="field"><label>DX 500 Hz (dB)</label><input id="audio_dx_500" type="number" inputmode="numeric" step="5"></div><div class="field"><label>DX 1000 Hz (dB)</label><input id="audio_dx_1000" type="number" inputmode="numeric" step="5"></div><div class="field"><label>DX 2000 Hz (dB)</label><input id="audio_dx_2000" type="number" inputmode="numeric" step="5"></div><div class="field"><label>DX 4000 Hz (dB)</label><input id="audio_dx_4000" type="number" inputmode="numeric" step="5"></div><div class="field"><label>SX 500 Hz (dB)</label><input id="audio_sx_500" type="number" inputmode="numeric" step="5"></div><div class="field"><label>SX 1000 Hz (dB)</label><input id="audio_sx_1000" type="number" inputmode="numeric" step="5"></div><div class="field"><label>SX 2000 Hz (dB)</label><input id="audio_sx_2000" type="number" inputmode="numeric" step="5"></div><div class="field"><label>SX 4000 Hz (dB)</label><input id="audio_sx_4000" type="number" inputmode="numeric" step="5"></div><div></div></div>'''
-          if old not in s:
-              raise SystemExit('Expected audiometry block not found')
-          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          from collections import Counter
+          class Inputs(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = Counter()
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if tag == 'input' and a.get('type') == 'number':
+                      self.ids[a.get('id')] += 1
+          p = Inputs()
+          p.feed(Path('index.html').read_text(encoding='utf-8'))
+          expected = [f'audio_{side}_{hz}' for side in ('dx','sx') for hz in (500,1000,2000,4000)]
+          bad = [i for i in expected if p.ids[i] != 1]
+          if bad:
+              raise SystemExit('Campi audiometrici mancanti o duplicati: ' + ', '.join(bad))
+          print('PASS: otto soglie audiometriche DX/SX presenti una volta ciascuna')
           PY
-      - name: Commit change
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "LUMEN: add audiometry thresholds 500-4000 Hz DX/SX"
-          git push

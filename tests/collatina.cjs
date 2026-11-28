@@ -37,6 +37,11 @@ c.lumenStorage=c.window.lumenStorage;
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
 for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);
 vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
+// Load the real save-confirmation helpers used by apply() and archive saves.
+const saveUiStart=html.indexOf('function clearSaveConfirmation(){');
+const saveUiEnd=html.indexOf("document.addEventListener('lumen:bozza-salvata'",saveUiStart);
+assert.ok(saveUiStart>=0 && saveUiEnd>saveUiStart,'save-confirmation helpers must be present');
+vm.runInContext(html.slice(saveUiStart,saveUiEnd),c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);
 vm.runInContext(html.slice(html.indexOf('const workerDrafts='),html.indexOf('\nfunction moveWorker(')),c);
