@@ -8,12 +8,18 @@
  const valid=ref=>ref?.version===1&&/^[a-f0-9]{64}$/.test(ref.sha256||'')&&Number.isSafeInteger(ref.size)&&ref.size>0&&typeof ref.file==='string'&&ref.file.startsWith(ref.sha256+'_')&&/^[a-f0-9]{64}_[A-Za-z0-9_.-]{1,150}$/.test(ref.file);
  const snapshot=r=>JSON.stringify({...r,blob:r.blob instanceof Blob?{size:r.blob.size,type:r.blob.type}:r.blob??null});
  const fileName=(r,hash)=>hash+'_'+(String(r.name||'documento.pdf').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_.-]/g,'_').slice(-140)||'documento.pdf');
- let connection=null,connectionLoaded=false,migrating=false;
+ let connection=null,connectionLoaded=false,connectionPromise=null,migrating=false;
  function configDb(){return new Promise((resolve,reject)=>{const r=lumenStorage.indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('config');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
  async function remember(root){const db=await configDb();try{await new Promise((resolve,reject)=>{const tx=db.transaction('config','readwrite');if(root)tx.objectStore('config').put(root,'root');else tx.objectStore('config').delete('root');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('Collegamento alla cartella non salvato.'));tx.onerror=()=>{}})}finally{db.close()}}
  async function connected(){
   if(connectionLoaded)return connection;
-  const db=await configDb();try{connection=await new Promise((resolve,reject)=>{const r=db.transaction('config').objectStore('config').get('root');r.onsuccess=()=>resolve(r.result?{root:r.result}:null);r.onerror=()=>reject(r.error)});connectionLoaded=true;return connection}finally{db.close()}
+  if(!connectionPromise)connectionPromise=(async()=>{
+   const db=await configDb();try{
+    const saved=await new Promise((resolve,reject)=>{const r=db.transaction('config').objectStore('config').get('root');r.onsuccess=()=>resolve(r.result?{root:r.result}:null);r.onerror=()=>reject(r.error)});
+    if(!connectionLoaded){connection=saved;connectionLoaded=true}return connection;
+   }finally{db.close()}
+  })().finally(()=>{connectionPromise=null});
+  return connectionPromise;
  }
  // Load the remembered capability early, without opening a permission prompt.
  connected().catch(()=>{});
@@ -140,14 +146,16 @@
  }
  async function connectForViewing(){
   const previous=connectionLoaded?connection:await connected();
-  if(previous){
-   if(!await allowRead(previous,{ask:true}))throw Error('Accesso alla cartella non autorizzato. Consenti l’accesso per aprire i PDF già collegati.');
+  if(previous?.files)return;
+  if(previous?.root){
+   if(!await allowRead(previous,{ask:true}))throw Error('Accesso alla cartella non autorizzato. Consenti l’accesso anche nelle visite successive oppure usa COLLEGA CARTELLA PDF IN MODO PERMANENTE.');
    return;
   }
   if(window.showDirectoryPicker){
    const picked=window.showDirectoryPicker({id:lumenStorage.isTest?'lumen-pdf-prova':'lumen-pdf',mode:'read'});
-   const root=await picked;connection={root};connectionLoaded=true;
-   try{await remember(root)}catch(_){}
+   const root=await picked;
+   if(root.name!=='LUMEN_ALLEGATI')throw Error('Seleziona esattamente la cartella LUMEN_ALLEGATI.');
+   await remember(root);connection={root};connectionLoaded=true;
   }else{
    const source=await new Promise((resolve,reject)=>{
     const input=document.createElement('input');input.type='file';input.setAttribute('webkitdirectory','');input.multiple=true;input.hidden=true;
@@ -158,7 +166,14 @@
   }
   window.dispatchEvent(new Event('lumen-allegati-esterni-updated'));
  }
- window.lumenExternalAttachments={valid,getBlob,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew,connectForViewing};
+ // Only call from an explicit user click, before opening any new browser window.
+ async function getBlobForViewing(row){
+  if(row.blob instanceof Blob)return row.blob;
+  if(!valid(row.external))throw Error('Collegamento esterno non valido. Nessun file è stato modificato.');
+  await connectForViewing();
+  return getBlob(row);
+ }
+ window.lumenExternalAttachments={valid,getBlob,getBlobForViewing,migrate,exportZip,sourceFromFiles,validateLightRows,preserveLocalFiles,stageNew,connectForViewing};
  // Deliberate, user-initiated local folder access; nothing runs on page load.
  const trigger=document.createElement('button');trigger.type='button';trigger.id='btnArchivioPdfMac';trigger.textContent='ARCHIVIO PDF SUL MAC';
  document.getElementById('btnBackupCompleto').insertAdjacentElement('afterend',trigger);
