@@ -23,11 +23,12 @@ const rec=reconcile(h,[e,e,{...e,date:'2026-02-01'},{...e,azienda:'ALTRA'}]);
 assert.equal(rec.missing.length,1);assert.equal(rec.duplicate.length,1);assert.equal(rec.ambiguous.length,1);
 assert.throws(()=>reconcile(h,[]));
 (async()=>{
- const bytes=Buffer.from('%PDF-TEST');const blob=new Blob([bytes]);const hash=createHash('sha256').update(bytes).digest('hex');
- globalThis.PDFLib={PDFDocument:{load:async()=>({getPageCount:()=>1})}};
+ globalThis.PDFLib=require('../vendor/pdf-lib.min.js');
+ const pdf=await PDFLib.PDFDocument.create();pdf.addPage();const bytes=await pdf.save();const blob=new Blob([bytes]);const hash=createHash('sha256').update(bytes).digest('hex');
  assert.equal((await checkPdf({hash,size:blob.size},()=>blob)).hashVerified,true);
  await assert.rejects(checkPdf({hash:'bad',size:blob.size},()=>blob),/SHA-256/);
  await assert.rejects(checkPdf({},()=>new Blob(['not pdf'])),/Intestazione/);
  await assert.rejects(checkPdf({},()=>Promise.reject(Error('file mancante'))),/file mancante/);
- console.log('Controlli sintetici superati (lettore PDF simulato).');
+ await assert.rejects(checkPdf({},()=>new Blob(['%PDF-TEST'])));
+ console.log('Controlli sintetici superati con il lettore PDF locale.');
 })().catch(e=>{console.error(e);process.exitCode=1});
