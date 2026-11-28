@@ -36,7 +36,7 @@
  const $=id=>document.getElementById(id);
  const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
  const fmt=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.split('-').reverse().join('/'):String(v||'');
- let target=null,pending=[],busy=false,renderVersion=0;
+ let target=null,pending=[],busy=false,reading=false,readEpoch=0,activeReadPopup=null,renderVersion=0;
  function identity(data){
   const x=storage.identity(data);
   if(!x.cognome||!x.nome||(!x.cf&&!x.dn&&!lumenStorage.isTest))throw Error('Apri la cartella del lavoratore. Servono cognome, nome e codice fiscale oppure data di nascita.');
@@ -47,7 +47,14 @@
   if(!target||stamp(identity(api.collect()))!==stamp(target)||api.selectionVersion()!==target.selection)throw Error('La cartella è cambiata. Chiudi ALLEGATI CARTELLA e riaprilo dal lavoratore corretto. Nessun nuovo file salvato.');
  }
  function message(value,error=false){$('allegatiMessage').textContent=value;$('allegatiMessage').dataset.error=String(error)}
- function setBusy(value){busy=value;for(const id of ['allegatiFiles','allegatiDate','allegatiNote','allegatiClose'])$(id).disabled=value;$('allegatiSave').disabled=value||!pending.length;dialog.querySelectorAll('#allegatiList button').forEach(b=>b.disabled=value)}
+ function setBusy(value,canClose=false){busy=value;reading=value&&canClose;for(const id of ['allegatiFiles','allegatiDate','allegatiNote'])$(id).disabled=value;$('allegatiClose').disabled=value&&!reading;$('allegatiSave').disabled=value||!pending.length;dialog.querySelectorAll('#allegatiList button').forEach(b=>b.disabled=value)}
+ async function readPdf(row){
+  if(row.blob instanceof Blob)return row.blob;
+  if(!window.lumenExternalAttachments)return null;
+  let timer;
+  try{return await Promise.race([window.lumenExternalAttachments.getBlob(row),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Lettura PDF non completata. Collega la cartella LUMEN_ALLEGATI da ARCHIVIO PDF SUL MAC e riprova.')),15000)})])}
+  finally{clearTimeout(timer)}
+ }
  function size(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.ceil(n/1024)+' KB'}
  function isMatch(row,person){return row.kind===kind&&row.workerKey===person.key}
  function stato(row){
@@ -61,7 +68,7 @@
  }
  function statoErrore(error){
   const reason=String(error?.message||error||'');
-  if(/PDF conservato sul Mac|collega la cartella|browser ha bloccato|permission|notallowed|securityerror|accesso negato/i.test(reason))return {key:'esterno',label:'🟡 NON ACCESSIBILE QUI · USA SALVA COPIA O COLLEGA IL MAC'};
+  if(/PDF conservato sul Mac|collega la cartella|browser ha bloccato|lettura PDF non completata|permission|notallowed|securityerror|accesso negato/i.test(reason))return {key:'esterno',label:'🟡 NON ACCESSIBILE QUI · USA SALVA COPIA O COLLEGA IL MAC'};
   return {key:'errore',label:'🔴 LETTURA FALLITA · VERIFICARE IL FILE'};
  }
  async function list(person){return (await storage.list()).filter(row=>isMatch(row,person)).sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)))}
@@ -75,15 +82,19 @@
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
    let opened=null;
+   const epoch=++readEpoch;
    try{
     assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.verify||b.dataset.delete,row=byId.get(id);
     if(b.dataset.delete){
      if(busy||!confirm('ELIMINARE SOLO QUESTO ALLEGATO?\n'+row.name+'\nLavoratore: '+target.name))return;
      setBusy(true);await remove(row);message('Allegato eliminato.');await render();
     }else{
+     setBusy(true,true);
+     mostraStato(b,{key:'esterno',label:'LETTURA PDF IN CORSO… PUOI CHIUDERE'});
+     message('LETTURA PDF IN CORSO…');
      if(b.dataset.verify){
-      setBusy(true);
-      const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
+      const blob=await readPdf(row);
+      if(epoch!==readEpoch||!dialog.open)return;
       if(!(blob instanceof Blob)||blob.size!==row.size)throw Error('Il file non è accessibile o ha una dimensione diversa.');
       mostraStato(b,{key:'locale',label:'🟢 FILE VERIFICATO SU QUESTO DISPOSITIVO'});
       message('Verifica riuscita: '+row.name+' è accessibile qui.');
@@ -91,19 +102,20 @@
      if(b.dataset.open&&!(row.blob instanceof Blob)){
       opened=window.open('','_blank');
       if(!opened)throw Error('Il browser ha bloccato la finestra del PDF. Usa SALVA COPIA oppure abilita le finestre per LUMEN.');
-      opened.opener=null;
+      opened.opener=null;activeReadPopup=opened;
      }
-     const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlob(row):null;
+     const blob=await readPdf(row);
+     if(epoch!==readEpoch||!dialog.open){if(opened&&!opened.closed)opened.close();return;}
      if(!(blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
      const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
-     if(opened){opened.location.replace(url);opened=null}else{
+     if(opened){opened.location.replace(url);opened=null;activeReadPopup=null}else{
       if(b.dataset.download)a.download=row.name;else{a.target='_blank';a.rel='noopener noreferrer'}
       document.body.appendChild(a);a.click();a.remove();
      }setTimeout(()=>URL.revokeObjectURL(url),300000);
-     mostraStato(b,{key:'locale',label:'🟢 FILE DISPONIBILE QUI'});
+     mostraStato(b,{key:'locale',label:'🟢 FILE DISPONIBILE QUI'});message('PDF LETTO CORRETTAMENTE.');
      }
     }
-   }catch(e){if(opened)opened.close();if(b.dataset.open||b.dataset.download||b.dataset.verify)mostraStato(b,statoErrore(e));message(e.message||String(e),true)}finally{setBusy(false)}
+   }catch(e){if(opened&&!opened.closed)opened.close();if(epoch===readEpoch){if(b.dataset.open||b.dataset.download||b.dataset.verify)mostraStato(b,statoErrore(e));message(e.message||String(e),true)}}finally{if(epoch===readEpoch){activeReadPopup=null;setBusy(false)}}
   });
  }
  async function remove(row){
@@ -166,7 +178,7 @@
    try{await render()}catch(e){message('ALLEGATI SALVATI. Impossibile aggiornare l’elenco: chiudi e riapri ALLEGATI CARTELLA.',true)}
   }catch(e){message('ALLEGATI NON SALVATI: '+(e.message||String(e)),true)}finally{setBusy(false)}
  };
- function close(){if(!busy){renderVersion++;dialog.close();button.focus()}}
+ function close(){if(busy&&!reading)return;readEpoch++;renderVersion++;if(activeReadPopup&&!activeReadPopup.closed)activeReadPopup.close();activeReadPopup=null;if(reading)setBusy(false);dialog.close();button.focus()}
  $('allegatiClose').onclick=close;
  dialog.addEventListener('cancel',e=>{e.preventDefault();close()});
 })();
