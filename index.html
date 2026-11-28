@@ -3003,7 +3003,7 @@ input.addEventListener('change',async e=>{
 <script src="importa-referti.js?v=20261014-mac-1"></script>
 <script src="backup-io.js?v=20261006-1"></script>
 <script src="backup-stream.js?v=20261014-mac-1"></script>
-<script src="allegati-esterni.js?v=20261128-permessi-pdf-2"></script>
+<script src="allegati-esterni.js?v=20261128-anteprima-pdf-3"></script>
 <script>
 /* Bundled with the chart so attachment access is available on offline reload. */
 /* Documenti clinici locali. Lo store originali è già incluso nel backup e nella
@@ -3057,6 +3057,52 @@ input.addEventListener('change',async e=>{
  function message(value,error=false){$('allegatiMessage').textContent=value;$('allegatiMessage').dataset.error=String(error)}
  function setBusy(value){busy=value;for(const id of ['allegatiFiles','allegatiDate','allegatiNote','allegatiClose'])$(id).disabled=value;$('allegatiSave').disabled=value||!pending.length;dialog.querySelectorAll('#allegatiList button').forEach(b=>b.disabled=value)}
  function size(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.ceil(n/1024)+' KB'}
+ function previewDocument(blob,row){
+  const pdf=/\.pdf$/i.test(row.name||'')||blob.type==='application/pdf';
+  const file=pdf&&blob.type!=='application/pdf'?new Blob([blob],{type:'application/pdf'}):blob;
+  const url=URL.createObjectURL(file),view=document.createElement('dialog');
+  view.style.cssText='width:min(960px,95vw);max-height:92vh;overflow:auto;padding:16px;box-sizing:border-box';
+  const bar=document.createElement('div');bar.style.cssText='position:sticky;top:0;background:white;z-index:1;padding:8px;display:flex;gap:12px;flex-wrap:wrap;align-items:center';
+  const close=document.createElement('button');close.type='button';close.textContent='CHIUDI PDF';
+  const download=document.createElement('a');download.href=url;download.download=row.name;download.textContent='SALVA COPIA';
+  const title=document.createElement('strong');title.textContent=row.name;
+  bar.append(close,download,title);
+  const pages=document.createElement('div'),status=document.createElement('p');status.setAttribute('role','status');status.textContent='Apertura documento…';
+  view.append(bar,status,pages);document.body.append(view);
+  let closed=false,task=null;
+  function finish(){if(closed)return;closed=true;view.close();view.remove();URL.revokeObjectURL(url);if(task)Promise.resolve(task.destroy()).catch(()=>{})}
+  close.onclick=finish;view.addEventListener('cancel',e=>{e.preventDefault();finish()});view.showModal();
+  function fallback(){if(closed)return;pages.replaceChildren();const frame=document.createElement('iframe');frame.title=row.name;frame.src=url;frame.style.cssText='width:100%;height:72vh;border:0';pages.append(frame);status.textContent='Anteprima del browser. Se non appare, usa SALVA COPIA.'}
+  if(!pdf||!window.pdfjsLib){fallback();return}
+  (async()=>{try{
+   if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+   const data=await file.arrayBuffer();if(closed)return;task=pdfjsLib.getDocument({data});const doc=await task.promise;
+   for(let i=1;i<=doc.numPages&&!closed;i++){
+    status.textContent='Caricamento pagina '+i+' di '+doc.numPages;
+    const page=await doc.getPage(i);if(closed)return;const base=page.getViewport({scale:1}),viewport=page.getViewport({scale:Math.min(2,Math.max(1,1100/base.width))});
+    const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);canvas.style.cssText='display:block;width:100%;height:auto;margin:8px auto;border:1px solid #ccc;box-sizing:border-box';
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;if(!closed)pages.append(canvas);
+   }
+   if(!closed)status.textContent=doc.numPages+' pagine visualizzate.';
+  }catch(e){if(!closed)fallback()}})();
+ }
+ function showAccessError(b,row,e){
+  mostraStato(b,statoErrore(e));message(e.message||String(e),true);
+  const article=b.closest('article');if(!article)return;
+  article.querySelector('.allegati-reconnect')?.remove();
+  const note=document.createElement('div');note.className='allegati-reconnect';note.style.cssText='margin-top:8px;color:#a51c1c;overflow-wrap:anywhere';
+  const detail=document.createElement('p');detail.textContent=e.message||String(e);note.append(detail);
+  if(row?.external&&window.showDirectoryPicker){
+   const retry=document.createElement('button');retry.type='button';retry.textContent='RICOLLEGA CARTELLA PDF E APRI';
+   retry.onclick=async()=>{if(busy)return;setBusy(true);try{
+    await window.lumenExternalAttachments.reconnectForViewing();assertTarget();
+    const blob=await window.lumenExternalAttachments.getBlob(row);assertTarget();
+    mostraStato(b,{key:'locale',label:'🟢 FILE VERIFICATO SU QUESTO DISPOSITIVO'});note.remove();message('');previewDocument(blob,row);
+   }catch(error){detail.textContent=error.message||String(error)}finally{setBusy(false)}};
+   note.append(retry);
+  }
+  article.append(note);note.scrollIntoView({block:'nearest'});
+ }
  function isMatch(row,person){return row.kind===kind&&row.workerKey===person.key}
  function stato(row){
   if(row.blob instanceof Blob)return row.blob.size>0&&row.blob.size===row.size?{key:'locale',label:'🟢 FILE PRESENTE SU QUESTO DISPOSITIVO'}:{key:'errore',label:'🔴 FILE DA VERIFICARE'};
@@ -3082,9 +3128,9 @@ input.addEventListener('change',async e=>{
   const byId=new Map(rows.map(row=>[row.id,row]));
   $('allegatiList').querySelectorAll('button').forEach(b=>b.onclick=async()=>{
    if(busy)return;
-   let opened=null;
+   let row;
    try{
-    assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.verify||b.dataset.delete,row=byId.get(id);
+    assertTarget();const id=b.dataset.open||b.dataset.download||b.dataset.verify||b.dataset.delete;row=byId.get(id);
     if(b.dataset.delete){
      if(busy||!confirm('ELIMINARE SOLO QUESTO ALLEGATO?\n'+row.name+'\nLavoratore: '+target.name))return;
      setBusy(true);await remove(row);message('Allegato eliminato.');await render();
@@ -3096,26 +3142,17 @@ input.addEventListener('change',async e=>{
       mostraStato(b,{key:'locale',label:'🟢 FILE VERIFICATO SU QUESTO DISPOSITIVO'});
       message('Verifica riuscita: '+row.name+' è accessibile qui.');
      }else{
-     // Directory permission must be obtained before opening a window: window.open consumes user activation.
+     setBusy(true);message('');b.closest('article')?.querySelector('.allegati-reconnect')?.remove();
      const blob=row.blob instanceof Blob?row.blob:window.lumenExternalAttachments?await window.lumenExternalAttachments.getBlobForViewing(row):null;
+     assertTarget();
      if(!(blob instanceof Blob))throw Error('File non disponibile. Ripristina una copia di sicurezza che lo contiene.');
-     const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
      if(b.dataset.download){
-      a.download=row.name;document.body.appendChild(a);a.click();a.remove();
-     }else{
-      // If the permission dialog consumed the click, offer a real link instead of a blank page.
-      opened=window.open('','_blank');
-      if(opened){opened.opener=null;opened.location.replace(url);opened=null}
-      else{
-       message('PDF pronto. Se Chrome blocca l’apertura automatica, premi ');
-       a.target='_blank';a.rel='noopener noreferrer';a.textContent='APRI PDF ORA';
-       $('allegatiMessage').append(a);
-      }
-     }setTimeout(()=>URL.revokeObjectURL(url),300000);
+      const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=row.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),300000);
+     }else previewDocument(blob,row);
      mostraStato(b,{key:'locale',label:'🟢 FILE DISPONIBILE QUI'});
      }
     }
-   }catch(e){if(opened)opened.close();if(b.dataset.open||b.dataset.download||b.dataset.verify)mostraStato(b,statoErrore(e));message(e.message||String(e),true)}finally{setBusy(false)}
+   }catch(e){if(b.dataset.open||b.dataset.download||b.dataset.verify)showAccessError(b,row,e);else message(e.message||String(e),true)}finally{setBusy(false)}
   });
  }
  async function remove(row){
