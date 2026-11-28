@@ -64,7 +64,12 @@ async function run(engine,name){
   assert.deepEqual(rows.map(r=>r.packet.visita).sort(),['2026-09-28','2026-09-29']);
   // Full backup contains the outbox; restoring merges it without deleting originals.
   await openToolbarGroup(page,'.archive-tools');
-  const downloading=page.waitForEvent('download');await page.locator('#btnBackupCompleto').click();const backup=JSON.parse(fs.readFileSync(await (await downloading).path(),'utf8'));
+  // The current backup is prepared first and downloaded only after a deliberate second click.
+  await page.locator('#btnBackupCompleto').click();
+  const backupLink=page.locator('#lumenBackupDownload');await backupLink.waitFor({state:'visible'});
+  assert.match(await page.locator('#lumenBackupTitle').innerText(),/PRONTO DA SALVARE/);
+  const downloading=page.waitForEvent('download');await backupLink.click();
+  const backup=JSON.parse(fs.readFileSync(await (await downloading).path(),'utf8'));
   assert.equal(backup.contenuto.firme_da_trasferire.length,2);
   await page.evaluate(async rows=>{await window.lumenFirmaOffline.restore(rows)},backup.contenuto.firme_da_trasferire);
   assert.equal((await page.evaluate(()=>window.lumenFirmaOffline.list())).length,2);
