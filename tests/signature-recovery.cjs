@@ -37,6 +37,11 @@ c.lumenStorage=c.window.lumenStorage;
 function line(name){return html.match(new RegExp('^(?:async )?function '+name+'\\([^\\n]+','m'))[0]}
 for(const name of ['numeroDecimale','text','allFields','workerSignatureIdentity','workerSignatureStore','collect','splitLegacyName','normArchive','cartellaIdentity','cartellaId','syncLavoratore'])vm.runInContext(line(name),c);
 vm.runInContext("const WORKER_SIGNATURE_KEY='beltrami_firme_lavoratori_v1';",c);
+// Load the real save-confirmation helpers used by apply() and archive saves.
+const saveUiStart=html.indexOf('function clearSaveConfirmation(){');
+const saveUiEnd=html.indexOf("document.addEventListener('lumen:bozza-salvata'",saveUiStart);
+assert.ok(saveUiStart>=0 && saveUiEnd>saveUiStart,'save-confirmation helpers must be present');
+vm.runInContext(html.slice(saveUiStart,saveUiEnd),c);
 vm.runInContext(html.slice(html.indexOf('function aggiornaBmi(){'),html.indexOf("['altezza','peso'].forEach")),c);
 if(html.includes('// A complete load'))vm.runInContext(html.slice(html.indexOf('// A complete load'),html.indexOf('\nfunction filename(')),c);else vm.runInContext(line('apply'),c);
 
@@ -45,7 +50,13 @@ let archive=null,writeFail=false,readBackFail=false;
 c.luogoVisitaCorrente=()=>'';c.optimizeWorkerSignature=async data=>data;c.clock=()=> '10:00';
 c.getCartellaRecord=async()=>archive?JSON.parse(JSON.stringify(archive)):null;
 c.putCartellaRecord=async rec=>{if(writeFail)throw new Error('DISK FULL');archive=JSON.parse(JSON.stringify(rec));return rec};
-vm.runInContext(line('saveToLocalArchive'),c);
+// The archive save is now multiline; exercise the complete production function.
+const archiveSaveStart=html.indexOf('async function saveToLocalArchive(');
+const archiveSaveEnd=html.indexOf('\nfunction archiveDateText(',archiveSaveStart);
+assert.ok(archiveSaveStart>=0 && archiveSaveEnd>archiveSaveStart,'full archive save must be present');
+// Attendance UI is outside this isolated signature test; archive writes remain real within the test fixture.
+c.sincronizzaNominativoListaSalvata=()=>{};
+vm.runInContext(html.slice(archiveSaveStart,archiveSaveEnd),c);
 vm.runInContext(html.slice(html.indexOf('// Requests are stored'),html.indexOf("window.addEventListener('load',()=>{const m=location.hash.match(/^#firma=")),c);
 c.showSaveInfo=(kind,title)=>{c.saveTitle=title;c.saveKind=kind};
 const A={cognome:'PROVA',nome:'FIRMA',codice_fiscale:'TEST_FIRMA',data_nascita:'1980-01-01',data_cartella:'2026-09-28',data_giudizio:'2026-09-28',firma_lavoratore_png:''};
