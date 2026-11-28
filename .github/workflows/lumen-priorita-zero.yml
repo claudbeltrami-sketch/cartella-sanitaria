@@ -1,0 +1,59 @@
+name: LUMEN - Priorita zero (controlli statici)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**.js'
+      - '**.html'
+      - '.github/workflows/**'
+  push:
+    branches:
+      - 'verifica/priorita-zero-20261128'
+permissions:
+  contents: read
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Controlli statici non distruttivi
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from collections import Counter
+          import re
+          root = Path.cwd()
+          source = (root / 'index.html').read_text(encoding='utf-8')
+          class Form(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = Counter()
+                  self.scripts = []
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if a.get('id'):
+                      self.ids[a['id']] += 1
+                  if tag == 'script' and a.get('src'):
+                      self.scripts.append(a['src'])
+          p = Form()
+          p.feed(source)
+          for side in ('dx','sx'):
+              for hz in (500,1000,2000,4000):
+                  key = f'audio_{side}_{hz}'
+                  assert p.ids[key] == 1, f'Soglia mancante o duplicata: {key}'
+          for name in ('collect','apply','allFields','saveToLocalArchive','creaBackupCompleto','ripristinaBackupCompleto'):
+              assert re.search(r'\bfunction\s+' + name + r'\s*\(', source), f'Funzione critica mancante: {name}'
+          for module in ('prova-storage.js','firma-offline.js','backup-io.js','backup-stream.js','allegati-esterni.js'):
+              assert any(x.split('?')[0] == module for x in p.scripts), f'Modulo critico non caricato: {module}'
+          for src in p.scripts:
+              if not src.startswith(('http:', 'https:', '//', 'data:')):
+                  path = src.split('?')[0].split('#')[0]
+                  assert (root / path).is_file(), f'Script locale mancante: {path}'
+          print('PASS: struttura e riferimenti critici presenti. Non costituisce collaudo funzionale o verifica dei dati locali.')
+          PY
+      - name: Sintassi JavaScript locale
+        run: |
+          for f in *.js; do
+            node --check "$f" || exit 1
+          done
